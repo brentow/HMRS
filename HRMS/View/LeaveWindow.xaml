@@ -1,0 +1,112 @@
+<UserControl x:Class="HRMS.View.LeaveWindow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:HRMS.ViewModel"
+             mc:Ignorable="d"
+             d:DesignHeight="800"
+             d:DesignWidth="1200"
+             Background="White">
+    <UserControl.Resources>
+        <Color x:Key="PrimaryColor">#1E4368</Color>
+        <Color x:Key="LightColor">#CBE9FE</Color>
+        <Color x:Key="AccentColor">#FDBD55</Color>
+        <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
+        <SolidColorBrush x:Key="LightBrush" Color="{StaticResource LightColor}" />
+        <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+
+        <Style x:Key="StatCardStyle" TargetType="Border">
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Padding" Value="14" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#E5EDF7" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Margin" Value="6" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="White">
+        <Grid.DataContext>
+            <vm:LeaveViewModel/>
+        </Grid.DataContext>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="20">
+                <Grid Margin="0,0,0,18">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Leave" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
+                        <TextBlock Text="Requests, approvals, and types" Foreground="#5B6A7A" />
+                    </StackPanel>
+                </Grid>
+
+                <UniformGrid Columns="5" Rows="1" Margin="0,0,0,16">
+                    <Border Style="{StaticResource StatCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Requests" Foreground="#6A7684"/>
+                            <TextBlock Text="{Binding TotalRequests}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource StatCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Pending" Foreground="#6A7684"/>
+                            <TextBlock Text="{Binding PendingRequests}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource StatCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Approved" Foreground="#6A7684"/>
+                            <TextBlock Text="{Binding ApprovedRequests}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource StatCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Rejected" Foreground="#6A7684"/>
+                            <TextBlock Text="{Binding RejectedRequests}" FontSize="28" FontWeight="Bold" Foreground="#E53935"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource StatCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Leave Types" Foreground="#6A7684"/>
+                            <TextBlock Text="{Binding LeaveTypes}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+
+                <Border Style="{StaticResource StatCardStyle}" Padding="18" Margin="6,6,6,6">
+                    <StackPanel>
+                        <TextBlock Text="Recent Leave Requests" FontSize="16" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,10"/>
+                        <ItemsControl ItemsSource="{Binding Requests}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:LeaveRequestVm}">
+                                    <Border BorderBrush="#E5EDF7" BorderThickness="1" CornerRadius="12" Padding="12" Margin="0,6,0,0" Background="#F9FBFF">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="2*" />
+                                                <ColumnDefinition Width="1.5*" />
+                                                <ColumnDefinition Width="1.4*" />
+                                                <ColumnDefinition Width="1.4*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Employee}" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding LeaveType}" Foreground="#5B6A7A"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding StartDate, StringFormat={}{0:MMM dd, yyyy}}" Foreground="#5B6A7A"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding EndDate, StringFormat={}{0:MMM dd, yyyy}}" Foreground="#5B6A7A"/>
+                                            <Border Grid.Column="4" Background="{Binding StatusColor}" CornerRadius="8" Padding="10,4" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Status}" Foreground="White" FontWeight="SemiBold"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

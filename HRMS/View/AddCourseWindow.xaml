@@ -1,0 +1,62 @@
+<Window x:Class="HRMS.View.AddCourseWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Add Course"
+        Height="494" Width="560"
+        WindowStartupLocation="CenterOwner"
+        Background="White"
+        WindowStyle="None">
+    <Grid Margin="16" Background="White">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="Add Course" FontSize="20" FontWeight="Bold" Foreground="#1E4368"/>
+            <TextBlock Text="Enter the course details, then click Save."
+                       Foreground="#4A5565"/>
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,0,0,12">
+                <TextBlock Text="Title" FontWeight="SemiBold" Foreground="#1E4368" />
+                <TextBox x:Name="TitleBox" Margin="0,4,0,12" KeyDown="TextBox_KeyDown"/>
+
+                <TextBlock Text="Provider" FontWeight="SemiBold" Foreground="#1E4368" />
+                <TextBox x:Name="ProviderBox" Margin="0,4,0,12" KeyDown="TextBox_KeyDown"/>
+
+                <TextBlock Text="Hours" FontWeight="SemiBold" Foreground="#1E4368" />
+                <TextBox x:Name="HoursBox" Margin="0,4,0,12" KeyDown="TextBox_KeyDown"/>
+
+                <TextBlock Text="Status" FontWeight="SemiBold" Foreground="#1E4368" />
+                <ComboBox x:Name="StatusBox" Margin="0,4,0,12" Height="28" KeyDown="TextBox_KeyDown">
+                    <ComboBoxItem Content="Active" IsSelected="True"/>
+                    <ComboBoxItem Content="Inactive"/>
+                </ComboBox>
+
+                <TextBlock Text="Description" FontWeight="SemiBold" Foreground="#1E4368" />
+                <TextBox x:Name="DescriptionBox" Margin="0,4,0,0" AcceptsReturn="True" Height="80" TextWrapping="Wrap" KeyDown="TextBox_KeyDown"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0" >
+            <Button Content="Save"
+                    Width="90"
+                    Padding="10,6"
+                    Background="#FDBD55"
+                    Foreground="#1E4368"
+                    BorderThickness="0"
+                    Margin="0,0,8,0"
+                    Click="Save_Click"/>
+            <Button Content="Close"
+                    Width="90"
+                    Padding="10,6"
+                    Background="#1E4368"
+                    Foreground="White"
+                    BorderThickness="0"
+                    Click="Close_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
