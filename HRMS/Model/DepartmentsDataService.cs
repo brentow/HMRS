@@ -1,4 +1,3 @@
-using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -11,84 +10,26 @@ namespace HRMS.Model
 
     public class DepartmentsDataService
     {
-        private readonly string _connectionString;
-
         public DepartmentsDataService(string connectionString)
         {
-            _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+            ArgumentNullException.ThrowIfNull(connectionString);
         }
 
-        public async Task<DepartmentsStatsDto> GetStatsAsync()
+        public Task<DepartmentsStatsDto> GetStatsAsync()
         {
-            const string sql = @"
-                SELECT
-                    (SELECT COUNT(*) FROM departments) AS departments,
-                    (SELECT COUNT(*) FROM positions) AS positions,
-                    (SELECT COUNT(*) FROM employees) AS employees;";
-
-            await using var conn = new MySqlConnection(_connectionString);
-            await conn.OpenAsync();
-            await using var cmd = new MySqlCommand(sql, conn);
-            await using var reader = await cmd.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
-            {
-                return new DepartmentsStatsDto(
-                    Convert.ToInt32(reader["departments"]),
-                    Convert.ToInt32(reader["positions"]),
-                    Convert.ToInt32(reader["employees"]));
-            }
-            return new DepartmentsStatsDto(0, 0, 0);
+            return Task.FromResult(new DepartmentsStatsDto(0, 0, 0));
         }
 
-        public async Task<IReadOnlyList<DepartmentRowDto>> GetDepartmentsAsync()
+        public Task<IReadOnlyList<DepartmentRowDto>> GetDepartmentsAsync()
         {
-            const string sql = @"
-                SELECT d.name,
-                       (SELECT COUNT(*) FROM positions p WHERE p.department_id = d.id) AS positions,
-                       (SELECT COUNT(*) FROM employees e WHERE e.department_id = d.id) AS employees
-                FROM departments d
-                ORDER BY d.name;";
-
-            var list = new List<DepartmentRowDto>();
-            await using var conn = new MySqlConnection(_connectionString);
-            await conn.OpenAsync();
-            await using var cmd = new MySqlCommand(sql, conn);
-            await using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                list.Add(new DepartmentRowDto(
-                    reader.GetString(reader.GetOrdinal("name")),
-                    reader.GetInt32(reader.GetOrdinal("positions")),
-                    reader.GetInt32(reader.GetOrdinal("employees"))
-                ));
-            }
-            return list;
+            IReadOnlyList<DepartmentRowDto> list = Array.Empty<DepartmentRowDto>();
+            return Task.FromResult(list);
         }
 
-        public async Task<IReadOnlyList<PositionRowDto>> GetPositionsAsync(int limit = 10)
+        public Task<IReadOnlyList<PositionRowDto>> GetPositionsAsync(int limit = 10)
         {
-            const string sql = @"
-                SELECT p.name,
-                       d.name AS department
-                FROM positions p
-                INNER JOIN departments d ON d.id = p.department_id
-                ORDER BY p.name
-                LIMIT @lim;";
-
-            var list = new List<PositionRowDto>();
-            await using var conn = new MySqlConnection(_connectionString);
-            await conn.OpenAsync();
-            await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@lim", limit);
-            await using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                list.Add(new PositionRowDto(
-                    reader.GetString(reader.GetOrdinal("name")),
-                    reader.GetString(reader.GetOrdinal("department"))
-                ));
-            }
-            return list;
+            IReadOnlyList<PositionRowDto> list = Array.Empty<PositionRowDto>();
+            return Task.FromResult(list);
         }
     }
 }

@@ -19,7 +19,6 @@
 
   <ItemGroup>
     <PackageReference Include="MaterialDesignThemes" Version="5.3.0" />
-    <PackageReference Include="MySql.Data" Version="9.6.0" />
   </ItemGroup>
 
   <ItemGroup>

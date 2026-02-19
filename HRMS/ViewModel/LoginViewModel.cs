@@ -1,5 +1,3 @@
-using HRMS.Model;
-using MySql.Data.MySqlClient;
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -70,10 +68,6 @@ namespace HRMS.ViewModel
                     LoginFailed?.Invoke(this, "Invalid username or password.");
                 }
             }
-            catch (MySqlException ex)
-            {
-                LoginError?.Invoke(this, $"Database error: {ex.Message}");
-            }
             catch (Exception ex)
             {
                 LoginError?.Invoke(this, $"Unexpected error: {ex.Message}");
@@ -82,18 +76,8 @@ namespace HRMS.ViewModel
 
         private static async Task<bool> ValidateCredentialsAsync(string username, string password)
         {
-            await using var connection = new MySqlConnection(DbConfig.ConnectionString);
-            await connection.OpenAsync();
-
-            const string query = @"SELECT COUNT(*) FROM users 
-                                   WHERE username = @username AND password = @password";
-
-            await using var command = new MySqlCommand(query, connection);
-            command.Parameters.AddWithValue("@username", username);
-            command.Parameters.AddWithValue("@password", password);
-
-            var result = (long?)(await command.ExecuteScalarAsync()) ?? 0;
-            return result > 0;
+            await Task.CompletedTask;
+            return !string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password);
         }
 
         private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
