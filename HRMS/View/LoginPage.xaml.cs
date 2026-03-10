@@ -1,8 +1,10 @@
 using HRMS.ViewModel;
 using HRMS;
+using HRMS.Model;
 using MaterialDesignThemes.Wpf;
 using System;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace HRMS.View
@@ -67,6 +69,11 @@ namespace HRMS.View
             }
         }
 
+        private void UsernameTextBox_OnTextChanged(object sender, TextChangedEventArgs e)
+        {
+            ClearLoginError();
+        }
+
         private void PasswordBox_OnKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
@@ -84,30 +91,49 @@ namespace HRMS.View
         private void PasswordBox_OnPasswordChanged(object sender, RoutedEventArgs e)
         {
             // PasswordBox.Password cannot be bound directly, so we relay it to the ViewModel here.
+            ClearLoginError();
             _viewModel.Password = PasswordBox.Password;
         }
         #endregion
 
         #region Login callbacks
-        private void OnLoginSucceeded(object? sender, EventArgs e)
+        private void OnLoginSucceeded(object? sender, AuthenticatedUser user)
         {
-            MessageBox.Show("Login successful!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-
-            var dashboard = new DashboardWindow();
+            var dashboard = new DashboardWindow(user);
             Application.Current.MainWindow = dashboard;
             dashboard.Show();
+            if (user.MustChangePassword)
+            {
+                MessageBox.Show(
+                    "Your password was reset. Please change it now in Users & Roles > Profile.",
+                    "Password Update Required",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
             Close();
         }
 
         private void OnLoginFailed(object? sender, string message)
         {
-            MessageBox.Show(message, "Login failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            ShowLoginError(message);
         }
 
         private void OnLoginError(object? sender, string message)
         {
-            MessageBox.Show(message, "Connection error", MessageBoxButton.OK, MessageBoxImage.Error);
+            ShowLoginError(message);
         }
         #endregion
+
+        private void ShowLoginError(string message)
+        {
+            LoginErrorText.Text = message;
+            LoginErrorText.Visibility = Visibility.Visible;
+        }
+
+        private void ClearLoginError()
+        {
+            LoginErrorText.Text = string.Empty;
+            LoginErrorText.Visibility = Visibility.Collapsed;
+        }
     }
 }

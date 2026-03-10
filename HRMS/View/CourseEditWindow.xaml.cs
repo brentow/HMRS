@@ -22,32 +22,49 @@ namespace HRMS.View
 
         private async void Save_Click(object sender, RoutedEventArgs e)
         {
-            if (DataContext is TrainingCourseSummary course)
+            try
             {
-                // persist to DB
-                var service = new TrainingDataService(DbConfig.ConnectionString);
-                var dto = new TrainingCourseDto(course.Id, course.Title, course.Provider, course.Description, course.Hours, course.Status);
-                await service.UpdateCourseAsync(dto);
+                if (DataContext is TrainingCourseSummary course)
+                {
+                    // persist to DB
+                    var service = new TrainingDataService(DbConfig.ConnectionString);
+                    var dto = new TrainingCourseDto(course.Id, course.Title, course.Provider, course.Description, course.Hours, course.Status);
+                    await service.UpdateCourseAsync(dto);
 
-                // update status color in UI immediately
-                course.StatusColor = TrainingViewModel.GetStatusBrush(course.Status);
-                TrainingVm?.RefreshFilter();
+                    // update status color in UI immediately
+                    course.StatusColor = TrainingViewModel.GetStatusBrush(course.Status);
+                    TrainingVm?.RefreshFilter();
+                }
+
+                SystemRefreshBus.Raise("TrainingCourseUpdated");
+                DialogResult = true;
+                Close();
             }
-            DialogResult = true;
-            Close();
+            catch (System.Exception ex)
+            {
+                MessageBox.Show($"Unable to save course: {ex.Message}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private async void Delete_Click(object sender, RoutedEventArgs e)
         {
-            if (DataContext is TrainingCourseSummary course)
+            try
             {
-                var service = new TrainingDataService(DbConfig.ConnectionString);
-                await service.DeleteCourseAsync(course.Id);
+                if (DataContext is TrainingCourseSummary course)
+                {
+                    var service = new TrainingDataService(DbConfig.ConnectionString);
+                    await service.DeleteCourseAsync(course.Id);
 
-                // notify owner view model to remove course from collections
-                TrainingVm?.RemoveCourse(course.Id);
-                DialogResult = true;
-                Close();
+                    // notify owner view model to remove course from collections
+                    TrainingVm?.RemoveCourse(course.Id);
+                    SystemRefreshBus.Raise("TrainingCourseDeleted");
+                    DialogResult = true;
+                    Close();
+                }
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show($"Unable to delete course: {ex.Message}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

@@ -10,6 +10,7 @@ namespace HRMS.ViewModel
     public class DashboardViewModel : INotifyPropertyChanged
     {
         private readonly DashboardDataService _dataService;
+        private readonly AuthenticatedUser? _authenticatedUser;
         private DashboardStats _stats = new DashboardStats();
         private bool _isLoading;
         private string _errorMessage = string.Empty;
@@ -22,11 +23,15 @@ namespace HRMS.ViewModel
         private bool _isEmployeesVisible = false;
         private bool _isDepartmentsVisible = false;
         private bool _isAttendanceVisible = false;
+        private bool _isAttendanceLogsVisible = false;
+        private bool _isAdjustmentsVisible = false;
         private bool _isLeaveVisible = false;
         private bool _isPayrollVisible = false;
+        private bool _isMyDocumentsVisible = false;
 
-        public DashboardViewModel()
+        public DashboardViewModel(AuthenticatedUser? authenticatedUser = null)
         {
+            _authenticatedUser = authenticatedUser;
             _dataService = new DashboardDataService(DbConfig.ConnectionString);
             RefreshCommand = new AsyncRelayCommand(_ => LoadStatsAsync());
 
@@ -35,6 +40,7 @@ namespace HRMS.ViewModel
         }
 
         public ICommand RefreshCommand { get; }
+        public Task RefreshAsync() => LoadStatsAsync();
 
         public DashboardStats Stats
         {
@@ -45,6 +51,24 @@ namespace HRMS.ViewModel
                 OnPropertyChanged();
             }
         }
+
+        public bool ShowAdminHrDashboard => IsAdminAccess || IsHrAccess;
+        public bool ShowEmployeeDashboard => IsEmployeeAccess;
+
+        public string SnapshotTitle => ShowEmployeeDashboard ? "My Workday Snapshot" : "Organization Snapshot";
+
+        public string SnapshotSubtitle => ShowEmployeeDashboard
+            ? "Your attendance, leave, payroll, and development status"
+            : "Live HR operations and approval workload";
+
+        private bool IsAdminAccess =>
+            string.Equals(_authenticatedUser?.RoleName?.Trim(), "Admin", StringComparison.OrdinalIgnoreCase);
+
+        private bool IsHrAccess =>
+            string.Equals(_authenticatedUser?.RoleName?.Trim(), "HR Manager", StringComparison.OrdinalIgnoreCase);
+
+        private bool IsEmployeeAccess =>
+            string.Equals(_authenticatedUser?.RoleName?.Trim(), "Employee", StringComparison.OrdinalIgnoreCase);
 
         public bool IsLoading
         {
@@ -174,15 +198,33 @@ namespace HRMS.ViewModel
             private set { if (_isLeaveVisible != value) { _isLeaveVisible = value; OnPropertyChanged(); } }
         }
 
+        public bool IsAttendanceLogsVisible
+        {
+            get => _isAttendanceLogsVisible;
+            private set { if (_isAttendanceLogsVisible != value) { _isAttendanceLogsVisible = value; OnPropertyChanged(); } }
+        }
+
+        public bool IsAdjustmentsVisible
+        {
+            get => _isAdjustmentsVisible;
+            private set { if (_isAdjustmentsVisible != value) { _isAdjustmentsVisible = value; OnPropertyChanged(); } }
+        }
+
         public bool IsPayrollVisible
         {
             get => _isPayrollVisible;
             private set { if (_isPayrollVisible != value) { _isPayrollVisible = value; OnPropertyChanged(); } }
         }
 
-        public void ShowDashboard()
+        public bool IsMyDocumentsVisible
         {
-            IsDashboardVisible = true;
+            get => _isMyDocumentsVisible;
+            private set { if (_isMyDocumentsVisible != value) { _isMyDocumentsVisible = value; OnPropertyChanged(); } }
+        }
+
+        private void HideAllModules()
+        {
+            IsDashboardVisible = false;
             IsTrainingVisible = false;
             IsRecruitmentVisible = false;
             IsPerformanceVisible = false;
@@ -190,134 +232,89 @@ namespace HRMS.ViewModel
             IsEmployeesVisible = false;
             IsDepartmentsVisible = false;
             IsAttendanceVisible = false;
+            IsAttendanceLogsVisible = false;
+            IsAdjustmentsVisible = false;
             IsLeaveVisible = false;
             IsPayrollVisible = false;
+            IsMyDocumentsVisible = false;
+        }
+
+        public void ShowDashboard()
+        {
+            HideAllModules();
+            IsDashboardVisible = true;
         }
 
         public void ShowTraining()
         {
-            IsDashboardVisible = false;
+            HideAllModules();
             IsTrainingVisible = true;
-            IsRecruitmentVisible = false;
-            IsPerformanceVisible = false;
-            IsUsersVisible = false;
-            IsEmployeesVisible = false;
-            IsDepartmentsVisible = false;
-            IsAttendanceVisible = false;
-            IsLeaveVisible = false;
-            IsPayrollVisible = false;
         }
 
         public void ShowRecruitment()
         {
-            IsDashboardVisible = false;
-            IsTrainingVisible = false;
+            HideAllModules();
             IsRecruitmentVisible = true;
-            IsPerformanceVisible = false;
-            IsUsersVisible = false;
-            IsEmployeesVisible = false;
-            IsDepartmentsVisible = false;
-            IsAttendanceVisible = false;
-            IsLeaveVisible = false;
-            IsPayrollVisible = false;
         }
 
         public void ShowPerformance()
         {
-            IsDashboardVisible = false;
-            IsTrainingVisible = false;
-            IsRecruitmentVisible = false;
+            HideAllModules();
             IsPerformanceVisible = true;
-            IsUsersVisible = false;
-            IsEmployeesVisible = false;
-            IsDepartmentsVisible = false;
-            IsAttendanceVisible = false;
-            IsLeaveVisible = false;
-            IsPayrollVisible = false;
         }
 
         public void ShowUsers()
         {
-            IsDashboardVisible = false;
-            IsTrainingVisible = false;
-            IsRecruitmentVisible = false;
-            IsPerformanceVisible = false;
+            HideAllModules();
             IsUsersVisible = true;
-            IsEmployeesVisible = false;
-            IsDepartmentsVisible = false;
-            IsAttendanceVisible = false;
-            IsLeaveVisible = false;
-            IsPayrollVisible = false;
         }
 
         public void ShowEmployees()
         {
-            IsDashboardVisible = false;
-            IsTrainingVisible = false;
-            IsRecruitmentVisible = false;
-            IsPerformanceVisible = false;
-            IsUsersVisible = false;
+            HideAllModules();
             IsEmployeesVisible = true;
-            IsDepartmentsVisible = false;
-            IsAttendanceVisible = false;
-            IsLeaveVisible = false;
-            IsPayrollVisible = false;
         }
 
         public void ShowDepartments()
         {
-            IsDashboardVisible = false;
-            IsTrainingVisible = false;
-            IsRecruitmentVisible = false;
-            IsPerformanceVisible = false;
-            IsUsersVisible = false;
-            IsEmployeesVisible = false;
+            HideAllModules();
             IsDepartmentsVisible = true;
-            IsAttendanceVisible = false;
-            IsLeaveVisible = false;
-            IsPayrollVisible = false;
         }
 
         public void ShowAttendance()
         {
-            IsDashboardVisible = false;
-            IsTrainingVisible = false;
-            IsRecruitmentVisible = false;
-            IsPerformanceVisible = false;
-            IsUsersVisible = false;
-            IsEmployeesVisible = false;
-            IsDepartmentsVisible = false;
+            HideAllModules();
             IsAttendanceVisible = true;
-            IsLeaveVisible = false;
-            IsPayrollVisible = false;
+        }
+
+        public void ShowAttendanceLogs()
+        {
+            HideAllModules();
+            IsAttendanceLogsVisible = true;
+        }
+
+        public void ShowAdjustments()
+        {
+            HideAllModules();
+            IsAdjustmentsVisible = true;
         }
 
         public void ShowLeave()
         {
-            IsDashboardVisible = false;
-            IsTrainingVisible = false;
-            IsRecruitmentVisible = false;
-            IsPerformanceVisible = false;
-            IsUsersVisible = false;
-            IsEmployeesVisible = false;
-            IsDepartmentsVisible = false;
-            IsAttendanceVisible = false;
+            HideAllModules();
             IsLeaveVisible = true;
-            IsPayrollVisible = false;
         }
 
         public void ShowPayroll()
         {
-            IsDashboardVisible = false;
-            IsTrainingVisible = false;
-            IsRecruitmentVisible = false;
-            IsPerformanceVisible = false;
-            IsUsersVisible = false;
-            IsEmployeesVisible = false;
-            IsDepartmentsVisible = false;
-            IsAttendanceVisible = false;
-            IsLeaveVisible = false;
+            HideAllModules();
             IsPayrollVisible = true;
+        }
+
+        public void ShowMyDocuments()
+        {
+            HideAllModules();
+            IsMyDocumentsVisible = true;
         }
 
         private async Task LoadStatsAsync()
@@ -326,7 +323,15 @@ namespace HRMS.ViewModel
             ErrorMessage = string.Empty;
             try
             {
-                Stats = await _dataService.GetDashboardStatsAsync();
+                if (IsEmployeeAccess && _authenticatedUser?.EmployeeId is int employeeId && employeeId > 0)
+                {
+                    Stats = await _dataService.GetEmployeeDashboardStatsAsync(employeeId);
+                }
+                else
+                {
+                    Stats = await _dataService.GetDashboardStatsAsync();
+                }
+
                 LastUpdated = DateTime.Now;
             }
             catch (Exception ex)

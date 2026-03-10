@@ -1,3 +1,6 @@
 <Solution>
   <Project Path="HRMS/HRMS.csproj" />
+  <Project Path="HRMS_Installer/HRMS_Installer.vdproj" Type="Installer">
+    <Build />
+  </Project>
 </Solution>

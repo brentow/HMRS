@@ -24,3 +24,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Local database/app secrets
+HRMS/DatabaseConfig.txt
+**/database.config.json
+*.tmp

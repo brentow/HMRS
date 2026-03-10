@@ -1,3 +1,5 @@
+using HRMS.Model;
+using MySqlConnector;
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -8,6 +10,7 @@ namespace HRMS.ViewModel
 {
     public class LoginViewModel : INotifyPropertyChanged
     {
+        private readonly LoginDataService _loginDataService = new(DbConfig.ConnectionString);
         private string _username = string.Empty;
         private string _password = string.Empty;
 
@@ -17,7 +20,7 @@ namespace HRMS.ViewModel
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
-        public event EventHandler? LoginSucceeded;
+        public event EventHandler<AuthenticatedUser>? LoginSucceeded;
         public event EventHandler<string>? LoginFailed;
         public event EventHandler<string>? LoginError;
 
@@ -57,27 +60,43 @@ namespace HRMS.ViewModel
         {
             try
             {
-                var isValid = await ValidateCredentialsAsync(Username, Password);
+                var result = await _loginDataService.ValidateCredentialsAsync(Username.Trim(), Password);
+                switch (result.Status)
+                {
+                    case LoginStatus.Success:
+                        if (result.User == null)
+                        {
+                            LoginError?.Invoke(this, "Login succeeded but user profile was not loaded.");
+                            return;
+                        }
 
-                if (isValid)
-                {
-                    LoginSucceeded?.Invoke(this, EventArgs.Empty);
+                        LoginSucceeded?.Invoke(this, result.User);
+                        break;
+                    case LoginStatus.Inactive:
+                        LoginFailed?.Invoke(this, "This account is inactive. Please contact HR admin.");
+                        break;
+                    case LoginStatus.Locked:
+                        LoginFailed?.Invoke(this, "This account is locked. Please contact HR admin.");
+                        break;
+                    default:
+                        LoginFailed?.Invoke(this, "Invalid username or password.");
+                        break;
                 }
-                else
+            }
+            catch (MySqlException ex)
+            {
+                if (ex.Number == 1045 || ex.Message.Contains("Access denied", StringComparison.OrdinalIgnoreCase))
                 {
-                    LoginFailed?.Invoke(this, "Invalid username or password.");
+                    LoginError?.Invoke(this, "Database access denied. Set correct DB username/password in DbConfig or HRMS_DB_* environment variables.");
+                    return;
                 }
+
+                LoginError?.Invoke(this, $"Database error: {ex.Message}");
             }
             catch (Exception ex)
             {
                 LoginError?.Invoke(this, $"Unexpected error: {ex.Message}");
             }
-        }
-
-        private static async Task<bool> ValidateCredentialsAsync(string username, string password)
-        {
-            await Task.CompletedTask;
-            return !string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password);
         }
 
         private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

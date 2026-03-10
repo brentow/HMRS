@@ -3,125 +3,849 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="clr-namespace:HRMS.ViewModel"
-             xmlns:local="clr-namespace:HRMS"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              mc:Ignorable="d"
              d:DesignHeight="600"
-             d:DesignWidth="900"
+             d:DesignWidth="1100"
              Background="White">
     <UserControl.Resources>
         <Color x:Key="PrimaryColor">#1E4368</Color>
-        <Color x:Key="LightColor">#CBE9FE</Color>
         <Color x:Key="AccentColor">#FDBD55</Color>
         <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
-        <SolidColorBrush x:Key="LightBrush" Color="{StaticResource LightColor}" />
         <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
-        <local:BooleanToActiveTextConverter x:Key="BooleanToActiveText"/>
 
-        <Style x:Key="StatCardStyle" TargetType="Border">
-            <Setter Property="CornerRadius" Value="14"/>
-            <Setter Property="Padding" Value="14"/>
-            <Setter Property="Background" Value="White"/>
+        <Style x:Key="ProfileCardStyle" TargetType="Border">
             <Setter Property="BorderBrush" Value="#E5EDF7"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Margin" Value="6"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="14"/>
+            <Setter Property="Background" Value="White"/>
         </Style>
 
-        <Style x:Key="PillBadge" TargetType="Border">
-            <Setter Property="CornerRadius" Value="10"/>
-            <Setter Property="Padding" Value="10,4"/>
-            <Setter Property="HorizontalAlignment" Value="Left"/>
+        <Style x:Key="ProfileInputStyle" TargetType="TextBox">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="BorderBrush" Value="#D6E1F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="#F9FBFF"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+
+        <Style x:Key="ProfilePrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ProfileSecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource ProfilePrimaryButtonStyle}">
+            <Setter Property="Background" Value="#F0F5FD"/>
+            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}"/>
+        </Style>
+
+        <Style x:Key="ProfileDangerButtonStyle" TargetType="Button" BasedOn="{StaticResource ProfilePrimaryButtonStyle}">
+            <Setter Property="Background" Value="#D84545"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <Style x:Key="SettingsCardStyle" TargetType="Border">
+            <Setter Property="BorderBrush" Value="#E5EDF7"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="14"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+
+        <Style x:Key="SettingsInputStyle" TargetType="TextBox">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="BorderBrush" Value="#D6E1F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="#F7FAFF"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="SettingsComboStyle" TargetType="ComboBox">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="BorderBrush" Value="#D6E1F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="#F7FAFF"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
     </UserControl.Resources>
 
-    <Grid Background="White">
-        <Grid.DataContext>
-            <vm:UsersRolesViewModel/>
-        </Grid.DataContext>
-        <StackPanel Margin="20">
-            <Grid Margin="0,0,0,16">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel>
-                    <TextBlock Text="Users &amp; Roles" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
-                    <TextBlock Text="Manage user access and roles across the system." Foreground="#5B6A7A"/>
-                </StackPanel>
-            </Grid>
+    <Grid Margin="4" Background="White">
+        <TabControl x:Name="UsersRolesTabControl">
+            <TabItem x:Name="ProfileTabItem" Header="Profile">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-            <UniformGrid Columns="4" Rows="1" Margin="0,0,0,14">
-                <Border Style="{StaticResource StatCardStyle}">
-                    <StackPanel>
-                        <TextBlock Text="Total Users" Foreground="#6A7684"/>
-                        <TextBlock Text="{Binding TotalUsers}" FontSize="26" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
-                    </StackPanel>
-                </Border>
-                <Border Style="{StaticResource StatCardStyle}">
-                    <StackPanel>
-                        <TextBlock Text="Total Managers" Foreground="#6A7684"/>
-                        <TextBlock Text="{Binding ManagerUsers}" FontSize="26" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
-                    </StackPanel>
-                </Border>
-                <Border Style="{StaticResource StatCardStyle}">
-                    <StackPanel>
-                        <TextBlock Text="Total Roles" Foreground="#6A7684"/>
-                        <TextBlock Text="{Binding TotalRoles}" FontSize="26" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
-                    </StackPanel>
-                </Border>
-                <Border Style="{StaticResource StatCardStyle}">
-                    <StackPanel>
-                        <TextBlock Text="Admins" Foreground="#6A7684"/>
-                        <TextBlock Text="{Binding AdminUsers}" FontSize="26" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
-                    </StackPanel>
-                </Border>
-            </UniformGrid>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Current Login Profile" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                            <TextBlock Text="Manage your account details and password." Foreground="#5B6A7A" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Style="{StaticResource ProfileSecondaryButtonStyle}"
+                                    Width="110"
+                                    Margin="0,0,8,0"
+                                    Command="{Binding RefreshCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Reload"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource ProfilePrimaryButtonStyle}"
+                                    Width="130"
+                                    Margin="0,0,8,0"
+                                    Command="{Binding SaveProfileCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="ContentSaveOutline" Width="16" Height="16" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Save Profile"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource ProfileDangerButtonStyle}"
+                                    Width="110"
+                                    Click="LogoutButton_OnClick">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="LogoutVariant" Width="16" Height="16" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Log Out"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
 
-            <Border Style="{StaticResource StatCardStyle}" Padding="18">
-                <StackPanel>
-                    <TextBlock Text="Users" FontSize="16" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,10"/>
-                    <ItemsControl ItemsSource="{Binding Users}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type vm:UserDisplay}">
-                                <Border BorderBrush="#E5EDF7" BorderThickness="1" CornerRadius="12" Padding="12" Margin="0,6,0,0" Background="#F9FBFF">
+                    <Border Grid.Row="1"
+                            BorderBrush="#DDE8F6"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="14"
+                            Margin="0,0,0,12"
+                            Background="#F7FAFF">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Width="64" Height="64" CornerRadius="32" Background="White" Margin="0,0,12,0">
+                                <materialDesign:PackIcon Kind="AccountCircle" Width="36" Height="36" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding CurrentFullName}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                                <TextBlock Text="{Binding CurrentUsername, StringFormat=@{0}}" Foreground="#5B6A7A" FontSize="14" Margin="0,4,0,0"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <Border Background="#EAF2FB" CornerRadius="10" Padding="12,4" Margin="0,0,0,6" MinWidth="120">
+                                    <TextBlock Text="{Binding ProfileRole}" Foreground="{StaticResource PrimaryBrush}" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                </Border>
+                                <Border Background="{Binding CurrentStatusBrush}" CornerRadius="10" Padding="12,4" MinWidth="120">
+                                    <TextBlock Text="{Binding CurrentStatus}" Foreground="White" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource ProfileCardStyle}" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Text="Profile Information" FontSize="18" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,12"/>
+
+                                <TextBlock Text="Username" Foreground="#4A5B6C" Margin="0,0,0,4"/>
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="34" Height="40" Background="#EEF4FD" BorderBrush="#D6E1F0" BorderThickness="1,1,0,1" CornerRadius="8,0,0,8">
+                                        <materialDesign:PackIcon Kind="At" Width="16" Height="16" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBox Grid.Column="1"
+                                             Style="{StaticResource ProfileInputStyle}"
+                                             BorderThickness="0,1,1,1"
+                                             Text="{Binding ProfileUsername, UpdateSourceTrigger=PropertyChanged}"/>
+                                </Grid>
+
+                                <TextBlock Text="Full Name" Foreground="#4A5B6C" Margin="0,0,0,4"/>
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="34" Height="40" Background="#EEF4FD" BorderBrush="#D6E1F0" BorderThickness="1,1,0,1" CornerRadius="8,0,0,8">
+                                        <materialDesign:PackIcon Kind="AccountOutline" Width="16" Height="16" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBox Grid.Column="1"
+                                             Style="{StaticResource ProfileInputStyle}"
+                                             BorderThickness="0,1,1,1"
+                                             Text="{Binding ProfileFullName, UpdateSourceTrigger=PropertyChanged}"/>
+                                </Grid>
+
+                                <TextBlock Text="Email" Foreground="#4A5B6C" Margin="0,0,0,4"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="34" Height="40" Background="#EEF4FD" BorderBrush="#D6E1F0" BorderThickness="1,1,0,1" CornerRadius="8,0,0,8">
+                                        <materialDesign:PackIcon Kind="EmailOutline" Width="16" Height="16" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBox Grid.Column="1"
+                                             Style="{StaticResource ProfileInputStyle}"
+                                             BorderThickness="0,1,1,1"
+                                             Text="{Binding ProfileEmail, UpdateSourceTrigger=PropertyChanged}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource ProfileCardStyle}" Margin="8,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Access &amp; Security" FontSize="18" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,12"/>
+
+                                <UniformGrid Columns="2" Margin="0,0,0,10">
+                                    <Border Background="#F6FAFF" BorderBrush="#E5EDF7" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,0,6,0">
+                                        <StackPanel>
+                                            <TextBlock Text="User ID" Foreground="#6A7684" FontSize="12"/>
+                                            <TextBlock Text="{Binding CurrentUserId}" Foreground="{StaticResource PrimaryBrush}" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Background="#F6FAFF" BorderBrush="#E5EDF7" BorderThickness="1" CornerRadius="10" Padding="10" Margin="6,0,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="Role" Foreground="#6A7684" FontSize="12"/>
+                                            <TextBlock Text="{Binding ProfileRole}" Foreground="{StaticResource PrimaryBrush}" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </Border>
+                                </UniformGrid>
+
+                                <Border Background="#F6FAFF" BorderBrush="#E5EDF7" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,0,0,10">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="2*" />
-                                            <ColumnDefinition Width="1.4*" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <StackPanel>
-                                            <TextBlock Text="{Binding Username}" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
-                                            <TextBlock Text="{Binding Roles}" Foreground="#5B6A7A" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="Last Login" Foreground="#6A7684" FontSize="12"/>
+                                            <TextBlock Text="{Binding ProfileLastLogin}" Foreground="{StaticResource PrimaryBrush}" FontWeight="SemiBold"/>
                                         </StackPanel>
-                                        <ComboBox Grid.Column="1"
-                                                  ItemsSource="{Binding DataContext.Roles, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                  SelectedItem="{Binding CurrentRole, Mode=TwoWay}"
-                                                  Margin="149,0,10,0"
-                                                  Height="28"/>
-                                        <Button Grid.Column="2"
-                                                Content="Save"
-                                                Padding="10,4"
-                                                Margin="0,0,10,0"
-                                                Background="{StaticResource AccentBrush}"
-                                                Foreground="{StaticResource PrimaryBrush}"
-                                                BorderThickness="0"
-                                                Command="{Binding DataContext.SaveRoleCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}"/>
-                                        <Border Grid.Column="3"
-                                                Style="{StaticResource PillBadge}"
-                                                Background="{Binding StatusColor}"
-                                                VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding IsActive, Converter={StaticResource BooleanToActiveText}}" Foreground="White" FontWeight="SemiBold"/>
+                                        <Border Grid.Column="1" Background="{Binding CurrentStatusBrush}" CornerRadius="10" Padding="10,4" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding ProfileStatus}" Foreground="White" FontWeight="SemiBold"/>
                                         </Border>
                                     </Grid>
                                 </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-            </Border>
-        </StackPanel>
+
+                                <TextBlock Text="New Password (optional)" Foreground="#4A5B6C" Margin="0,0,0,4"/>
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="34" Height="40" Background="#EEF4FD" BorderBrush="#D6E1F0" BorderThickness="1,1,0,1" CornerRadius="8,0,0,8">
+                                        <materialDesign:PackIcon Kind="LockOutline" Width="16" Height="16" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBox Grid.Column="1"
+                                             Style="{StaticResource ProfileInputStyle}"
+                                             BorderThickness="0,1,1,1"
+                                             Text="{Binding ProfileNewPassword, UpdateSourceTrigger=PropertyChanged}"/>
+                                </Grid>
+
+                                <TextBlock Text="Confirm Password" Foreground="#4A5B6C" Margin="0,0,0,4"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="34" Height="40" Background="#EEF4FD" BorderBrush="#D6E1F0" BorderThickness="1,1,0,1" CornerRadius="8,0,0,8">
+                                        <materialDesign:PackIcon Kind="LockCheckOutline" Width="16" Height="16" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBox Grid.Column="1"
+                                             Style="{StaticResource ProfileInputStyle}"
+                                             BorderThickness="0,1,1,1"
+                                             Text="{Binding ProfileConfirmPassword, UpdateSourceTrigger=PropertyChanged}"/>
+                                </Grid>
+
+                                <TextBlock Text="Leave password fields empty if you only want to update profile details."
+                                           Foreground="#6A7684"
+                                           FontSize="12"
+                                           Margin="0,10,0,0"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem x:Name="UsersRolesAdminTabItem" Header="Users &amp; Roles Administration">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Users &amp; Roles Administration" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                            <TextBlock Text="Manage role, status, and password resets for user accounts." Foreground="#5B6A7A"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Width="120" Height="34" Content="Refresh" Command="{Binding RefreshCommand}" Background="{StaticResource PrimaryBrush}" Foreground="White" BorderThickness="0"/>
+                    </Grid>
+
+                    <Grid Grid.Row="1" Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="220"/>
+                        </Grid.ColumnDefinitions>
+                        <DockPanel Margin="0,0,10,0" LastChildFill="True">
+                            <materialDesign:PackIcon Kind="Magnify" Width="18" Height="18" Margin="8,0,8,0" Foreground="#8CA0BA" VerticalAlignment="Center"/>
+                            <TextBox Height="38"
+                                     BorderBrush="#D6E1F0"
+                                     BorderThickness="1"
+                                     Background="#F7FAFF"
+                                     Padding="8,0"
+                                     VerticalContentAlignment="Center"
+                                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
+                        </DockPanel>
+                        <ComboBox Grid.Column="1" Height="38" ItemsSource="{Binding StatusFilters}" SelectedItem="{Binding SelectedStatusFilter}"/>
+                    </Grid>
+
+                    <UniformGrid Grid.Row="2" Columns="6" Rows="1" Margin="0,0,0,12">
+                        <Border BorderBrush="#E5EDF7" BorderThickness="1" CornerRadius="12" Padding="10" Margin="4,0"><StackPanel><TextBlock Text="Total Users" Foreground="#6A7684"/><TextBlock Text="{Binding TotalUsers}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/></StackPanel></Border>
+                        <Border BorderBrush="#E5EDF7" BorderThickness="1" CornerRadius="12" Padding="10" Margin="4,0" Background="#F4FBF7"><StackPanel><TextBlock Text="Active" Foreground="#6A7684"/><TextBlock Text="{Binding ActiveUsers}" FontSize="22" FontWeight="Bold" Foreground="#2E9D5B"/></StackPanel></Border>
+                        <Border BorderBrush="#E5EDF7" BorderThickness="1" CornerRadius="12" Padding="10" Margin="4,0"><StackPanel><TextBlock Text="Inactive" Foreground="#6A7684"/><TextBlock Text="{Binding InactiveUsers}" FontSize="22" FontWeight="Bold" Foreground="#7D8793"/></StackPanel></Border>
+                        <Border BorderBrush="#E5EDF7" BorderThickness="1" CornerRadius="12" Padding="10" Margin="4,0" Background="#FFF6F6"><StackPanel><TextBlock Text="Locked" Foreground="#6A7684"/><TextBlock Text="{Binding LockedUsers}" FontSize="22" FontWeight="Bold" Foreground="#D84343"/></StackPanel></Border>
+                        <Border BorderBrush="#E5EDF7" BorderThickness="1" CornerRadius="12" Padding="10" Margin="4,0" Background="#FFF7E8"><StackPanel><TextBlock Text="Admins" Foreground="#6A7684"/><TextBlock Text="{Binding AdminUsers}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/></StackPanel></Border>
+                        <Border BorderBrush="#E5EDF7" BorderThickness="1" CornerRadius="12" Padding="10" Margin="4,0"><StackPanel><TextBlock Text="{Binding TotalRoles, StringFormat=Roles: {0}}" Foreground="#6A7684"/><TextBlock Text="{Binding TotalPermissions, StringFormat=Permissions: {0}}" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}"/></StackPanel></Border>
+                    </UniformGrid>
+
+                    <Border Grid.Row="3"
+                            BorderBrush="#E5EDF7"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="12"
+                            Margin="0,0,0,12"
+                            Background="#F9FBFF">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.3*"/>
+                                <ColumnDefinition Width="1.6*"/>
+                                <ColumnDefinition Width="1.5*"/>
+                                <ColumnDefinition Width="1.2*"/>
+                                <ColumnDefinition Width="1.3*"/>
+                                <ColumnDefinition Width="1.3*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,8,0">
+                                <TextBlock Text="Username" Foreground="#4A5B6C" Margin="0,0,0,4"/>
+                                <TextBox Height="38"
+                                         Style="{StaticResource SettingsInputStyle}"
+                                         Text="{Binding AddUserUsername, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="8,0">
+                                <TextBlock Text="Full Name" Foreground="#4A5B6C" Margin="0,0,0,4"/>
+                                <TextBox Height="38"
+                                         Style="{StaticResource SettingsInputStyle}"
+                                         Text="{Binding AddUserFullName, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Margin="8,0">
+                                <TextBlock Text="Email" Foreground="#4A5B6C" Margin="0,0,0,4"/>
+                                <TextBox Height="38"
+                                         Style="{StaticResource SettingsInputStyle}"
+                                         Text="{Binding AddUserEmail, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="3" Margin="8,0">
+                                <TextBlock Text="Role" Foreground="#4A5B6C" Margin="0,0,0,4"/>
+                                <ComboBox Height="38"
+                                          Style="{StaticResource SettingsComboStyle}"
+                                          ItemsSource="{Binding AddUserRoles}"
+                                          SelectedItem="{Binding AddUserRole, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="4" Margin="8,0">
+                                <TextBlock Text="Password" Foreground="#4A5B6C" Margin="0,0,0,4"/>
+                                <TextBox Height="38"
+                                         Style="{StaticResource SettingsInputStyle}"
+                                         Text="{Binding AddUserPassword, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="5" Margin="8,0">
+                                <TextBlock Text="Retype Password" Foreground="#4A5B6C" Margin="0,0,0,4"/>
+                                <TextBox Height="38"
+                                         Style="{StaticResource SettingsInputStyle}"
+                                         Text="{Binding AddUserConfirmPassword, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <Button Grid.Column="6"
+                                    Width="120"
+                                    Height="38"
+                                    Margin="12,22,0,0"
+                                    Command="{Binding AddUserCommand}"
+                                    Background="{StaticResource PrimaryBrush}"
+                                    Foreground="White"
+                                    BorderThickness="0">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="AccountPlusOutline" Width="16" Height="16" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Add User"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <DataGrid Grid.Row="4"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              CanUserResizeRows="False"
+                              GridLinesVisibility="Horizontal"
+                              HeadersVisibility="Column"
+                              RowHeaderWidth="0"
+                              BorderThickness="1"
+                              BorderBrush="#E5EDF7"
+                              ItemsSource="{Binding Users}">
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background" Value="#F2F6FC"/>
+                                <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="Padding" Value="10,8"/>
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="120"/>
+                            <DataGridTextColumn Header="Full Name" Binding="{Binding FullName}" Width="180"/>
+                            <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="190"/>
+                            <DataGridTemplateColumn Header="Role" Width="140">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox Height="30"
+                                                  ItemsSource="{Binding DataContext.Roles, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  SelectedItem="{Binding SelectedRole, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Status" Width="130">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox Height="30"
+                                                  ItemsSource="{Binding DataContext.StatusOptions, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  SelectedItem="{Binding SelectedStatus, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Last Login" Binding="{Binding LastLoginText}" Width="170"/>
+                            <DataGridTemplateColumn Header="Actions" Width="290">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <Button Width="70" Height="32" Margin="0,0,8,0" Content="Save" Command="{Binding DataContext.SaveUserCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Background="{StaticResource PrimaryBrush}" Foreground="White" BorderThickness="0"/>
+                                            <Button Width="90" Height="32" Margin="0,0,8,0" Content="Reset" Command="{Binding DataContext.ResetPasswordCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Background="#F0F5FD" Foreground="{StaticResource PrimaryBrush}" BorderThickness="0"/>
+                                            <Button Width="90" Height="32" Content="Delete" Command="{Binding DataContext.DeleteUserCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Background="#FFECEC" Foreground="#C52F2F" BorderThickness="0"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Border Grid.Row="5" BorderBrush="#E5EDF7" BorderThickness="1" CornerRadius="10" Padding="10,6" Background="#F9FBFF" Margin="0,10,0,0">
+                        <DockPanel>
+                            <TextBlock Text="{Binding ActionMessage}" Foreground="{Binding ActionMessageBrush}" FontWeight="SemiBold"/>
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding Users.Count, StringFormat=Visible users: {0}}" Foreground="#5B6A7A"/>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem x:Name="SystemSettingsTabItem" Header="System Settings">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="8">
+                        <Border Style="{StaticResource SettingsCardStyle}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <materialDesign:PackIcon Kind="DatabaseCogOutline" Width="22" Height="22" Foreground="{StaticResource PrimaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <StackPanel>
+                                        <TextBlock Text="Database Connection" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                                        <TextBlock Text="{Binding DatabaseEndpointText}" Foreground="#5B6A7A"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <RadioButton Content="Local Database (localhost)"
+                                                 IsChecked="{Binding UseLocalDatabase, Mode=TwoWay}"
+                                                 Margin="0,0,20,0"/>
+                                    <RadioButton Content="Remote Database (Custom IP)"
+                                                 IsChecked="{Binding UseRemoteDatabase, Mode=TwoWay}"/>
+                                </StackPanel>
+
+                                <Border Background="#EAF4FF" BorderBrush="#D6E8FF" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,10">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="InformationOutline" Width="16" Height="16" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Enter the server running MySQL. Use localhost if this PC hosts the database." Foreground="#2D5783"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="90"/>
+                                        <ColumnDefinition Width="2*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,8,0">
+                                        <TextBlock Text="Server IP / Host" Foreground="#5B6A7A" Margin="0,0,0,4"/>
+                                        <TextBox Style="{StaticResource SettingsInputStyle}" Text="{Binding DbHost, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="4,0">
+                                        <TextBlock Text="Port" Foreground="#5B6A7A" Margin="0,0,0,4"/>
+                                        <TextBox Style="{StaticResource SettingsInputStyle}" Text="{Binding DbPort, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Margin="8,0,0,0">
+                                        <TextBlock Text="Database Name" Foreground="#5B6A7A" Margin="0,0,0,4"/>
+                                        <TextBox Style="{StaticResource SettingsInputStyle}" Text="{Binding DbName, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,8,0">
+                                        <TextBlock Text="Username" Foreground="#5B6A7A" Margin="0,0,0,4"/>
+                                        <TextBox Style="{StaticResource SettingsInputStyle}" Text="{Binding DbUsername, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                        <TextBlock Text="Password" Foreground="#5B6A7A" Margin="0,0,0,4"/>
+                                        <TextBox Style="{StaticResource SettingsInputStyle}" Text="{Binding DbPassword, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Width="150"
+                                            Height="40"
+                                            Margin="0,0,8,0"
+                                            Command="{Binding TestDbConnectionCommand}"
+                                            Style="{StaticResource ProfileSecondaryButtonStyle}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="DatabaseSearchOutline" Width="16" Height="16" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Test Connection"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Width="165"
+                                            Height="40"
+                                            Margin="0,0,8,0"
+                                            Command="{Binding CreateDatabaseCommand}"
+                                            Style="{StaticResource ProfileSecondaryButtonStyle}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="DatabasePlusOutline" Width="16" Height="16" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Create Database"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Width="150"
+                                            Height="40"
+                                            Command="{Binding SaveDbConnectionCommand}"
+                                            Style="{StaticResource ProfilePrimaryButtonStyle}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="ContentSaveOutline" Width="16" Height="16" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Save &amp; Apply"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBlock Text="{Binding DbConnectionStatus}"
+                                               Foreground="{Binding DbConnectionStatusBrush}"
+                                               VerticalAlignment="Center"
+                                               Margin="12,0,0,0"
+                                               FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingsCardStyle}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <materialDesign:PackIcon Kind="InformationOutline" Width="22" Height="22" Foreground="#2D8CFF" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="About" FontSize="22" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                                </StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="System Version:" Foreground="#5B6A7A" Margin="0,0,0,6"/>
+                                    <TextBlock Grid.Column="1" Text="Version 1.0.0 - HRMS Desktop Release" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,6"/>
+                                    <TextBlock Grid.Row="1" Text="Developer:" Foreground="#5B6A7A" Margin="0,0,0,6"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="IT Student Final Project" Foreground="#2A3C50" Margin="0,0,0,6"/>
+                                    <TextBlock Grid.Row="2" Text="University:" Foreground="#5B6A7A" Margin="0,0,0,6"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Philippine University" Foreground="#2A3C50" Margin="0,0,0,6"/>
+                                    <TextBlock Grid.Row="3" Text="Description:" Foreground="#5B6A7A"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Desktop WPF Human Resource Management System with MySQL database." Foreground="#2A3C50"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingsCardStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <materialDesign:PackIcon Kind="ServerNetwork" Width="22" Height="22" Foreground="#3BAF63" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Text="System Information" FontSize="22" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding DbConnectionStatus, StringFormat=Database Status: {0}}" Foreground="{Binding DbConnectionStatusBrush}" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                                    <TextBlock Text="{Binding StorageLocation, StringFormat=File Storage Location: {0}}" Foreground="#2A3C50" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding TempFolderPath, StringFormat=Temp Folder: {0}}" Foreground="#2A3C50" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                                    <Button Width="150" Height="40" Margin="0,0,0,8" Command="{Binding RefreshSystemInfoCommand}" Style="{StaticResource ProfileSecondaryButtonStyle}">
+                                        <TextBlock Text="Test Connection"/>
+                                    </Button>
+                                    <Button Width="150" Height="40" Command="{Binding OpenStorageFolderCommand}" Style="{StaticResource ProfileSecondaryButtonStyle}">
+                                        <TextBlock Text="Open Folder"/>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingsCardStyle}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <materialDesign:PackIcon Kind="DatabaseExportOutline" Width="22" Height="22" Foreground="#F59E0B" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="Database Backup" FontSize="22" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                                </StackPanel>
+                                <TextBlock Text="Create recovery copies of your Hostinger online MySQL database. Use these backup files if you need to restore the live system later." Foreground="#5B6A7A" Margin="0,0,0,10" TextWrapping="Wrap"/>
+                                <Border Background="#FFF8E8" BorderBrush="#F6E3BA" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,10">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="AlertOutline" Width="16" Height="16" Foreground="#C48213" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Requires mysqldump to be installed and available in your PATH so the app can export the database to a backup file." Foreground="#A56800" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Text="Backup Type" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,10"/>
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Grid.Column="0"
+                                            Background="#EDF5FF"
+                                            BorderBrush="#BCD9FF"
+                                            BorderThickness="1"
+                                            CornerRadius="12"
+                                            Padding="14">
+                                        <Grid MinHeight="214">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                <materialDesign:PackIcon Kind="Database" Width="18" Height="18" Foreground="#2D5783" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="Full Backup" FontSize="15" FontWeight="Bold" Foreground="#234D7A" VerticalAlignment="Center"/>
+                                                <Border Background="#D8EAFE" CornerRadius="10" Padding="8,2" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="Recommended" FontSize="11" FontWeight="SemiBold" Foreground="#234D7A"/>
+                                                </Border>
+                                            </StackPanel>
+                                            <TextBlock Grid.Row="1" Text="Copies the whole Hostinger online database." Foreground="#41576D" Margin="0,0,0,6" TextWrapping="Wrap"/>
+                                            <TextBlock Grid.Row="2" Text="Best choice for your current setup because restore is simplest when multiple PCs use one live database." TextWrapping="Wrap" Foreground="#5B6A7A" FontSize="12"/>
+                                            <Button Width="150"
+                                                    Grid.Row="4"
+                                                    Height="38"
+                                                    Margin="0,12,0,0"
+                                                    HorizontalAlignment="Left"
+                                                    Background="#1E4368"
+                                                    Foreground="White"
+                                                    Style="{StaticResource ProfilePrimaryButtonStyle}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="DatabaseArrowDownOutline" Width="16" Height="16" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="Full Backup"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+
+                                    <Border Grid.Column="2"
+                                            Background="#F6F8FC"
+                                            BorderBrush="#D9E1EC"
+                                            BorderThickness="1"
+                                            CornerRadius="12"
+                                            Padding="14">
+                                        <Grid MinHeight="214">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                <materialDesign:PackIcon Kind="DatabaseRefreshOutline" Width="18" Height="18" Foreground="#50657B" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="Incremental Backup" FontSize="15" FontWeight="Bold" Foreground="#2A3C50" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Row="1" Text="Copies only the new changes after the last backup of the Hostinger live database." Foreground="#41576D" Margin="0,0,0,6" TextWrapping="Wrap"/>
+                                            <TextBlock Grid.Row="2" Text="Uses the least storage, but restoring later needs the full backup plus every incremental file in order." TextWrapping="Wrap" Foreground="#5B6A7A" FontSize="12"/>
+                                            <Button Width="180"
+                                                    Grid.Row="4"
+                                                    Height="38"
+                                                    Margin="0,12,0,0"
+                                                    HorizontalAlignment="Left"
+                                                    Background="#4E647B"
+                                                    Foreground="White"
+                                                    Style="{StaticResource ProfileSecondaryButtonStyle}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="DatabaseRefreshOutline" Width="16" Height="16" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="Incremental Backup"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+
+                                    <Border Grid.Column="4"
+                                            Background="#FFF8EC"
+                                            BorderBrush="#F5DEB3"
+                                            BorderThickness="1"
+                                            CornerRadius="12"
+                                            Padding="14">
+                                        <Grid MinHeight="214">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                <materialDesign:PackIcon Kind="DatabaseSyncOutline" Width="18" Height="18" Foreground="#9C6B00" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="Differential Backup" FontSize="15" FontWeight="Bold" Foreground="#7D5A00" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Row="1" Text="Copies all changes made since the last full backup of the Hostinger live database." Foreground="#7A6333" Margin="0,0,0,6" TextWrapping="Wrap"/>
+                                            <TextBlock Grid.Row="2" Text="Good middle option: larger than incremental, but easier to restore because you only need the full backup and the latest differential file." TextWrapping="Wrap" Foreground="#8A7342" FontSize="12"/>
+                                            <Button Width="175"
+                                                    Grid.Row="4"
+                                                    Height="38"
+                                                    Margin="0,12,0,0"
+                                                    HorizontalAlignment="Left"
+                                                    Background="#C48213"
+                                                    Foreground="White"
+                                                    Style="{StaticResource ProfileSecondaryButtonStyle}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="DatabaseSyncOutline" Width="16" Height="16" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="Differential Backup"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingsCardStyle}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <materialDesign:PackIcon Kind="DeleteClockOutline" Width="22" Height="22" Foreground="#B142CF" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="Clear Temporary Files" FontSize="22" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                                </StackPanel>
+                                <TextBlock Text="Remove temporary files to free disk space. Files currently in use are skipped." Foreground="#5B6A7A" Margin="0,0,0,10"/>
+                                <TextBlock Text="{Binding TempFilesSizeText, StringFormat=Current Temp Files Size: {0}}" Foreground="#2A3C50" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                                <Button Width="180"
+                                        Height="40"
+                                        HorizontalAlignment="Left"
+                                        Command="{Binding ClearTempFilesCommand}"
+                                        Style="{StaticResource ProfilePrimaryButtonStyle}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Broom" Width="16" Height="16" Margin="0,0,6,0"/>
+                                        <TextBlock Text="Clear Temp Files"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,0,0">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <materialDesign:PackIcon Kind="DatabasePlusOutline" Width="22" Height="22" Foreground="#20B8CE" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="Database Seeder" FontSize="22" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                                </StackPanel>
+                                <TextBlock Text="Populate database with required baseline/demo data for HRMS modules." Foreground="#5B6A7A" Margin="0,0,0,10"/>
+                                <Border Background="#EAF8FF" BorderBrush="#CBEFFF" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <TextBlock Text="Sample data includes:" FontWeight="SemiBold" Foreground="#2D5783"/>
+                                        <TextBlock Text="- Roles, permissions, departments, and positions" Foreground="#2D5783" Margin="0,4,0,0"/>
+                                        <TextBlock Text="- Employees, user accounts, attendance, DTR, leave, payroll, training" Foreground="#2D5783"/>
+                                        <TextBlock Text="- Recruitment and performance sample records" Foreground="#2D5783"/>
+                                    </StackPanel>
+                                </Border>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <Button Width="140" Height="40" Margin="0,0,8,0" Command="{Binding SeedDatabaseCommand}" Style="{StaticResource ProfileSecondaryButtonStyle}">
+                                        <TextBlock Text="Seed Database"/>
+                                    </Button>
+                                    <Button Width="150" Height="40" Command="{Binding ResetAndSeedCommand}" Background="#D84343" Foreground="White" BorderThickness="0">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}" CornerRadius="8">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                        <TextBlock Text="Reset and Seed"/>
+                                    </Button>
+                                </StackPanel>
+                                <CheckBox Content="I understand this will delete all existing database data"
+                                          IsChecked="{Binding ConfirmResetAndSeed, Mode=TwoWay}"
+                                          Foreground="#C52F2F"
+                                          FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border BorderBrush="#E5EDF7" BorderThickness="1" CornerRadius="10" Padding="10,6" Background="#F9FBFF">
+                            <TextBlock Text="{Binding ActionMessage}"
+                                       Foreground="{Binding ActionMessageBrush}"
+                                       FontWeight="SemiBold"/>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
     </Grid>
 </UserControl>

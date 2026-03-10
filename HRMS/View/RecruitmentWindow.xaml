@@ -1,141 +1,1029 @@
-<UserControl x:Class="HRMS.View.RecruitmentWindow"
+﻿<UserControl x:Class="HRMS.View.RecruitmentWindow"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:vm="clr-namespace:HRMS.ViewModel"
              mc:Ignorable="d"
-             d:DesignHeight="800"
+             d:DesignHeight="760"
              d:DesignWidth="1200"
              Background="White">
+    <UserControl.DataContext>
+        <vm:RecruitmentViewModel/>
+    </UserControl.DataContext>
+
     <UserControl.Resources>
         <Color x:Key="PrimaryColor">#1E4368</Color>
-        <Color x:Key="LightColor">#CBE9FE</Color>
         <Color x:Key="AccentColor">#FDBD55</Color>
         <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
-        <SolidColorBrush x:Key="LightBrush" Color="{StaticResource LightColor}" />
         <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
 
-        <Style x:Key="StatCardStyle" TargetType="Border">
-            <Setter Property="CornerRadius" Value="14" />
-            <Setter Property="Padding" Value="14" />
-            <Setter Property="Background" Value="White" />
-            <Setter Property="BorderBrush" Value="#E5EDF7" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Margin" Value="6" />
+        <Style x:Key="ModuleCardStyle" TargetType="Border">
+            <Setter Property="BorderBrush" Value="#DDE8F6"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Background" Value="White"/>
+        </Style>
+
+        <Style x:Key="StatCardStyle" TargetType="Border" BasedOn="{StaticResource ModuleCardStyle}">
+            <Setter Property="Padding" Value="12"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+        </Style>
+
+        <Style x:Key="FieldLabelStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#5A6A7C"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <Style x:Key="InputTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="BorderBrush" Value="#C7D8EE"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="#F8FBFF"/>
+        </Style>
+
+        <Style x:Key="InputComboStyle" TargetType="ComboBox">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="BorderBrush" Value="#C7D8EE"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="#F8FBFF"/>
+        </Style>
+
+        <Style x:Key="FormWrapPanelStyle" TargetType="WrapPanel">
+            <Setter Property="Margin" Value="0,2,0,0"/>
+        </Style>
+
+        <Style x:Key="FormFieldStackStyle" TargetType="StackPanel">
+            <Setter Property="Margin" Value="0,0,10,10"/>
+        </Style>
+
+        <Style x:Key="FormActionStackStyle" TargetType="StackPanel">
+            <Setter Property="Width" Value="126"/>
+            <Setter Property="Margin" Value="0,20,0,10"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+        </Style>
+
+        <Style x:Key="InputDateStyle"
+               TargetType="DatePicker"
+               BasedOn="{StaticResource MaterialDesignOutlinedDatePicker}">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="10,0,10,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#1F1F1F"/>
+            <Setter Property="Language" Value="en-GB"/>
+            <Setter Property="SelectedDateFormat" Value="Short"/>
+            <Style.Resources>
+                <Style TargetType="{x:Type DatePickerTextBox}">
+                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                    <Setter Property="Padding" Value="8,0,28,0"/>
+                    <Setter Property="Foreground" Value="#1F1F1F"/>
+                </Style>
+            </Style.Resources>
+        </Style>
+
+        <Style x:Key="DateFieldBorderStyle" TargetType="Border">
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Background" Value="#F8FBFF"/>
+            <Setter Property="BorderBrush" Value="#C7D8EE"/>
+            <Setter Property="BorderThickness" Value="1,1,1,2"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="GridDateFieldBorderStyle" TargetType="Border">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Background" Value="#F8FBFF"/>
+            <Setter Property="BorderBrush" Value="#C7D8EE"/>
+            <Setter Property="BorderThickness" Value="1,1,1,2"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="9">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+            <Setter Property="Background" Value="#EAF2FB"/>
+            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}"/>
+        </Style>
+
+        <Style x:Key="SuccessButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+            <Setter Property="Background" Value="#2E9D5B"/>
+        </Style>
+
+        <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+            <Setter Property="Background" Value="#D84343"/>
+        </Style>
+
+        <Style x:Key="RecruitmentRowStyle" TargetType="DataGridRow">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="MinHeight" Value="44"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#E8F1FC"/>
+                    <Setter Property="Foreground" Value="#1E4368"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="RecruitmentDataGridStyle" TargetType="DataGrid">
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="CanUserDeleteRows" Value="False"/>
+            <Setter Property="CanUserResizeRows" Value="False"/>
+            <Setter Property="CanUserReorderColumns" Value="False"/>
+            <Setter Property="EnableRowVirtualization" Value="True"/>
+            <Setter Property="EnableColumnVirtualization" Value="True"/>
+            <Setter Property="RowHeaderWidth" Value="0"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="RowBackground" Value="White"/>
+            <Setter Property="AlternatingRowBackground" Value="#F9FBFF"/>
+            <Setter Property="BorderBrush" Value="#E5EDF7"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="RowHeight" Value="48"/>
+            <Setter Property="ColumnHeaderHeight" Value="44"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#E5EDF7"/>
+            <Setter Property="VerticalGridLinesBrush" Value="Transparent"/>
+            <Setter Property="SelectionUnit" Value="FullRow"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="ColumnWidth" Value="SizeToCells"/>
+            <Setter Property="MinColumnWidth" Value="80"/>
+            <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="RowStyle" Value="{StaticResource RecruitmentRowStyle}"/>
+        </Style>
+
+        <Style x:Key="RecruitmentHeaderStyle" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#EEF4FD"/>
+            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="BorderBrush" Value="#E5EDF7"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="10,0"/>
+        </Style>
+
+        <Style x:Key="RecruitmentHeaderCenterStyle"
+               TargetType="DataGridColumnHeader"
+               BasedOn="{StaticResource RecruitmentHeaderStyle}">
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="RecruitmentCellStyle" TargetType="DataGridCell">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Foreground" Value="#1E4368"/>
+            <Setter Property="TextBlock.TextWrapping" Value="NoWrap"/>
+            <Setter Property="TextBlock.TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        </Style>
+
+        <Style x:Key="RecruitmentGridTextStyle" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+
+        <Style x:Key="RecruitmentGridCenteredTextStyle"
+               TargetType="TextBlock"
+               BasedOn="{StaticResource RecruitmentGridTextStyle}">
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="RecruitmentGridEditTextStyle" TargetType="TextBox" BasedOn="{StaticResource InputTextBoxStyle}">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Padding" Value="8,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="RecruitmentGridComboStyle" TargetType="ComboBox" BasedOn="{StaticResource InputComboStyle}">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="MinWidth" Value="120"/>
+        </Style>
+
+        <Style x:Key="RecruitmentGridDateStyle" TargetType="DatePicker" BasedOn="{StaticResource InputDateStyle}">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Width" Value="124"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Padding" Value="6,0,6,0"/>
+        </Style>
+
+        <Style x:Key="RecruitmentGridPrimaryActionStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Width" Value="74"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="RecruitmentGridDangerActionStyle" TargetType="Button" BasedOn="{StaticResource DangerButtonStyle}">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Width" Value="86"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
     </UserControl.Resources>
 
-    <Grid Background="White">
-        <Grid.DataContext>
-            <vm:RecruitmentViewModel/>
-        </Grid.DataContext>
+    <Grid Margin="4" Background="White">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
 
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="20">
-                <Grid Margin="0,0,0,18">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0">
-                        <TextBlock Text="Recruitment" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
-                        <TextBlock Text="Open roles, applicants, and interviews" Foreground="#5B6A7A" />
-                    </StackPanel>
-                </Grid>
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
 
-                <UniformGrid Columns="4" Rows="1" Margin="0,0,0,16">
-                    <Border Style="{StaticResource StatCardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="Job Posts" Foreground="#6A7684"/>
-                            <TextBlock Text="{Binding TotalPosts}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource StatCardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="Open Posts" Foreground="#6A7684"/>
-                            <TextBlock Text="{Binding OpenPosts}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource StatCardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="Applicants" Foreground="#6A7684"/>
-                            <TextBlock Text="{Binding Applicants}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource StatCardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="Interviews" Foreground="#6A7684"/>
-                            <TextBlock Text="{Binding Interviews}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
-                        </StackPanel>
-                    </Border>
-                </UniformGrid>
-
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Job posts -->
-                    <Border Grid.Column="0" Style="{StaticResource StatCardStyle}" Padding="18" Margin="6,6,6,6">
-                        <StackPanel>
-                            <TextBlock Text="Recent Job Posts" FontSize="16" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,10"/>
-                            <ItemsControl ItemsSource="{Binding JobPosts}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type vm:JobPostVm}">
-                                        <Border BorderBrush="#E5EDF7" BorderThickness="1" CornerRadius="12" Padding="12" Margin="0,6,0,0" Background="#F9FBFF">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel>
-                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
-                                                    <TextBlock Text="{Binding Department}" Foreground="#5B6A7A" />
-                                                    <TextBlock Text="{Binding PostedAt, StringFormat='Posted: {0:MMM dd, yyyy}'}" Foreground="#6A7684" />
-                                                </StackPanel>
-                                                <Border Grid.Column="1" Background="#CBE9FE" CornerRadius="8" Padding="10,4" VerticalAlignment="Top">
-                                                    <TextBlock Text="{Binding Status}" Foreground="{StaticResource PrimaryBrush}" FontWeight="SemiBold"/>
-                                                </Border>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Applicants -->
-                    <Border Grid.Column="1" Style="{StaticResource StatCardStyle}" Padding="18" Margin="6,6,6,6">
-                        <StackPanel>
-                            <TextBlock Text="Recent Applicants" FontSize="16" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,10"/>
-                            <ItemsControl ItemsSource="{Binding RecentApplicants}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type vm:ApplicantVm}">
-                                        <Border BorderBrush="#E5EDF7" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,6,0,0" Background="#F9FBFF">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel>
-                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
-                                                    <TextBlock Text="{Binding JobTitle}" Foreground="#5B6A7A" />
-                                                    <TextBlock Text="{Binding AppliedAt, StringFormat='Applied: {0:MMM dd, yyyy}'}" Foreground="#6A7684" />
-                                                </StackPanel>
-                                                <Border Grid.Column="1" Background="#FDBD55" CornerRadius="8" Padding="10,4" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Status}" Foreground="#1E4368" FontWeight="SemiBold"/>
-                                                </Border>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </Border>
-                </Grid>
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="BriefcaseAccount"
+                                             Width="34"
+                                             Height="32"
+                                             Margin="0,0,10,0"
+                                             Foreground="{StaticResource PrimaryBrush}"/>
+                    <TextBlock Text="Recruitment Administration"
+                               FontSize="25"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrush}"/>
+                </StackPanel>
+                <TextBlock Text="Manage job postings, applicants, pipeline, interviews, and offers." Foreground="#5A6A7C" Margin="0,4,0,0"/>
             </StackPanel>
-        </ScrollViewer>
+
+            <Button Grid.Column="1"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Width="140"
+                    Height="42"
+                    VerticalAlignment="Center"
+                    Command="{Binding RefreshCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" Margin="0,0,8,0"/>
+                    <TextBlock Text="Refresh" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <UniformGrid Grid.Row="1" Columns="6" Margin="0,0,0,10">
+            <Border Style="{StaticResource StatCardStyle}"
+                    Background="#F5FBFF"
+                    BorderBrush="#D9E8F8">
+                <StackPanel>
+                    <TextBlock Text="Job Postings" Foreground="#6A7684"/>
+                    <TextBlock Text="{Binding TotalPostings}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource StatCardStyle}"
+                    Background="#F2FBF5"
+                    BorderBrush="#D8EEDD">
+                <StackPanel>
+                    <TextBlock Text="Open Postings" Foreground="#6A7684"/>
+                    <TextBlock Text="{Binding OpenPostings}" FontSize="28" FontWeight="Bold" Foreground="#2E9D5B"/>
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource StatCardStyle}"
+                    Background="#F7F5FF"
+                    BorderBrush="#E1DBF7">
+                <StackPanel>
+                    <TextBlock Text="Applicants" Foreground="#6A7684"/>
+                    <TextBlock Text="{Binding TotalApplicants}" FontSize="28" FontWeight="Bold" Foreground="#4F46A5"/>
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource StatCardStyle}"
+                    Background="#F3FAFF"
+                    BorderBrush="#D6EAF7">
+                <StackPanel>
+                    <TextBlock Text="Applications" Foreground="#6A7684"/>
+                    <TextBlock Text="{Binding TotalApplications}" FontSize="28" FontWeight="Bold" Foreground="#1E4368"/>
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource StatCardStyle}"
+                    Background="#FFF9EC"
+                    BorderBrush="#F5E2B5">
+                <StackPanel>
+                    <TextBlock Text="Scheduled Interviews" Foreground="#6A7684"/>
+                    <TextBlock Text="{Binding ScheduledInterviews}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource StatCardStyle}"
+                    Margin="0,0,0,0"
+                    Background="#FFF5EC"
+                    BorderBrush="#F5DEC0">
+                <StackPanel>
+                    <TextBlock Text="Pending Offers" Foreground="#6A7684"/>
+                    <TextBlock Text="{Binding PendingOffers}" FontSize="28" FontWeight="Bold" Foreground="#D98608"/>
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <TabControl Grid.Row="2">
+            <TabItem Header="Job Postings">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Style="{StaticResource ModuleCardStyle}" Padding="12" Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="120"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox Grid.Column="0"
+                                     Style="{StaticResource InputTextBoxStyle}"
+                                     Text="{Binding PostingSearchText, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <ComboBox Grid.Column="1"
+                                      Margin="8,0,8,0"
+                                      Style="{StaticResource InputComboStyle}"
+                                      ItemsSource="{Binding PostingStatusFilters}"
+                                      SelectedItem="{Binding SelectedPostingStatusFilter}"/>
+
+                            <Button Grid.Column="2"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Command="{Binding RefreshCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Reload"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="1" Style="{StaticResource ModuleCardStyle}" Padding="12" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="Add Job Posting" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" FontSize="16" Margin="0,0,0,10"/>
+                            <WrapPanel Style="{StaticResource FormWrapPanelStyle}">
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="150">
+                                    <TextBlock Text="Posting Code" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBox Style="{StaticResource InputTextBoxStyle}" Text="{Binding NewPostingCode, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="220">
+                                    <TextBlock Text="Title" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBox Style="{StaticResource InputTextBoxStyle}" Text="{Binding NewPostingTitle, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="190">
+                                    <TextBlock Text="Department" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox Style="{StaticResource InputComboStyle}" ItemsSource="{Binding DepartmentOptions}" DisplayMemberPath="Name" SelectedValuePath="DepartmentId" SelectedValue="{Binding SelectedNewDepartmentId}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="190">
+                                    <TextBlock Text="Position" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox Style="{StaticResource InputComboStyle}" ItemsSource="{Binding NewPostingPositionOptions}" DisplayMemberPath="Name" SelectedValuePath="PositionId" SelectedValue="{Binding SelectedNewPositionId}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="150">
+                                    <TextBlock Text="Type" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox Style="{StaticResource InputComboStyle}" ItemsSource="{Binding EmploymentTypes}" SelectedItem="{Binding NewPostingEmploymentType}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="120">
+                                    <TextBlock Text="Vacancies" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox Style="{StaticResource InputComboStyle}" ItemsSource="{Binding VacancyOptions}" SelectedItem="{Binding NewPostingVacancies}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="140">
+                                    <TextBlock Text="Open Date" Style="{StaticResource FieldLabelStyle}"/>
+                                    <Border Style="{StaticResource DateFieldBorderStyle}">
+                                        <DatePicker Style="{StaticResource InputDateStyle}" SelectedDate="{Binding NewPostingOpenDate}"/>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="140">
+                                    <TextBlock Text="Close Date" Style="{StaticResource FieldLabelStyle}"/>
+                                    <Border Style="{StaticResource DateFieldBorderStyle}">
+                                        <DatePicker Style="{StaticResource InputDateStyle}" SelectedDate="{Binding NewPostingCloseDate}"/>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="150">
+                                    <TextBlock Text="Status" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox Style="{StaticResource InputComboStyle}" ItemsSource="{Binding PostingStatuses}" SelectedItem="{Binding NewPostingStatus}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormActionStackStyle}">
+                                    <Button Style="{StaticResource PrimaryButtonStyle}" Height="38" Command="{Binding AddPostingCommand}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="Plus" Width="16" Height="16" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Add"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="2" Style="{StaticResource ModuleCardStyle}" Padding="6">
+                        <DataGrid ItemsSource="{Binding JobPostings}"
+                                  Style="{StaticResource RecruitmentDataGridStyle}"
+                                  ColumnHeaderStyle="{StaticResource RecruitmentHeaderStyle}"
+                                  CellStyle="{StaticResource RecruitmentCellStyle}"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  IsReadOnly="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Code" Binding="{Binding PostingCode}" Width="110" IsReadOnly="True"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Title" Binding="{Binding Title}" Width="220"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Department" Binding="{Binding DepartmentName}" Width="180" IsReadOnly="True"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Position" Binding="{Binding PositionName}" Width="160" IsReadOnly="True"/>
+                                <DataGridTemplateColumn Header="Type" Width="130">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ComboBox Style="{StaticResource RecruitmentGridComboStyle}"
+                                                      ItemsSource="{Binding DataContext.EmploymentTypes, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                      SelectedItem="{Binding EmploymentType, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridCenteredTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Vacancies" HeaderStyle="{StaticResource RecruitmentHeaderCenterStyle}" Binding="{Binding Vacancies}" Width="100"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Open" Binding="{Binding OpenDateText}" Width="110" IsReadOnly="True"/>
+                                <DataGridTemplateColumn Header="Close" Width="130">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource GridDateFieldBorderStyle}">
+                                                <DatePicker Style="{StaticResource RecruitmentGridDateStyle}" SelectedDate="{Binding CloseDate, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridCenteredTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Apps" HeaderStyle="{StaticResource RecruitmentHeaderCenterStyle}" Binding="{Binding ApplicationCount}" Width="80" IsReadOnly="True"/>
+                                <DataGridTemplateColumn Header="Status" Width="130">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ComboBox Style="{StaticResource RecruitmentGridComboStyle}"
+                                                      ItemsSource="{Binding DataContext.PostingStatuses, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                      SelectedItem="{Binding Status, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Action" Width="186">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <Button Style="{StaticResource RecruitmentGridPrimaryActionStyle}" Margin="0,0,6,0"
+                                                        Command="{Binding DataContext.SavePostingCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        CommandParameter="{Binding}">
+                                                    <TextBlock Text="Save"/>
+                                                </Button>
+                                                <Button Style="{StaticResource RecruitmentGridDangerActionStyle}"
+                                                        Command="{Binding DataContext.DeletePostingCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        CommandParameter="{Binding}">
+                                                    <TextBlock Text="Delete"/>
+                                                </Button>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Applicants">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Style="{StaticResource ModuleCardStyle}" Padding="12" Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="120"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Style="{StaticResource InputTextBoxStyle}" Text="{Binding ApplicantSearchText, UpdateSourceTrigger=PropertyChanged}"/>
+                            <Button Grid.Column="1" Margin="8,0,0,0" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding RefreshCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Reload"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="1" Style="{StaticResource ModuleCardStyle}" Padding="12" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="Register Applicant" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" FontSize="16" Margin="0,0,0,10"/>
+                            <WrapPanel Style="{StaticResource FormWrapPanelStyle}">
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="130">
+                                    <TextBlock Text="Applicant No" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBox Style="{StaticResource InputTextBoxStyle}" Text="{Binding NewApplicantNo, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="150">
+                                    <TextBlock Text="First Name" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBox Style="{StaticResource InputTextBoxStyle}" Text="{Binding NewApplicantFirstName, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="150">
+                                    <TextBlock Text="Last Name" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBox Style="{StaticResource InputTextBoxStyle}" Text="{Binding NewApplicantLastName, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="150">
+                                    <TextBlock Text="Middle Name" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBox Style="{StaticResource InputTextBoxStyle}" Text="{Binding NewApplicantMiddleName, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="180">
+                                    <TextBlock Text="Email" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBox Style="{StaticResource InputTextBoxStyle}" Text="{Binding NewApplicantEmail, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="140">
+                                    <TextBlock Text="Mobile" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBox Style="{StaticResource InputTextBoxStyle}" Text="{Binding NewApplicantMobile, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="160">
+                                    <TextBlock Text="Birth Date" Style="{StaticResource FieldLabelStyle}"/>
+                                    <Border Style="{StaticResource DateFieldBorderStyle}">
+                                        <DatePicker Style="{StaticResource InputDateStyle}" SelectedDate="{Binding NewApplicantBirthDate}"/>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="260">
+                                    <TextBlock Text="Address" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBox Style="{StaticResource InputTextBoxStyle}" Text="{Binding NewApplicantAddress, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormActionStackStyle}">
+                                    <Button Style="{StaticResource PrimaryButtonStyle}" Height="38" Command="{Binding AddApplicantCommand}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="AccountPlusOutline" Width="16" Height="16" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Add"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="2" Style="{StaticResource ModuleCardStyle}" Padding="6">
+                        <DataGrid ItemsSource="{Binding Applicants}"
+                                  Style="{StaticResource RecruitmentDataGridStyle}"
+                                  ColumnHeaderStyle="{StaticResource RecruitmentHeaderStyle}"
+                                  CellStyle="{StaticResource RecruitmentCellStyle}"
+                                  HorizontalScrollBarVisibility="Auto">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Applicant No" Binding="{Binding ApplicantNo}" Width="120" IsReadOnly="True"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Full Name" Binding="{Binding FullName}" Width="220" IsReadOnly="True"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="First" Binding="{Binding FirstName}" Width="130"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Last" Binding="{Binding LastName}" Width="130"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Middle" Binding="{Binding MiddleName}" Width="120"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Email" Binding="{Binding Email}" Width="180"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Mobile" Binding="{Binding MobileNo}" Width="120"/>
+                                <DataGridTemplateColumn Header="Birth" Width="130">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource GridDateFieldBorderStyle}">
+                                                <DatePicker Style="{StaticResource RecruitmentGridDateStyle}" SelectedDate="{Binding BirthDate, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridCenteredTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Applications" HeaderStyle="{StaticResource RecruitmentHeaderCenterStyle}" Binding="{Binding ApplicationCount}" Width="120" IsReadOnly="True"/>
+                                <DataGridTemplateColumn Header="Action" Width="186">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <Button Style="{StaticResource RecruitmentGridPrimaryActionStyle}" Margin="0,0,6,0"
+                                                        Command="{Binding DataContext.SaveApplicantCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        CommandParameter="{Binding}">
+                                                    <TextBlock Text="Save"/>
+                                                </Button>
+                                                <Button Style="{StaticResource RecruitmentGridDangerActionStyle}"
+                                                        Command="{Binding DataContext.DeleteApplicantCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        CommandParameter="{Binding}">
+                                                    <TextBlock Text="Delete"/>
+                                                </Button>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Applications Pipeline">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Style="{StaticResource ModuleCardStyle}" Padding="12" Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="120"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox Grid.Column="0" Style="{StaticResource InputTextBoxStyle}" Text="{Binding ApplicationSearchText, UpdateSourceTrigger=PropertyChanged}"/>
+                            <ComboBox Grid.Column="1" Margin="8,0,8,0" Style="{StaticResource InputComboStyle}" ItemsSource="{Binding ApplicationStatusFilters}" SelectedItem="{Binding SelectedApplicationStatusFilter}"/>
+                            <Button Grid.Column="2" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding RefreshCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Reload"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="1" Style="{StaticResource ModuleCardStyle}" Padding="12" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="Add Application to Pipeline" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" FontSize="16" Margin="0,0,0,10"/>
+                            <WrapPanel Style="{StaticResource FormWrapPanelStyle}">
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="270">
+                                    <TextBlock Text="Applicant" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox Style="{StaticResource InputComboStyle}" ItemsSource="{Binding ApplicantOptions}" DisplayMemberPath="Label" SelectedValuePath="ApplicantId" SelectedValue="{Binding SelectedApplicationApplicantId}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="320">
+                                    <TextBlock Text="Posting" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox Style="{StaticResource InputComboStyle}" ItemsSource="{Binding PostingOptions}" DisplayMemberPath="Label" SelectedValuePath="JobPostingId" SelectedValue="{Binding SelectedApplicationPostingId}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="180">
+                                    <TextBlock Text="Status" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox Style="{StaticResource InputComboStyle}" ItemsSource="{Binding ApplicationStatuses}" SelectedItem="{Binding NewApplicationStatus}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="260">
+                                    <TextBlock Text="Notes" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBox Style="{StaticResource InputTextBoxStyle}" Text="{Binding NewApplicationNotes, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormActionStackStyle}">
+                                    <Button Style="{StaticResource PrimaryButtonStyle}" Height="38" Command="{Binding AddApplicationCommand}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="PlaylistPlus" Width="16" Height="16" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Add"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="2" Style="{StaticResource ModuleCardStyle}" Padding="6">
+                        <DataGrid ItemsSource="{Binding Applications}"
+                                  Style="{StaticResource RecruitmentDataGridStyle}"
+                                  ColumnHeaderStyle="{StaticResource RecruitmentHeaderStyle}"
+                                  CellStyle="{StaticResource RecruitmentCellStyle}"
+                                  HorizontalScrollBarVisibility="Auto">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Applicant" Binding="{Binding ApplicantName}" Width="220" IsReadOnly="True"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Posting Code" Binding="{Binding PostingCode}" Width="120" IsReadOnly="True"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Posting" Binding="{Binding PostingTitle}" Width="220" IsReadOnly="True"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Department" Binding="{Binding DepartmentName}" Width="180" IsReadOnly="True"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Applied" Binding="{Binding AppliedAt, StringFormat={}{0:MMM dd, yyyy HH:mm}}" Width="160" IsReadOnly="True"/>
+                                <DataGridTemplateColumn Header="Status" Width="140">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ComboBox Style="{StaticResource RecruitmentGridComboStyle}"
+                                                      ItemsSource="{Binding DataContext.ApplicationStatuses, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                      SelectedItem="{Binding Status, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Notes" Binding="{Binding Notes}" Width="220"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridCenteredTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Interviews" HeaderStyle="{StaticResource RecruitmentHeaderCenterStyle}" Binding="{Binding InterviewCount}" Width="100" IsReadOnly="True"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridCenteredTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Offers" HeaderStyle="{StaticResource RecruitmentHeaderCenterStyle}" Binding="{Binding OfferCount}" Width="80" IsReadOnly="True"/>
+                                <DataGridTemplateColumn Header="Action" Width="186">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <Button Style="{StaticResource RecruitmentGridPrimaryActionStyle}" Margin="0,0,6,0"
+                                                        Command="{Binding DataContext.SaveApplicationCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        CommandParameter="{Binding}">
+                                                    <TextBlock Text="Save"/>
+                                                </Button>
+                                                <Button Style="{StaticResource RecruitmentGridDangerActionStyle}"
+                                                        Command="{Binding DataContext.DeleteApplicationCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        CommandParameter="{Binding}">
+                                                    <TextBlock Text="Delete"/>
+                                                </Button>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Interviews">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Style="{StaticResource ModuleCardStyle}" Padding="12" Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="120"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox Grid.Column="0" Style="{StaticResource InputTextBoxStyle}" Text="{Binding InterviewSearchText, UpdateSourceTrigger=PropertyChanged}"/>
+                            <ComboBox Grid.Column="1" Margin="8,0,8,0" Style="{StaticResource InputComboStyle}" ItemsSource="{Binding InterviewStatusFilters}" SelectedItem="{Binding SelectedInterviewStatusFilter}"/>
+                            <Button Grid.Column="2" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding RefreshCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Reload"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="1" Style="{StaticResource ModuleCardStyle}" Padding="12" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="Schedule Interview" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" FontSize="16" Margin="0,0,0,10"/>
+                            <WrapPanel Style="{StaticResource FormWrapPanelStyle}">
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="280">
+                                    <TextBlock Text="Application" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox Style="{StaticResource InputComboStyle}" ItemsSource="{Binding ApplicationOptions}" DisplayMemberPath="Label" SelectedValuePath="JobApplicationId" SelectedValue="{Binding SelectedInterviewApplicationId}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="140">
+                                    <TextBlock Text="Date" Style="{StaticResource FieldLabelStyle}"/>
+                                    <Border Style="{StaticResource DateFieldBorderStyle}">
+                                        <DatePicker Style="{StaticResource InputDateStyle}" SelectedDate="{Binding NewInterviewDate}"/>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="100">
+                                    <TextBlock Text="Time (HH:mm)" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBox Style="{StaticResource InputTextBoxStyle}" Text="{Binding NewInterviewTimeText, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="120">
+                                    <TextBlock Text="Type" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox Style="{StaticResource InputComboStyle}" ItemsSource="{Binding InterviewTypes}" SelectedItem="{Binding NewInterviewType}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="260">
+                                    <TextBlock Text="Interviewer" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox Style="{StaticResource InputComboStyle}" ItemsSource="{Binding EmployeeOptions}" DisplayMemberPath="Label" SelectedValuePath="EmployeeId" SelectedValue="{Binding SelectedInterviewerEmployeeId}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="150">
+                                    <TextBlock Text="Status" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox Style="{StaticResource InputComboStyle}" ItemsSource="{Binding InterviewStatuses}" SelectedItem="{Binding NewInterviewStatus}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="200">
+                                    <TextBlock Text="Location" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBox Style="{StaticResource InputTextBoxStyle}" Text="{Binding NewInterviewLocation, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="250">
+                                    <TextBlock Text="Remarks" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBox Style="{StaticResource InputTextBoxStyle}" Text="{Binding NewInterviewRemarks, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormActionStackStyle}">
+                                    <Button Style="{StaticResource PrimaryButtonStyle}" Height="38" Command="{Binding AddInterviewCommand}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="CalendarClock" Width="16" Height="16" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Add"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="2" Style="{StaticResource ModuleCardStyle}" Padding="6">
+                        <DataGrid ItemsSource="{Binding Interviews}"
+                                  Style="{StaticResource RecruitmentDataGridStyle}"
+                                  ColumnHeaderStyle="{StaticResource RecruitmentHeaderStyle}"
+                                  CellStyle="{StaticResource RecruitmentCellStyle}"
+                                  HorizontalScrollBarVisibility="Auto">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Applicant" Binding="{Binding ApplicantName}" Width="200" IsReadOnly="True"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Posting" Binding="{Binding PostingCode}" Width="110" IsReadOnly="True"/>
+                                <DataGridTemplateColumn Header="Date" Width="130">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource GridDateFieldBorderStyle}">
+                                                <DatePicker Style="{StaticResource RecruitmentGridDateStyle}" SelectedDate="{Binding InterviewDate, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Time" Binding="{Binding InterviewTimeText}" Width="85"/>
+                                <DataGridTemplateColumn Header="Type" Width="120">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ComboBox Style="{StaticResource RecruitmentGridComboStyle}"
+                                                      ItemsSource="{Binding DataContext.InterviewTypes, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                      SelectedItem="{Binding InterviewType, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Interviewer" Width="250">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ComboBox Style="{StaticResource RecruitmentGridComboStyle}"
+                                                      ItemsSource="{Binding DataContext.EmployeeOptions, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                      DisplayMemberPath="Label"
+                                                      SelectedValuePath="EmployeeId"
+                                                      SelectedValue="{Binding InterviewerEmployeeId, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Status" Width="130">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ComboBox Style="{StaticResource RecruitmentGridComboStyle}"
+                                                      ItemsSource="{Binding DataContext.InterviewStatuses, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                      SelectedItem="{Binding Status, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Location" Binding="{Binding Location}" Width="150"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Remarks" Binding="{Binding Remarks}" Width="200"/>
+                                <DataGridTemplateColumn Header="Action" Width="186">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <Button Style="{StaticResource RecruitmentGridPrimaryActionStyle}" Margin="0,0,6,0"
+                                                        Command="{Binding DataContext.SaveInterviewCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        CommandParameter="{Binding}">
+                                                    <TextBlock Text="Save"/>
+                                                </Button>
+                                                <Button Style="{StaticResource RecruitmentGridDangerActionStyle}"
+                                                        Command="{Binding DataContext.DeleteInterviewCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        CommandParameter="{Binding}">
+                                                    <TextBlock Text="Delete"/>
+                                                </Button>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Offers">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Style="{StaticResource ModuleCardStyle}" Padding="12" Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="120"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox Grid.Column="0" Style="{StaticResource InputTextBoxStyle}" Text="{Binding OfferSearchText, UpdateSourceTrigger=PropertyChanged}"/>
+                            <ComboBox Grid.Column="1" Margin="8,0,8,0" Style="{StaticResource InputComboStyle}" ItemsSource="{Binding OfferStatusFilters}" SelectedItem="{Binding SelectedOfferStatusFilter}"/>
+                            <Button Grid.Column="2" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding RefreshCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Reload"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="1" Style="{StaticResource ModuleCardStyle}" Padding="12" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="Create Job Offer" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" FontSize="16" Margin="0,0,0,10"/>
+                            <WrapPanel Style="{StaticResource FormWrapPanelStyle}">
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="320">
+                                    <TextBlock Text="Application" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox Style="{StaticResource InputComboStyle}" ItemsSource="{Binding ApplicationOptions}" DisplayMemberPath="Label" SelectedValuePath="JobApplicationId" SelectedValue="{Binding SelectedOfferApplicationId}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="150">
+                                    <TextBlock Text="Status" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox Style="{StaticResource InputComboStyle}" ItemsSource="{Binding OfferStatuses}" SelectedItem="{Binding NewOfferStatus}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="130">
+                                    <TextBlock Text="Salary Offer" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBox Style="{StaticResource InputTextBoxStyle}" Text="{Binding NewOfferSalaryText, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="150">
+                                    <TextBlock Text="Start Date" Style="{StaticResource FieldLabelStyle}"/>
+                                    <Border Style="{StaticResource DateFieldBorderStyle}">
+                                        <DatePicker Style="{StaticResource InputDateStyle}" SelectedDate="{Binding NewOfferStartDate}"/>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormFieldStackStyle}" Width="300">
+                                    <TextBlock Text="Remarks" Style="{StaticResource FieldLabelStyle}"/>
+                                    <TextBox Style="{StaticResource InputTextBoxStyle}" Text="{Binding NewOfferRemarks, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Style="{StaticResource FormActionStackStyle}">
+                                    <Button Style="{StaticResource SuccessButtonStyle}" Height="38" Command="{Binding AddOfferCommand}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="HandshakeOutline" Width="16" Height="16" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Add"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="2" Style="{StaticResource ModuleCardStyle}" Padding="6">
+                        <DataGrid ItemsSource="{Binding Offers}"
+                                  Style="{StaticResource RecruitmentDataGridStyle}"
+                                  ColumnHeaderStyle="{StaticResource RecruitmentHeaderStyle}"
+                                  CellStyle="{StaticResource RecruitmentCellStyle}"
+                                  HorizontalScrollBarVisibility="Auto">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Applicant" Binding="{Binding ApplicantName}" Width="220" IsReadOnly="True"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Posting" Binding="{Binding PostingCode}" Width="110" IsReadOnly="True"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Title" Binding="{Binding PostingTitle}" Width="210" IsReadOnly="True"/>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Offered At" Binding="{Binding OfferedAt, StringFormat={}{0:MMM dd, yyyy HH:mm}}" Width="160" IsReadOnly="True"/>
+                                <DataGridTemplateColumn Header="Status" Width="130">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ComboBox Style="{StaticResource RecruitmentGridComboStyle}"
+                                                      ItemsSource="{Binding DataContext.OfferStatuses, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                      SelectedItem="{Binding OfferStatus, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Salary" Binding="{Binding SalaryOfferText}" Width="120"/>
+                                <DataGridTemplateColumn Header="Start Date" Width="130">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource GridDateFieldBorderStyle}">
+                                                <DatePicker Style="{StaticResource RecruitmentGridDateStyle}" SelectedDate="{Binding StartDate, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn ElementStyle="{StaticResource RecruitmentGridTextStyle}" EditingElementStyle="{StaticResource RecruitmentGridEditTextStyle}" Header="Remarks" Binding="{Binding Remarks}" Width="230"/>
+                                <DataGridTemplateColumn Header="Action" Width="186">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <Button Style="{StaticResource RecruitmentGridPrimaryActionStyle}" Margin="0,0,6,0"
+                                                        Command="{Binding DataContext.SaveOfferCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        CommandParameter="{Binding}">
+                                                    <TextBlock Text="Save"/>
+                                                </Button>
+                                                <Button Style="{StaticResource RecruitmentGridDangerActionStyle}"
+                                                        Command="{Binding DataContext.DeleteOfferCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        CommandParameter="{Binding}">
+                                                    <TextBlock Text="Delete"/>
+                                                </Button>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <Border Grid.Row="3" Style="{StaticResource ModuleCardStyle}" Padding="10" Margin="0,10,0,0" Background="#F9FBFF">
+            <TextBlock Text="{Binding ActionMessage}" Foreground="{Binding ActionMessageBrush}" FontWeight="SemiBold"/>
+        </Border>
     </Grid>
 </UserControl>
+
+
+

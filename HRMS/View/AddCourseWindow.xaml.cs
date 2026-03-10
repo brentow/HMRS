@@ -22,7 +22,7 @@ namespace HRMS.View
             var title = TitleBox.Text?.Trim() ?? string.Empty;
             var provider = ProviderBox.Text?.Trim() ?? string.Empty;
             var description = DescriptionBox.Text?.Trim() ?? string.Empty;
-            var status = (StatusBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Active";
+            const string status = "Active";
 
             if (!double.TryParse(HoursBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out var hours))
             {
@@ -30,27 +30,35 @@ namespace HRMS.View
                 return;
             }
 
-            var dto = new TrainingCourseDto(0, title, provider, description, hours, status);
-            var service = new TrainingDataService(DbConfig.ConnectionString);
-            var newId = await service.AddCourseAsync(dto);
-
-            if (TrainingVm != null)
+            try
             {
-                var course = new TrainingCourseSummary
-                {
-                    Id = newId,
-                    Title = title,
-                    Provider = provider,
-                    Description = description,
-                    Hours = hours,
-                    Status = status,
-                    StatusColor = TrainingViewModel.GetStatusBrush(status)
-                };
-                TrainingVm.AddCourse(course);
-            }
+                var dto = new TrainingCourseDto(0, title, provider, description, hours, status);
+                var service = new TrainingDataService(DbConfig.ConnectionString);
+                var newId = await service.AddCourseAsync(dto);
 
-            DialogResult = true;
-            Close();
+                if (TrainingVm != null)
+                {
+                    var course = new TrainingCourseSummary
+                    {
+                        Id = newId,
+                        Title = title,
+                        Provider = provider,
+                        Description = description,
+                        Hours = hours,
+                        Status = status,
+                        StatusColor = TrainingViewModel.GetStatusBrush(status)
+                    };
+                    TrainingVm.AddCourse(course);
+                }
+
+                SystemRefreshBus.Raise("TrainingCourseAdded");
+                DialogResult = true;
+                Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Unable to add course: {ex.Message}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void Close_Click(object sender, RoutedEventArgs e) => Close();

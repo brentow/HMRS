@@ -1,0 +1,324 @@
+<UserControl x:Class="HRMS.View.AddEmployeeWindow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             Background="White">
+
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#1E4368" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#FDBD55" />
+
+        <Style x:Key="SectionCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="#F9FCFF" />
+            <Setter Property="BorderBrush" Value="#DDE8F6" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="12" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+
+        <Style x:Key="FieldLabelStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#5B6A7A" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+
+        <Style x:Key="FieldTextBoxStyle"
+               TargetType="TextBox"
+               BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
+            <Setter Property="Height" Value="50" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="FieldComboBoxStyle"
+               TargetType="ComboBox"
+               BasedOn="{StaticResource MaterialDesignOutlinedComboBox}">
+            <Setter Property="Height" Value="50" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+
+        <Style x:Key="FieldDatePickerStyle"
+               TargetType="DatePicker"
+               BasedOn="{StaticResource MaterialDesignOutlinedDatePicker}">
+            <Setter Property="Height" Value="50" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Add Employee"
+                           FontSize="24"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource PrimaryBrush}" />
+                <TextBlock Text="Fill in employee details based on your employees table."
+                           Foreground="#5B6A7A" />
+            </StackPanel>
+        </Grid>
+
+        <Border Grid.Row="1"
+                BorderBrush="#DDE8F6"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="12"
+                Background="White">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,2,0,-2">
+                <StackPanel>
+
+                    <Border Style="{StaticResource SectionCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Full Name + Basic Info"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource PrimaryBrush}"
+                                       Margin="0,0,0,10" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Employee No *" />
+                                    <TextBox x:Name="EmployeeNoBox"
+                                             Style="{StaticResource FieldTextBoxStyle}" />
+
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Last Name *" />
+                                    <TextBox x:Name="LastNameBox"
+                                             Style="{StaticResource FieldTextBoxStyle}" />
+
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Middle Name" />
+                                    <TextBox x:Name="MiddleNameBox"
+                                             Style="{StaticResource FieldTextBoxStyle}" />
+
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Sex" />
+                                    <ComboBox x:Name="SexBox"
+                                              Style="{StaticResource FieldComboBoxStyle}">
+                                        <ComboBoxItem Content="MALE" />
+                                        <ComboBoxItem Content="FEMALE" />
+                                        <ComboBoxItem Content="OTHER" />
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="First Name *" />
+                                    <TextBox x:Name="FirstNameBox"
+                                             Style="{StaticResource FieldTextBoxStyle}" />
+
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Birth Date" />
+                                    <DatePicker x:Name="BirthDatePicker"
+                                                Style="{StaticResource FieldDatePickerStyle}" />
+
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Civil Status" />
+                                    <ComboBox x:Name="CivilStatusBox"
+                                              Style="{StaticResource FieldComboBoxStyle}">
+                                        <ComboBoxItem Content="Single" />
+                                        <ComboBoxItem Content="Married" />
+                                        <ComboBoxItem Content="Widowed" />
+                                        <ComboBoxItem Content="Separated" />
+                                    </ComboBox>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SectionCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Contact + Address"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource PrimaryBrush}"
+                                       Margin="0,0,0,10" />
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Email" />
+                                    <TextBox x:Name="EmailBox"
+                                             Style="{StaticResource FieldTextBoxStyle}" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Contact Number" />
+                                    <TextBox x:Name="ContactNumberBox"
+                                             Style="{StaticResource FieldTextBoxStyle}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Address" />
+                            <TextBox x:Name="AddressBox"
+                                     Height="50"
+                                     Margin="0,0,0,10"
+                                     TextWrapping="Wrap"
+                                     AcceptsReturn="True"
+                                     Style="{StaticResource FieldTextBoxStyle}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SectionCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Department / Position + Appointment / Salary"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource PrimaryBrush}"
+                                       Margin="0,0,0,10" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Department *" />
+                                    <ComboBox x:Name="DepartmentBox"
+                                              DisplayMemberPath="Name"
+                                              SelectedValuePath="Id"
+                                              SelectionChanged="DepartmentBox_OnSelectionChanged"
+                                              Style="{StaticResource FieldComboBoxStyle}" />
+
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Appointment Type *" />
+                                    <ComboBox x:Name="AppointmentTypeBox"
+                                              DisplayMemberPath="Name"
+                                              SelectedValuePath="Id"
+                                              Style="{StaticResource FieldComboBoxStyle}" />
+
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Salary Grade" />
+                                    <ComboBox x:Name="SalaryGradeBox"
+                                              Style="{StaticResource FieldComboBoxStyle}" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Position *" />
+                                    <ComboBox x:Name="PositionBox"
+                                              DisplayMemberPath="Name"
+                                              SelectedValuePath="PositionId"
+                                              Style="{StaticResource FieldComboBoxStyle}" />
+
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Step" />
+                                    <ComboBox x:Name="StepNoBox"
+                                              IsEditable="True"
+                                              Style="{StaticResource FieldComboBoxStyle}" />
+
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Hire Date *" />
+                                    <DatePicker x:Name="HireDatePicker"
+                                                Style="{StaticResource FieldDatePickerStyle}" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SectionCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Government Numbers"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource PrimaryBrush}"
+                                       Margin="0,0,0,10" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="TIN No." />
+                                    <TextBox x:Name="TinBox"
+                                             Style="{StaticResource FieldTextBoxStyle}" />
+
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="GSIS BP No." />
+                                    <TextBox x:Name="GsisBox"
+                                             Style="{StaticResource FieldTextBoxStyle}" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="PhilHealth No." />
+                                    <TextBox x:Name="PhilHealthBox"
+                                             Style="{StaticResource FieldTextBoxStyle}" />
+
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Pag-IBIG MID No." />
+                                    <TextBox x:Name="PagibigBox"
+                                             Style="{StaticResource FieldTextBoxStyle}" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SectionCardStyle}" Margin="0,0,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Emergency Contact"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource PrimaryBrush}"
+                                       Margin="0,0,0,10" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Emergency Contact Name" />
+                                    <TextBox x:Name="EmergencyContactBox"
+                                             Style="{StaticResource FieldTextBoxStyle}" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Emergency Contact Number" />
+                                    <TextBox x:Name="EmergencyPhoneBox"
+                                             Style="{StaticResource FieldTextBoxStyle}" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <Grid Grid.Row="2" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock x:Name="ErrorText"
+                       VerticalAlignment="Center"
+                       Foreground="#D32F2F"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap" />
+
+            <Button Grid.Column="1"
+                    Content="Back"
+                    Width="100"
+                    Height="40"
+                    Margin="0,0,8,0"
+                    BorderThickness="0"
+                    Background="#EAF2FB"
+                    Foreground="{StaticResource PrimaryBrush}"
+                    Click="Back_Click" />
+
+            <Button Grid.Column="2"
+                    Content="Add Employee"
+                    Width="130"
+                    Height="40"
+                    BorderThickness="0"
+                    Background="{StaticResource AccentBrush}"
+                    Foreground="{StaticResource PrimaryBrush}"
+                    FontWeight="Bold"
+                    Click="AddEmployee_Click" />
+        </Grid>
+    </Grid>
+</UserControl>
+

@@ -30,12 +30,6 @@
                 <TextBlock Text="Hours" FontWeight="SemiBold" Foreground="#1E4368" />
                 <TextBox x:Name="HoursBox" Margin="0,4,0,12" KeyDown="TextBox_KeyDown"/>
 
-                <TextBlock Text="Status" FontWeight="SemiBold" Foreground="#1E4368" />
-                <ComboBox x:Name="StatusBox" Margin="0,4,0,12" Height="28" KeyDown="TextBox_KeyDown">
-                    <ComboBoxItem Content="Active" IsSelected="True"/>
-                    <ComboBoxItem Content="Inactive"/>
-                </ComboBox>
-
                 <TextBlock Text="Description" FontWeight="SemiBold" Foreground="#1E4368" />
                 <TextBox x:Name="DescriptionBox" Margin="0,4,0,0" AcceptsReturn="True" Height="80" TextWrapping="Wrap" KeyDown="TextBox_KeyDown"/>
             </StackPanel>

@@ -1,0 +1,177 @@
+<UserControl x:Class="HRMS.View.MyDocumentsWindow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d"
+             d:DesignHeight="800"
+             d:DesignWidth="1200"
+             Background="White">
+    <UserControl.Resources>
+        <Color x:Key="PrimaryColor">#1E4368</Color>
+        <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
+
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Padding" Value="12" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#E5EDF7" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style x:Key="ButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="MinWidth" Value="92" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="HeaderStyle" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#F2F7FD" />
+            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="8,0,8,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="GridCellStyle" TargetType="DataGridCell">
+            <Setter Property="Padding" Value="8,0,8,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="TextBlock.TextAlignment" Value="Center" />
+            <Setter Property="TextBlock.VerticalAlignment" Value="Center" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        </Style>
+
+        <Style x:Key="GridRowStyle" TargetType="DataGridRow">
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="#1E4368" />
+            <Setter Property="Background" Value="White" />
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#E8F1FC" />
+                    <Setter Property="Foreground" Value="#1E4368" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="4">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="My Documents" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
+                <TextBlock Text="Central access for payslips, leave attachments, and training certificates." Foreground="#5B6A7A" />
+            </StackPanel>
+            <Button Grid.Column="1"
+                    Style="{StaticResource ButtonStyle}"
+                    Command="{Binding RefreshCommand}"
+                    Content="Refresh"
+                    VerticalAlignment="Center" />
+        </Grid>
+
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2.2*" />
+                    <ColumnDefinition Width="1.2*" />
+                </Grid.ColumnDefinitions>
+
+                <TextBox Grid.Column="0"
+                         Height="38"
+                         Margin="0,0,10,0"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="Search document, status, module, or detail..." />
+
+                <ComboBox Grid.Column="1"
+                          Height="38"
+                          ItemsSource="{Binding TypeOptions}"
+                          SelectedItem="{Binding SelectedType}" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+            <DataGrid ItemsSource="{Binding Documents}"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      IsReadOnly="True"
+                      RowHeaderWidth="0"
+                      ColumnHeaderHeight="38"
+                      RowHeight="42"
+                      GridLinesVisibility="Horizontal"
+                      HorizontalGridLinesBrush="#E9F0FA"
+                      VerticalGridLinesBrush="#E9F0FA"
+                      AlternatingRowBackground="#F8FBFF"
+                      ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                <DataGrid.ColumnHeaderStyle>
+                    <Style BasedOn="{StaticResource HeaderStyle}" TargetType="DataGridColumnHeader" />
+                </DataGrid.ColumnHeaderStyle>
+                <DataGrid.CellStyle>
+                    <Style BasedOn="{StaticResource GridCellStyle}" TargetType="DataGridCell" />
+                </DataGrid.CellStyle>
+                <DataGrid.RowStyle>
+                    <Style BasedOn="{StaticResource GridRowStyle}" TargetType="DataGridRow" />
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Type" Binding="{Binding DocumentType}" Width="1.1*" />
+                    <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="1.6*" />
+                    <DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="2.2*" />
+                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="0.95*" />
+                    <DataGridTextColumn Header="Date" Binding="{Binding EventAtText}" Width="1.2*" />
+                    <DataGridTextColumn Header="Source" Binding="{Binding SourceModuleLabel}" Width="0.95*" />
+                    <DataGridTemplateColumn Header="Action" Width="1.05*">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource ButtonStyle}"
+                                        Padding="10,4"
+                                        Height="30"
+                                        FontSize="12"
+                                        MinWidth="96"
+                                        Content="{Binding ActionLabel}"
+                                        Command="{Binding DataContext.OpenDocumentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <Border Grid.Row="3"
+                Style="{StaticResource CardStyle}"
+                Margin="0,10,0,0"
+                Padding="10,8">
+            <TextBlock Text="{Binding StatusMessage}"
+                       Foreground="{Binding StatusBrush}"
+                       FontWeight="SemiBold" />
+        </Border>
+    </Grid>
+</UserControl>

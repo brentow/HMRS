@@ -1,0 +1,638 @@
+<UserControl x:Class="HRMS.View.DevelopmentWindow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:scottPlot="clr-namespace:ScottPlot;assembly=ScottPlot.WPF"
+             xmlns:local="clr-namespace:HRMS.View"
+             mc:Ignorable="d"
+             d:DesignHeight="800"
+             d:DesignWidth="1200"
+             x:Name="Root"
+             Background="White">
+
+    <UserControl.Resources>
+        <Color x:Key="PrimaryColor">#1E4368</Color>
+        <Color x:Key="LightColor">#CBE9FE</Color>
+        <Color x:Key="AccentColor">#FDBD55</Color>
+
+        <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
+        <SolidColorBrush x:Key="LightBrush" Color="{StaticResource LightColor}" />
+        <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#E5EDF7" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
+
+        <Style x:Key="MetricCardStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+            <Setter Property="Background" Value="#F8FBFF" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+        </Style>
+
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="10">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.93" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Opacity" Value="0.85" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ModuleDataGridStyle" TargetType="DataGrid">
+            <Setter Property="AutoGenerateColumns" Value="False" />
+            <Setter Property="CanUserAddRows" Value="False" />
+            <Setter Property="CanUserDeleteRows" Value="False" />
+            <Setter Property="CanUserResizeRows" Value="False" />
+            <Setter Property="IsReadOnly" Value="True" />
+            <Setter Property="HeadersVisibility" Value="Column" />
+            <Setter Property="GridLinesVisibility" Value="Horizontal" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="RowHeaderWidth" Value="0" />
+            <Setter Property="RowHeight" Value="44" />
+            <Setter Property="RowBackground" Value="White" />
+            <Setter Property="AlternatingRowBackground" Value="#F8FBFF" />
+            <Setter Property="HorizontalGridLinesBrush" Value="#E9F0FA" />
+            <Setter Property="VerticalGridLinesBrush" Value="#E9F0FA" />
+            <Setter Property="ColumnHeaderHeight" Value="42" />
+            <Setter Property="SelectionMode" Value="Single" />
+            <Setter Property="SelectionUnit" Value="FullRow" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+            <Setter Property="ColumnHeaderStyle" Value="{DynamicResource ModuleDataGridHeaderStyle}" />
+            <Setter Property="RowStyle" Value="{DynamicResource ModuleDataGridRowStyle}" />
+            <Setter Property="CellStyle" Value="{DynamicResource ModuleDataGridCellStyle}" />
+        </Style>
+
+        <Style x:Key="ModuleDataGridHeaderStyle" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#F2F7FD" />
+            <Setter Property="Foreground" Value="#1E4368" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="BorderBrush" Value="#E3ECF8" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Padding" Value="8,0,8,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="ModuleStatusHeaderCenteredStyle" TargetType="DataGridColumnHeader" BasedOn="{StaticResource ModuleDataGridHeaderStyle}">
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="ModuleDataGridHeaderAlignedLeftStyle" TargetType="DataGridColumnHeader" BasedOn="{StaticResource ModuleDataGridHeaderStyle}">
+            <Setter Property="Padding" Value="10,0,10,0" />
+        </Style>
+
+        <Style x:Key="ModuleDataGridRowStyle" TargetType="DataGridRow">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="#1E4368" />
+            <Setter Property="Background" Value="White" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Status}" Value="Inactive">
+                    <Setter Property="Background" Value="#FFF2F2" />
+                    <Setter Property="Foreground" Value="#7E1F1F" />
+                </DataTrigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#E8F1FC" />
+                    <Setter Property="Foreground" Value="#1E4368" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ModuleDataGridCellStyle" TargetType="DataGridCell">
+            <Setter Property="Padding" Value="10,0,10,0" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        </Style>
+
+        <Style x:Key="ModuleCellTextStyle" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="Margin" Value="2,0,2,0" />
+        </Style>
+
+        <Style x:Key="ModuleCellAlignedTextStyle" TargetType="TextBlock" BasedOn="{StaticResource ModuleCellTextStyle}">
+            <Setter Property="Margin" Value="0" />
+        </Style>
+
+        <Style x:Key="HoursCellTextStyle" TargetType="TextBlock" BasedOn="{StaticResource ModuleCellTextStyle}">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="CourseRowEditButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Width" Value="68" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#2D5783" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#23456C" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="EnrollmentStatusComboStyle" TargetType="ComboBox" BasedOn="{x:Null}">
+            <Setter Property="Width" Value="112" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="8,0,8,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#C8D8EC" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style x:Key="TightStatusCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource ModuleDataGridCellStyle}">
+            <Setter Property="Padding" Value="4,0,4,0" />
+        </Style>
+
+        <Style x:Key="AdminRowActionButtonStyle" TargetType="Button" BasedOn="{StaticResource CourseRowEditButtonStyle}">
+            <Setter Property="Width" Value="72" />
+            <Setter Property="Content" Value="Save" />
+        </Style>
+
+        <Style x:Key="InlineStatusComboStyle" TargetType="ComboBox" BasedOn="{x:Null}">
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Width" Value="114" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Padding" Value="6,0,6,0" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#1E4368" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="InlineStatusComboItemStyle" TargetType="ComboBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style x:Key="InlineDatePickerStyle" TargetType="DatePicker">
+            <Setter Property="Height" Value="30" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="White" Margin="4">
+        <TabControl Background="White" BorderThickness="0">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="4,2">
+                        <materialDesign:PackIcon Kind="SchoolOutline" Width="18" Height="18" Margin="0,0,6,0" />
+                        <TextBlock Text="Training" FontWeight="SemiBold" />
+                    </StackPanel>
+                </TabItem.Header>
+
+                <Grid DataContext="{Binding TrainingVm, ElementName=Root}" Margin="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel>
+                            <TextBlock Text="{Binding TrainingHeaderTitle, ElementName=Root}"
+                                       FontSize="22"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource PrimaryBrush}" />
+                            <TextBlock Text="{Binding TrainingHeaderSubtitle, ElementName=Root}"
+                                       Foreground="#5B6A7A" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button x:Name="AddCourseButton"
+                                    Content="Add Course"
+                                    Style="{StaticResource ActionButtonStyle}"
+                                    Click="AddCourse_Click" Width="115" />
+                            <Button x:Name="EnrollEmployeeButton"
+                                    Content="Enroll Employee"
+                                    Style="{StaticResource ActionButtonStyle}"
+                                    Background="{StaticResource AccentBrush}"
+                                    Foreground="{StaticResource PrimaryBrush}"
+                                    Click="EnrollEmployee_Click" Width="130" />
+                        </StackPanel>
+                    </Grid>
+
+                    <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,12">
+                        <Border Style="{StaticResource MetricCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Total Courses" Foreground="#6A7684" />
+                                <TextBlock Text="{Binding TotalCourses}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource MetricCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Active Courses" Foreground="#6A7684" />
+                                <TextBlock Text="{Binding ActiveCourses}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource MetricCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Enrollments" Foreground="#6A7684" />
+                                <TextBlock Text="{Binding EnrollmentsToday}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource CardStyle}" Background="#FFF9EF">
+                            <StackPanel>
+                                <TextBlock Text="Completions" Foreground="#6A7684" />
+                                <TextBlock Text="{Binding Completions}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" />
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+
+                    <Grid Grid.Row="2" Margin="0,0,0,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,6,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Training Courses"
+                                           FontSize="15"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryBrush}" />
+                                <DataGrid Grid.Row="1"
+                                          Margin="0,12,0,0"
+                                          Style="{StaticResource ModuleDataGridStyle}"
+                                          ItemsSource="{Binding Courses}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Course"
+                                                            Binding="{Binding Title}"
+                                                            Width="2.4*"
+                                                            HeaderStyle="{StaticResource ModuleDataGridHeaderAlignedLeftStyle}"
+                                                            ElementStyle="{StaticResource ModuleCellAlignedTextStyle}" />
+                                        <DataGridTextColumn Header="Provider"
+                                                            Binding="{Binding Provider}"
+                                                            Width="1.6*"
+                                                            HeaderStyle="{StaticResource ModuleDataGridHeaderAlignedLeftStyle}"
+                                                            ElementStyle="{StaticResource ModuleCellAlignedTextStyle}" />
+                                        <DataGridTextColumn Header="Hours"
+                                                            Binding="{Binding Hours}"
+                                                            Width="88"
+                                                            HeaderStyle="{StaticResource ModuleStatusHeaderCenteredStyle}"
+                                                            ElementStyle="{StaticResource HoursCellTextStyle}" />
+                                        <DataGridTemplateColumn Header="Status" Width="124" HeaderStyle="{StaticResource ModuleStatusHeaderCenteredStyle}">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Border CornerRadius="10"
+                                                            Padding="10,3"
+                                                            MinWidth="86"
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="{Binding StatusColor}" />
+                                                                <Setter Property="BorderThickness" Value="0" />
+                                                                <Setter Property="BorderBrush" Value="Transparent" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Status}" Value="Inactive">
+                                                                        <Setter Property="Background" Value="#D32F2F" />
+                                                                        <Setter Property="BorderBrush" Value="#9A0007" />
+                                                                        <Setter Property="BorderThickness" Value="1" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <TextBlock Text="{Binding Status}"
+                                                                   Foreground="White"
+                                                                   FontWeight="Bold"
+                                                                   TextAlignment="Center" />
+                                                    </Border>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTemplateColumn x:Name="CourseActionColumn"
+                                                                Header="Action"
+                                                                Width="132"
+                                                                HeaderStyle="{StaticResource ModuleStatusHeaderCenteredStyle}"
+                                                                CellStyle="{StaticResource TightStatusCellStyle}">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Border HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            CornerRadius="8"
+                                                            Background="#F3F8FF"
+                                                            BorderBrush="#C8D8EC"
+                                                            BorderThickness="1"
+                                                            Padding="2">
+                                                        <ComboBox Style="{StaticResource InlineStatusComboStyle}"
+                                                                  ItemContainerStyle="{StaticResource InlineStatusComboItemStyle}"
+                                                                  SelectedValue="{Binding Status, Mode=OneWay}"
+                                                                  SelectedValuePath="Content"
+                                                                  SelectionChanged="CourseActionCombo_SelectionChanged">
+                                                            <ComboBoxItem Content="Active" />
+                                                            <ComboBoxItem Content="Inactive" />
+                                                            <ComboBoxItem Content="Delete" />
+                                                        </ComboBox>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTemplateColumn x:Name="CourseRequestColumn"
+                                                                Header="Action"
+                                                                Width="102"
+                                                                HeaderStyle="{StaticResource ModuleStatusHeaderCenteredStyle}"
+                                                                Visibility="Collapsed">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="Request"
+                                                            Style="{StaticResource CourseRowEditButtonStyle}"
+                                                            Width="82"
+                                                            Click="RequestCourse_Click" />
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="6,0,0,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Training Enrollments"
+                                           FontSize="15"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryBrush}" />
+                                <DataGrid Grid.Row="1"
+                                          Margin="0,12,0,0"
+                                          Style="{StaticResource ModuleDataGridStyle}"
+                                          IsReadOnly="False"
+                                          ItemsSource="{Binding Enrollments}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Employee"
+                                                            Binding="{Binding Employee}"
+                                                            Width="2*"
+                                                            IsReadOnly="True"
+                                                            HeaderStyle="{StaticResource ModuleDataGridHeaderStyle}"
+                                                            ElementStyle="{StaticResource ModuleCellTextStyle}" />
+                                        <DataGridTextColumn Header="Course"
+                                                            Binding="{Binding Course}"
+                                                            Width="2.2*"
+                                                            IsReadOnly="True"
+                                                            HeaderStyle="{StaticResource ModuleDataGridHeaderStyle}"
+                                                            ElementStyle="{StaticResource ModuleCellTextStyle}" />
+                                        <DataGridTextColumn Header="Session Date"
+                                                            Width="1.4*"
+                                                            IsReadOnly="True"
+                                                            HeaderStyle="{StaticResource ModuleDataGridHeaderStyle}"
+                                                            ElementStyle="{StaticResource ModuleCellTextStyle}">
+                                            <DataGridTextColumn.Binding>
+                                                <Binding Path="ScheduleDate" StringFormat="{}{0:MMM dd, yyyy}" />
+                                            </DataGridTextColumn.Binding>
+                                        </DataGridTextColumn>
+                                        <DataGridTemplateColumn x:Name="EnrollmentStatusEditColumn"
+                                                                Header="Status"
+                                                                Width="132"
+                                                                HeaderStyle="{StaticResource ModuleStatusHeaderCenteredStyle}"
+                                                                CellStyle="{StaticResource TightStatusCellStyle}">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <ComboBox Style="{StaticResource EnrollmentStatusComboStyle}"
+                                                              SelectedValue="{Binding Status, Mode=OneWay}"
+                                                              SelectedValuePath="Content"
+                                                              SelectionChanged="EnrollmentStatusCombo_SelectionChanged">
+                                                        <ComboBoxItem Content="Requested" />
+                                                        <ComboBoxItem Content="Enrolled" />
+                                                        <ComboBoxItem Content="Completed" />
+                                                        <ComboBoxItem Content="Rejected" />
+                                                        <ComboBoxItem Content="Delete" />
+                                                    </ComboBox>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTemplateColumn x:Name="EnrollmentStatusReadOnlyColumn"
+                                                                Header="Status"
+                                                                Width="132"
+                                                                HeaderStyle="{StaticResource ModuleStatusHeaderCenteredStyle}"
+                                                                CellStyle="{StaticResource TightStatusCellStyle}"
+                                                                Visibility="Collapsed">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Border CornerRadius="10"
+                                                            Padding="10,3"
+                                                            MinWidth="86"
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            Background="{Binding StatusColor}">
+                                                        <TextBlock Text="{Binding Status}"
+                                                                   Foreground="White"
+                                                                   FontWeight="Bold"
+                                                                   TextAlignment="Center" />
+                                                    </Border>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="4,2">
+                        <materialDesign:PackIcon Kind="ChartLine" Width="18" Height="18" Margin="0,0,6,0" />
+                        <TextBlock Text="Performance" FontWeight="SemiBold" />
+                    </StackPanel>
+                </TabItem.Header>
+
+                <Grid DataContext="{Binding PerformanceVm, ElementName=Root}" Margin="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel>
+                            <TextBlock Text="{Binding PerformanceHeaderTitle, ElementName=Root}"
+                                       FontSize="22"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource PrimaryBrush}" />
+                            <TextBlock Text="{Binding PerformanceHeaderSubtitle, ElementName=Root}"
+                                       Foreground="#5B6A7A" />
+                        </StackPanel>
+
+                        <Button x:Name="OpenPerformanceAdminButton"
+                                Grid.Column="1"
+                                Content="Open Admin Review Window"
+                                Width="220"
+                                Margin="0"
+                                Style="{StaticResource ActionButtonStyle}"
+                                Click="OpenPerformanceAdmin_Click" />
+                    </Grid>
+
+                    <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,12">
+                        <Border Style="{StaticResource MetricCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Total Cycles" Foreground="#6A7684" />
+                                <TextBlock Text="{Binding TotalCycles}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource MetricCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Open Cycles" Foreground="#6A7684" />
+                                <TextBlock Text="{Binding OpenCycles}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource MetricCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Total Reviews" Foreground="#6A7684" />
+                                <TextBlock Text="{Binding TotalReviews}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource CardStyle}" Background="#FFF9EF">
+                            <StackPanel>
+                                <TextBlock Text="Average Rating" Foreground="#6A7684" />
+                                <TextBlock Text="{Binding AvgRating, StringFormat={}{0:F1}}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" />
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+
+                    <Grid Grid.Row="2" Margin="0,0,0,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.2*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,6,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Review Status Breakdown"
+                                           FontSize="15"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryBrush}" />
+                                <scottPlot:WpfPlot x:Name="ReviewStatusPlot"
+                                                   Grid.Row="1"
+                                                   Margin="0,12,0,0" />
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="6,0,0,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Top Performers"
+                                           FontSize="15"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryBrush}" />
+                                <DataGrid Grid.Row="1"
+                                          Margin="0,12,0,0"
+                                          Style="{StaticResource ModuleDataGridStyle}"
+                                          ItemsSource="{Binding TopPerformers}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Employee"
+                                                            Binding="{Binding Name}"
+                                                            Width="*"
+                                                            HeaderStyle="{StaticResource ModuleDataGridHeaderStyle}"
+                                                            ElementStyle="{StaticResource ModuleCellAlignedTextStyle}" />
+                                        <DataGridTextColumn Header="Rating"
+                                                            Binding="{Binding Rating, StringFormat={}{0:F1}}"
+                                                            Width="110"
+                                                            HeaderStyle="{StaticResource ModuleStatusHeaderCenteredStyle}"
+                                                            ElementStyle="{StaticResource HoursCellTextStyle}" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <Grid x:Name="PerformanceAdminHost"
+              Visibility="Collapsed"
+              Panel.ZIndex="20"
+              Background="White">
+            <local:PerformanceAdminView x:Name="PerformanceAdminPanel"
+                                        DataContext="{Binding PerformanceVm, ElementName=Root}"
+                                        CloseRequested="PerformanceAdminPanel_CloseRequested" />
+        </Grid>
+    </Grid>
+</UserControl>

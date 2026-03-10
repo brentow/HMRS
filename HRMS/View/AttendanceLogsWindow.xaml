@@ -1,0 +1,368 @@
+<UserControl x:Class="HRMS.View.AttendanceLogsWindow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d"
+             d:DesignHeight="800"
+             d:DesignWidth="1200"
+             Background="White">
+
+    <UserControl.Resources>
+        <Color x:Key="PrimaryColor">#1E4368</Color>
+        <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
+
+        <Style x:Key="PrimaryActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="14,9" />
+            <Setter Property="Height" Value="42" />
+            <Setter Property="MinWidth" Value="130" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="10">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryActionButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryActionButtonStyle}">
+            <Setter Property="Background" Value="#EAF2FB" />
+            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#D5E3F5" />
+        </Style>
+
+        <Style x:Key="DangerActionButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryActionButtonStyle}">
+            <Setter Property="Background" Value="#D84343" />
+            <Setter Property="MinWidth" Value="86" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+
+        <Style x:Key="GridHeaderStyle" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#F2F7FD" />
+            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="BorderBrush" Value="#E3ECF8" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Padding" Value="8,0,8,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="GridCellStyle" TargetType="DataGridCell">
+            <Setter Property="Padding" Value="8,0,8,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="TextBlock.TextAlignment" Value="Center" />
+            <Setter Property="TextBlock.VerticalAlignment" Value="Center" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        </Style>
+
+        <Style x:Key="GridRowStyle" TargetType="DataGridRow">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="#1E4368" />
+            <Setter Property="Background" Value="White" />
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#E8F1FC" />
+                    <Setter Property="Foreground" Value="#1E4368" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="White" Margin="4">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="ClipboardTextClockOutline" Width="34" Height="32" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,10,0" />
+                    <TextBlock Text="Attendance Logs" FontSize="25" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
+                </StackPanel>
+                <TextBlock Text="Audit attendance punches and remove invalid logs." Foreground="#5B6A7A" Margin="0,2,0,0" />
+            </StackPanel>
+
+            <Button Grid.Column="1"
+                    Width="140"
+                    Height="42"
+                    Style="{StaticResource PrimaryActionButtonStyle}"
+                    Command="{Binding RefreshCommand}"
+                    VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" Margin="0,0,8,0" />
+                    <TextBlock Text="Refresh" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,12">
+            <Border CornerRadius="14" BorderBrush="#E5EDF7" BorderThickness="1" Padding="14" Margin="6" Background="#F5FBFF">
+                <StackPanel>
+                    <TextBlock Text="Total Logs" Foreground="#6A7684" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding TotalLogs}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                </StackPanel>
+            </Border>
+            <Border CornerRadius="14" BorderBrush="#E5EDF7" BorderThickness="1" Padding="14" Margin="6" Background="#F5FBFF">
+                <StackPanel>
+                    <TextBlock Text="Today Logs" Foreground="#6A7684" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding TodayLogs}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                </StackPanel>
+            </Border>
+            <Border CornerRadius="14" BorderBrush="#E5EDF7" BorderThickness="1" Padding="14" Margin="6" Background="#FFF9EE">
+                <StackPanel>
+                    <TextBlock Text="Incomplete Logs" Foreground="#6A7684" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding IncompleteLogs}" FontSize="28" FontWeight="Bold" Foreground="#B9831A"/>
+                </StackPanel>
+            </Border>
+            <Border CornerRadius="14" BorderBrush="#E5EDF7" BorderThickness="1" Padding="14" Margin="6" Background="#F2FBF5">
+                <StackPanel>
+                    <TextBlock Text="Present Today" Foreground="#6A7684" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding PresentToday}" FontSize="28" FontWeight="Bold" Foreground="#2E9D5B"/>
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <Border Grid.Row="2" Margin="6,0,6,12" Padding="12" BorderBrush="#E5EDF7" BorderThickness="1" Background="White" CornerRadius="12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0" Margin="0,0,8,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="250" />
+                        <ColumnDefinition Width="130" />
+                        <ColumnDefinition Width="95" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="120" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Employee" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Date" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,6" />
+                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Time" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,6" />
+                    <TextBlock Grid.Row="0" Grid.Column="3" Text="Type" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,6" />
+                    <TextBlock Grid.Row="0" Grid.Column="4" Text="Source" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,6" />
+
+                    <ComboBox Grid.Row="1"
+                              Grid.Column="0"
+                              Height="40"
+                              ItemsSource="{Binding EmployeeOptions}"
+                              DisplayMemberPath="Label"
+                              SelectedValuePath="Id"
+                              SelectedValue="{Binding SelectedManualLogEmployeeId}" />
+                    <Border Grid.Row="1"
+                            Grid.Column="1"
+                            Height="40"
+                            Margin="10,0,0,0"
+                            BorderBrush="#D5E3F5"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Background="#F8FBFF">
+                        <DatePicker BorderThickness="0"
+                                    Padding="8,0"
+                                    VerticalContentAlignment="Center"
+                                    Background="Transparent"
+                                    SelectedDate="{Binding ManualLogDate}" />
+                    </Border>
+                    <TextBox Grid.Row="1"
+                             Grid.Column="2"
+                             Height="40"
+                             Margin="10,0,0,0"
+                             VerticalContentAlignment="Center"
+                             Text="{Binding ManualLogTime, UpdateSourceTrigger=PropertyChanged}" />
+                    <ComboBox Grid.Row="1"
+                              Grid.Column="3"
+                              Height="40"
+                              Margin="10,0,0,0"
+                              ItemsSource="{Binding ManualLogTypes}"
+                              SelectedItem="{Binding ManualLogType}" />
+                    <ComboBox Grid.Row="1"
+                              Grid.Column="4"
+                              Height="40"
+                              Margin="10,0,0,0"
+                              ItemsSource="{Binding ManualLogSources}"
+                              SelectedItem="{Binding ManualLogSource}" />
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Device (Optional)" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,8,0,6" />
+                    <ComboBox Grid.Row="3"
+                              Grid.Column="0"
+                              Height="40"
+                              ItemsSource="{Binding DeviceOptions}"
+                              DisplayMemberPath="Label"
+                              SelectedValuePath="Id"
+                              SelectedValue="{Binding SelectedManualLogDeviceId}" />
+                </Grid>
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Top"
+                            Margin="0,24,0,0"
+                            HorizontalAlignment="Right">
+                    <Button Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0" MinWidth="140" Command="{Binding AddManualLogCommand}">
+                        <TextBlock Text="Add Manual Log" />
+                    </Button>
+                    <Button Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0" MinWidth="130" Command="{Binding ImportLogsCsvCommand}">
+                        <TextBlock Text="Import CSV" />
+                    </Button>
+                    <Button Style="{StaticResource SecondaryActionButtonStyle}" MinWidth="130" Command="{Binding ExportLogsCsvCommand}">
+                        <TextBlock Text="Export CSV" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="3" Margin="6,0,6,12" Padding="12" BorderBrush="#E5EDF7" BorderThickness="1" Background="White" CornerRadius="12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2.2*" />
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Background="#F2F7FD" BorderBrush="#E0EAF6" BorderThickness="1" CornerRadius="10" Padding="10,6" Margin="0,0,10,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="Magnify" Width="18" Height="18" Foreground="#7A8FA5" Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" BorderThickness="0" Background="Transparent" FontSize="14" Foreground="#5B6A7A" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center" materialDesign:HintAssist.Hint="Search employee, device, source, or type" />
+                    </Grid>
+                </Border>
+
+                <ComboBox Grid.Column="1" Margin="0,0,10,0" Height="40" VerticalContentAlignment="Center" ItemsSource="{Binding SourceFilters}" SelectedItem="{Binding SelectedSourceFilter}" />
+                <ComboBox Grid.Column="2" Margin="0,0,10,0" Height="40" VerticalContentAlignment="Center" ItemsSource="{Binding TypeFilters}" SelectedItem="{Binding SelectedTypeFilter}" />
+                <Border Grid.Column="3"
+                        Margin="0,0,10,0"
+                        Height="40"
+                        BorderBrush="#D5E3F5"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Background="#F8FBFF">
+                    <DatePicker BorderThickness="0"
+                                Padding="8,0"
+                                VerticalContentAlignment="Center"
+                                Background="Transparent"
+                                SelectedDate="{Binding SelectedDateFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                </Border>
+
+                <Button Grid.Column="4" Style="{StaticResource SecondaryActionButtonStyle}" Command="{Binding ClearDateFilterCommand}" MinWidth="120">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="CloseCircleOutline" Width="16" Height="16" Margin="0,0,8,0" />
+                        <TextBlock Text="Clear Date" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="4" Margin="6,0,6,6" Padding="14" CornerRadius="14" BorderBrush="#E5EDF7" BorderThickness="1" Background="White">
+            <DataGrid ItemsSource="{Binding Logs}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      CanUserResizeRows="False"
+                      HeadersVisibility="Column"
+                      GridLinesVisibility="Horizontal"
+                      BorderThickness="1"
+                      BorderBrush="#E3ECF8"
+                      RowHeaderWidth="0"
+                      RowBackground="White"
+                      AlternatingRowBackground="#F8FBFF"
+                      HorizontalGridLinesBrush="#E9F0FA"
+                      VerticalGridLinesBrush="#E9F0FA"
+                      ColumnHeaderHeight="40"
+                      RowHeight="44"
+                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                      SelectionMode="Single"
+                      SelectionUnit="FullRow">
+                <DataGrid.ColumnHeaderStyle>
+                    <Style BasedOn="{StaticResource GridHeaderStyle}" TargetType="DataGridColumnHeader" />
+                </DataGrid.ColumnHeaderStyle>
+                <DataGrid.CellStyle>
+                    <Style BasedOn="{StaticResource GridCellStyle}" TargetType="DataGridCell" />
+                </DataGrid.CellStyle>
+                <DataGrid.RowStyle>
+                    <Style BasedOn="{StaticResource GridRowStyle}" TargetType="DataGridRow" />
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Emp No" Binding="{Binding EmployeeNo}" Width="0.9*" />
+                    <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName}" Width="2*" />
+                    <DataGridTextColumn Header="Date" Binding="{Binding LogDateText}" Width="1*" />
+                    <DataGridTextColumn Header="Time" Binding="{Binding LogTimeText}" Width="0.9*" />
+                    <DataGridTemplateColumn Header="Type" Width="0.9*">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border Background="{Binding LogTypeBrush}" CornerRadius="8" Padding="8,3" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding LogType}" Foreground="White" FontWeight="SemiBold" FontSize="11" />
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="Source" Width="1*">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border Background="{Binding SourceBrush}" CornerRadius="8" Padding="8,3" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Source}" Foreground="White" FontWeight="SemiBold" FontSize="11" />
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Device" Binding="{Binding DeviceName}" Width="1.5*" />
+                    <DataGridTemplateColumn Header="Action" Width="1.2*">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource DangerActionButtonStyle}"
+                                        Command="{Binding DataContext.DeleteLogCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="DeleteOutline" Width="14" Height="14" Margin="0,0,6,0" />
+                                        <TextBlock Text="Delete" />
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <Border Grid.Row="5" Margin="6,0,6,0" Padding="10,8" BorderBrush="#E5EDF7" BorderThickness="1" Background="#F9FBFF" CornerRadius="10">
+            <TextBlock Text="{Binding ActionMessage}" Foreground="{Binding ActionMessageBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+        </Border>
+    </Grid>
+</UserControl>

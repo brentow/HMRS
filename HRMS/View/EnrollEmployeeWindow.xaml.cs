@@ -72,27 +72,42 @@ namespace HRMS.View
             var status = (StatusBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Enrolled";
             var date = DatePicker.SelectedDate ?? DateTime.Today;
 
-            var service = new TrainingDataService(DbConfig.ConnectionString);
-            await service.AddEnrollmentAsync(employeeId, courseId, date, status);
-
-            // Update UI view model
-            if (TrainingVm != null)
+            try
             {
-                var courseTitle = CourseBox.SelectedItem is TrainingCourseSummary tcs ? tcs.Title : (CourseBox.Text ?? string.Empty);
-                var employeeName = EmployeeBox.Text;
-                var enrollment = new TrainingEnrollment
-                {
-                    Employee = employeeName,
-                    Course = courseTitle,
-                    ScheduleDate = date,
-                    Status = status,
-                    StatusColor = TrainingViewModel.GetStatusBrush(status)
-                };
-                TrainingVm.AddEnrollment(enrollment);
-            }
+                var service = new TrainingDataService(DbConfig.ConnectionString);
+                var enrollmentId = await service.AddEnrollmentAsync(employeeId, courseId, date, status);
 
-            DialogResult = true;
-            Close();
+                // Update UI view model
+                if (TrainingVm != null)
+                {
+                    var courseTitle = CourseBox.SelectedItem is TrainingCourseSummary tcs ? tcs.Title : (CourseBox.Text ?? string.Empty);
+                    var employeeName = EmployeeBox.Text;
+                    var statusLabel = status.ToLowerInvariant() switch
+                    {
+                        "complete" => "Completed",
+                        "reject" => "Rejected",
+                        _ => status
+                    };
+                    var enrollment = new TrainingEnrollment
+                    {
+                        EnrollmentId = enrollmentId,
+                        Employee = employeeName,
+                        Course = courseTitle,
+                        ScheduleDate = date,
+                        Status = statusLabel,
+                        StatusColor = TrainingViewModel.GetStatusBrush(statusLabel)
+                    };
+                    TrainingVm.AddEnrollment(enrollment);
+                }
+
+                SystemRefreshBus.Raise("TrainingEnrollmentAdded");
+                DialogResult = true;
+                Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Unable to enroll employee: {ex.Message}", "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void Close_Click(object sender, RoutedEventArgs e) => Close();

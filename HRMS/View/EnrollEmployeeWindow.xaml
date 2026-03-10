@@ -30,14 +30,20 @@
                       KeyDown="TextBox_KeyDown"/>
 
             <TextBlock Text="Date" FontWeight="SemiBold" Foreground="#1E4368"/>
-            <DatePicker x:Name="DatePicker" Margin="0,4,0,12" SelectedDate="{x:Static sys:DateTime.Today}"
+            <DatePicker x:Name="DatePicker"
+                        Margin="0,4,0,12"
+                        Height="36"
+                        VerticalContentAlignment="Center"
+                        HorizontalContentAlignment="Stretch"
+                        SelectedDate="{x:Static sys:DateTime.Today}"
                         KeyDown="TextBox_KeyDown"/>
 
             <TextBlock Text="Status" FontWeight="SemiBold" Foreground="#1E4368"/>
             <ComboBox x:Name="StatusBox" Margin="0,4,0,0" Height="28" KeyDown="TextBox_KeyDown">
                 <ComboBoxItem Content="Enrolled" IsSelected="True"/>
-                <ComboBoxItem Content="Scheduled"/>
+                <ComboBoxItem Content="Requested"/>
                 <ComboBoxItem Content="Completed"/>
+                <ComboBoxItem Content="Rejected"/>
             </ComboBox>
         </StackPanel>
 
