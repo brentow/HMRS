@@ -165,6 +165,78 @@ LEFT JOIN (
 ORDER BY e.employee_no
 LIMIT @limit;";
 
+            const string fallbackSql = @"
+SELECT
+    e.employee_no,
+    CONCAT(e.last_name, ', ', e.first_name, IFNULL(CONCAT(' ', e.middle_name), '')) AS employee_name,
+    COALESCE(d.dept_name, '-') AS dept_name,
+    COALESCE(p.position_name, '-') AS position_name,
+    e.hire_date,
+    COALESCE(e.status, 'ACTIVE') AS status,
+    COALESCE(at.type_name, '-') AS appointment_type,
+    CASE
+        WHEN e.salary_grade IS NULL THEN '-'
+        ELSE CONCAT('SG-', e.salary_grade)
+    END AS salary_grade,
+    CASE
+        WHEN e.step_no IS NULL THEN '-'
+        ELSE CAST(e.step_no AS CHAR)
+    END AS salary_step,
+    COALESCE(ss.monthly_rate, 0) AS monthly_salary,
+    e.tin_no,
+    e.gsis_bp_no,
+    e.philhealth_no,
+    e.pagibig_mid_no,
+    dtr.work_date AS last_dtr_date,
+    TIME(dtr.time_in) AS last_time_in,
+    TIME(dtr.time_out) AS last_time_out,
+    COALESCE(dtr.worked_minutes, 0) AS worked_minutes
+FROM employees e
+LEFT JOIN departments d ON d.department_id = e.department_id
+LEFT JOIN positions p ON p.position_id = e.position_id
+LEFT JOIN appointment_types at ON at.appointment_type_id = e.appointment_type_id
+LEFT JOIN salary_steps ss
+       ON ss.salary_grade = e.salary_grade
+      AND ss.step_no = e.step_no
+      AND ss.effectivity_date = (
+            SELECT MAX(ss2.effectivity_date)
+            FROM salary_steps ss2
+            WHERE ss2.salary_grade = e.salary_grade
+              AND ss2.step_no = e.step_no
+              AND ss2.effectivity_date <= CURDATE()
+      )
+LEFT JOIN (
+    SELECT
+        daily.employee_id,
+        daily.work_date,
+        daily.time_in,
+        daily.time_out,
+        CASE
+            WHEN daily.time_in IS NULL OR daily.time_out IS NULL THEN 0
+            ELSE TIMESTAMPDIFF(MINUTE, daily.time_in, daily.time_out)
+        END AS worked_minutes
+    FROM (
+        SELECT
+            al.employee_id,
+            DATE(al.log_time) AS work_date,
+            MIN(CASE WHEN al.log_type = 'IN' THEN al.log_time END) AS time_in,
+            MAX(CASE WHEN al.log_type = 'OUT' THEN al.log_time END) AS time_out
+        FROM attendance_logs al
+        GROUP BY al.employee_id, DATE(al.log_time)
+    ) daily
+    INNER JOIN (
+        SELECT
+            al.employee_id,
+            MAX(DATE(al.log_time)) AS max_work_date
+        FROM attendance_logs al
+        GROUP BY al.employee_id
+    ) latest
+            ON latest.employee_id = daily.employee_id
+           AND latest.max_work_date = daily.work_date
+) dtr ON dtr.employee_id = e.employee_id
+ORDER BY e.employee_no
+LIMIT @limit;";
+
             var list = new List<EmployeeRowDto>();
 
             try
@@ -173,41 +245,84 @@ LIMIT @limit;";
                 await connection.OpenAsync();
                 await EnsureGovernmentIdsProtectedAsync(connection);
 
-                await using var command = new MySqlCommand(sql, connection);
-                command.Parameters.AddWithValue("@limit", limit);
-
-                await using var reader = await command.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
+                await using (var command = new MySqlCommand(sql, connection))
                 {
-                    var hireDate = reader["hire_date"] == DBNull.Value
-                        ? DateTime.Today
-                        : Convert.ToDateTime(reader["hire_date"], CultureInfo.InvariantCulture);
+                    command.Parameters.AddWithValue("@limit", limit);
 
-                    list.Add(new EmployeeRowDto(
-                        EmployeeNo: reader["employee_no"]?.ToString() ?? string.Empty,
-                        Name: reader["employee_name"]?.ToString() ?? string.Empty,
-                        Department: reader["dept_name"]?.ToString() ?? "-",
-                        Position: reader["position_name"]?.ToString() ?? "-",
-                        HireDate: hireDate,
-                        Status: reader["status"]?.ToString() ?? "ACTIVE",
-                        AppointmentType: reader["appointment_type"]?.ToString() ?? "-",
-                        SalaryGrade: reader["salary_grade"]?.ToString() ?? "-",
-                        SalaryStep: reader["salary_step"]?.ToString() ?? "-",
-                        MonthlySalary: reader["monthly_salary"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["monthly_salary"], CultureInfo.InvariantCulture),
-                        TinNo: SafeGovernmentIdValue(reader["tin_no"]),
-                        GsisBpNo: SafeGovernmentIdValue(reader["gsis_bp_no"]),
-                        PhilHealthNo: SafeGovernmentIdValue(reader["philhealth_no"]),
-                        PagibigMidNo: SafeGovernmentIdValue(reader["pagibig_mid_no"]),
-                        LastDtrDate: reader["last_dtr_date"] == DBNull.Value ? null : Convert.ToDateTime(reader["last_dtr_date"], CultureInfo.InvariantCulture),
-                        LastTimeIn: ToTimeSpan(reader["last_time_in"]),
-                        LastTimeOut: ToTimeSpan(reader["last_time_out"]),
-                        LastWorkedMinutes: reader["worked_minutes"] == DBNull.Value ? 0 : Convert.ToInt32(reader["worked_minutes"], CultureInfo.InvariantCulture)
-                    ));
+                    await using var reader = await command.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        var hireDate = reader["hire_date"] == DBNull.Value
+                            ? DateTime.Today
+                            : Convert.ToDateTime(reader["hire_date"], CultureInfo.InvariantCulture);
+
+                        list.Add(new EmployeeRowDto(
+                            EmployeeNo: reader["employee_no"]?.ToString() ?? string.Empty,
+                            Name: reader["employee_name"]?.ToString() ?? string.Empty,
+                            Department: reader["dept_name"]?.ToString() ?? "-",
+                            Position: reader["position_name"]?.ToString() ?? "-",
+                            HireDate: hireDate,
+                            Status: reader["status"]?.ToString() ?? "ACTIVE",
+                            AppointmentType: reader["appointment_type"]?.ToString() ?? "-",
+                            SalaryGrade: reader["salary_grade"]?.ToString() ?? "-",
+                            SalaryStep: reader["salary_step"]?.ToString() ?? "-",
+                            MonthlySalary: reader["monthly_salary"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["monthly_salary"], CultureInfo.InvariantCulture),
+                            TinNo: SafeGovernmentIdValue(reader["tin_no"]),
+                            GsisBpNo: SafeGovernmentIdValue(reader["gsis_bp_no"]),
+                            PhilHealthNo: SafeGovernmentIdValue(reader["philhealth_no"]),
+                            PagibigMidNo: SafeGovernmentIdValue(reader["pagibig_mid_no"]),
+                            LastDtrDate: reader["last_dtr_date"] == DBNull.Value ? null : Convert.ToDateTime(reader["last_dtr_date"], CultureInfo.InvariantCulture),
+                            LastTimeIn: ToTimeSpan(reader["last_time_in"]),
+                            LastTimeOut: ToTimeSpan(reader["last_time_out"]),
+                            LastWorkedMinutes: reader["worked_minutes"] == DBNull.Value ? 0 : Convert.ToInt32(reader["worked_minutes"], CultureInfo.InvariantCulture)
+                        ));
+                    }
                 }
             }
             catch (MySqlException)
             {
-                return Array.Empty<EmployeeRowDto>();
+                try
+                {
+                    await using var connection = new MySqlConnection(_connectionString);
+                    await connection.OpenAsync();
+                    await EnsureGovernmentIdsProtectedAsync(connection);
+
+                    await using var command = new MySqlCommand(fallbackSql, connection);
+                    command.Parameters.AddWithValue("@limit", limit);
+
+                    await using var reader = await command.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        var hireDate = reader["hire_date"] == DBNull.Value
+                            ? DateTime.Today
+                            : Convert.ToDateTime(reader["hire_date"], CultureInfo.InvariantCulture);
+
+                        list.Add(new EmployeeRowDto(
+                            EmployeeNo: reader["employee_no"]?.ToString() ?? string.Empty,
+                            Name: reader["employee_name"]?.ToString() ?? string.Empty,
+                            Department: reader["dept_name"]?.ToString() ?? "-",
+                            Position: reader["position_name"]?.ToString() ?? "-",
+                            HireDate: hireDate,
+                            Status: reader["status"]?.ToString() ?? "ACTIVE",
+                            AppointmentType: reader["appointment_type"]?.ToString() ?? "-",
+                            SalaryGrade: reader["salary_grade"]?.ToString() ?? "-",
+                            SalaryStep: reader["salary_step"]?.ToString() ?? "-",
+                            MonthlySalary: reader["monthly_salary"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["monthly_salary"], CultureInfo.InvariantCulture),
+                            TinNo: SafeGovernmentIdValue(reader["tin_no"]),
+                            GsisBpNo: SafeGovernmentIdValue(reader["gsis_bp_no"]),
+                            PhilHealthNo: SafeGovernmentIdValue(reader["philhealth_no"]),
+                            PagibigMidNo: SafeGovernmentIdValue(reader["pagibig_mid_no"]),
+                            LastDtrDate: reader["last_dtr_date"] == DBNull.Value ? null : Convert.ToDateTime(reader["last_dtr_date"], CultureInfo.InvariantCulture),
+                            LastTimeIn: ToTimeSpan(reader["last_time_in"]),
+                            LastTimeOut: ToTimeSpan(reader["last_time_out"]),
+                            LastWorkedMinutes: reader["worked_minutes"] == DBNull.Value ? 0 : Convert.ToInt32(reader["worked_minutes"], CultureInfo.InvariantCulture)
+                        ));
+                    }
+                }
+                catch (MySqlException)
+                {
+                    return Array.Empty<EmployeeRowDto>();
+                }
             }
 
             return list;

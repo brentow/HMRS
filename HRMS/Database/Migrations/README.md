@@ -31,6 +31,10 @@ Current migration chain
 16. `20260310_0016__expand_audit_log_context.sql`
 17. `20260310_0017__sync_linked_user_account_identity.sql`
 18. `20260310_0018__expand_employee_sensitive_id_columns.sql`
+19. `20260310_0019__leave_documents_blob_storage.sql`
+20. `20260310_0020__seed_default_admin_account.sql`
+21. `20260317_0021__beneficiary_staging.sql`
+22. `20260317_0022__add_remarks_to_beneficiary_staging.sql`
 
 Usage (from app code)
 ---------------------

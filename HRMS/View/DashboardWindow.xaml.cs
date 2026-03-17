@@ -27,6 +27,10 @@ namespace HRMS.View
         private readonly NotificationsViewModel _notificationsViewModel = new();
         private bool _isRenderingDashboardCharts;
         private bool _isRefreshingAllModules;
+        private bool _isSystemRefreshQueued;
+        private DateTime _lastSystemRefreshUtc = DateTime.MinValue;
+        private static readonly TimeSpan RefreshDebounceDelay = TimeSpan.FromMilliseconds(600);
+        private static readonly TimeSpan MinimumRefreshGap = TimeSpan.FromSeconds(8);
 
         private enum ModuleKey
         {
@@ -38,10 +42,11 @@ namespace HRMS.View
             Adjustments,
             Leave,
             Payroll,
-            MyDocuments,
+            Documents,
             Recruitment,
             Development,
-            Users
+            Users,
+            Beneficiaries
         }
 
         private bool IsAdminAccess =>
@@ -67,10 +72,10 @@ namespace HRMS.View
             LeaveModule?.SetCurrentUser(_authenticatedUser);
             PayrollModule?.SetCurrentUser(_authenticatedUser);
             DevelopmentModule?.SetCurrentUser(_authenticatedUser);
-            MyDocumentsModule?.SetCurrentUser(_authenticatedUser);
-            if (MyDocumentsModule != null)
+            DocumentsModule?.SetCurrentUser(_authenticatedUser);
+            if (DocumentsModule != null)
             {
-                MyDocumentsModule.OpenModuleRequested += EmployeeModule_OpenModuleRequested;
+                DocumentsModule.OpenModuleRequested += EmployeeModule_OpenModuleRequested;
             }
             _notificationsViewModel.SetCurrentUser(_authenticatedUser);
             _notificationsViewModel.OpenModuleRequested += EmployeeModule_OpenModuleRequested;
@@ -99,9 +104,9 @@ namespace HRMS.View
                 vm.PropertyChanged -= DashboardViewModel_PropertyChanged;
             }
 
-            if (MyDocumentsModule != null)
+            if (DocumentsModule != null)
             {
-                MyDocumentsModule.OpenModuleRequested -= EmployeeModule_OpenModuleRequested;
+                DocumentsModule.OpenModuleRequested -= EmployeeModule_OpenModuleRequested;
             }
 
             _notificationsViewModel.OpenModuleRequested -= EmployeeModule_OpenModuleRequested;
@@ -109,10 +114,37 @@ namespace HRMS.View
 
         private void SystemRefreshBus_DataChanged(object? sender, SystemDataChangedEventArgs e)
         {
-            _ = Dispatcher.InvokeAsync(RefreshWholeSystemAsync);
+            _ = QueueSystemRefreshAsync();
         }
 
-        private async Task RefreshWholeSystemAsync()
+        private async Task QueueSystemRefreshAsync()
+        {
+            if (_isSystemRefreshQueued)
+            {
+                return;
+            }
+
+            _isSystemRefreshQueued = true;
+            try
+            {
+                await Task.Delay(RefreshDebounceDelay);
+
+                var elapsed = DateTime.UtcNow - _lastSystemRefreshUtc;
+                var remainingGap = MinimumRefreshGap - elapsed;
+                if (remainingGap > TimeSpan.Zero)
+                {
+                    await Task.Delay(remainingGap);
+                }
+
+                await Dispatcher.InvokeAsync(RefreshVisibleModulesAsync);
+            }
+            finally
+            {
+                _isSystemRefreshQueued = false;
+            }
+        }
+
+        private async Task RefreshVisibleModulesAsync()
         {
             if (_isRefreshingAllModules)
             {
@@ -125,66 +157,56 @@ namespace HRMS.View
                 if (DataContext is DashboardViewModel vm)
                 {
                     await vm.RefreshAsync();
-                }
+                    await RenderDashboardChartsAsync();
 
-                await RenderDashboardChartsAsync();
-
-                if (EmployeesModule != null)
-                {
-                    await EmployeesModule.RefreshAsync();
-                }
-
-                if (DepartmentsModule != null)
-                {
-                    await DepartmentsModule.RefreshAsync();
-                }
-
-                if (AttendanceModule != null)
-                {
-                    await AttendanceModule.RefreshAsync();
-                }
-
-                if (AttendanceLogsModule != null)
-                {
-                    await AttendanceLogsModule.RefreshAsync();
-                }
-
-                if (AdjustmentsModule != null)
-                {
-                    await AdjustmentsModule.RefreshAsync();
-                }
-
-                if (LeaveModule != null)
-                {
-                    await LeaveModule.RefreshAsync();
-                }
-
-                if (PayrollModule != null)
-                {
-                    await PayrollModule.RefreshAsync();
-                }
-
-                if (MyDocumentsModule != null)
-                {
-                    await MyDocumentsModule.RefreshAsync();
-                }
-
-                if (RecruitmentModule != null)
-                {
-                    await RecruitmentModule.RefreshAsync();
-                }
-
-                if (DevelopmentModule != null)
-                {
-                    await DevelopmentModule.RefreshAsync();
-                }
-
-                if (UsersRolesModule != null)
-                {
-                    await UsersRolesModule.RefreshAsync();
+                    if (vm.IsEmployeesVisible && EmployeesModule != null)
+                    {
+                        await EmployeesModule.RefreshAsync();
+                    }
+                    else if (vm.IsDepartmentsVisible && DepartmentsModule != null)
+                    {
+                        await DepartmentsModule.RefreshAsync();
+                    }
+                    else if (vm.IsAttendanceVisible && AttendanceModule != null)
+                    {
+                        await AttendanceModule.RefreshAsync();
+                    }
+                    else if (vm.IsAttendanceLogsVisible && AttendanceLogsModule != null)
+                    {
+                        await AttendanceLogsModule.RefreshAsync();
+                    }
+                    else if (vm.IsAdjustmentsVisible && AdjustmentsModule != null)
+                    {
+                        await AdjustmentsModule.RefreshAsync();
+                    }
+                    else if (vm.IsLeaveVisible && LeaveModule != null)
+                    {
+                        await LeaveModule.RefreshAsync();
+                    }
+                    else if (vm.IsPayrollVisible && PayrollModule != null)
+                    {
+                        await PayrollModule.RefreshAsync();
+                    }
+                    else if (vm.IsDocumentsVisible && DocumentsModule != null)
+                    {
+                        await DocumentsModule.RefreshAsync();
+                    }
+                    else if (vm.IsRecruitmentVisible && RecruitmentModule != null)
+                    {
+                        await RecruitmentModule.RefreshAsync();
+                    }
+                    else if (vm.IsTrainingVisible && DevelopmentModule != null)
+                    {
+                        await DevelopmentModule.RefreshAsync();
+                    }
+                    else if (vm.IsUsersVisible && UsersRolesModule != null)
+                    {
+                        await UsersRolesModule.RefreshAsync();
+                    }
                 }
 
                 await _notificationsViewModel.RefreshAsync();
+                _lastSystemRefreshUtc = DateTime.UtcNow;
             }
             finally
             {
@@ -320,7 +342,7 @@ namespace HRMS.View
             AdjustmentsNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Adjustments));
             LeaveNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Leave));
             PayrollNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Payroll));
-            MyDocumentsNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.MyDocuments));
+            DocumentsNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Documents));
             RecruitmentNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Recruitment));
             DevelopmentNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Development));
 
@@ -351,7 +373,7 @@ namespace HRMS.View
 
             if (QuickDocumentsButton != null)
             {
-                QuickDocumentsButton.Visibility = ToVisibility(CanOpenPersonalDocuments());
+                QuickDocumentsButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Documents) && CanOpenDocumentsModule());
             }
 
             if (QuickActionsGrid != null)
@@ -373,7 +395,7 @@ namespace HRMS.View
             {
                 return module switch
                 {
-                    ModuleKey.MyDocuments => false, // employee-only module
+                    ModuleKey.Documents => true,
                     _ => true
                 };
             }
@@ -390,10 +412,11 @@ namespace HRMS.View
                     ModuleKey.Adjustments => true,
                     ModuleKey.Leave => true,
                     ModuleKey.Payroll => true,
-                    ModuleKey.MyDocuments => false,
+                    ModuleKey.Documents => true,
                     ModuleKey.Recruitment => true,
                     ModuleKey.Development => true,
                     ModuleKey.Users => true, // profile tab only is enforced in UsersRolesWindow
+                    ModuleKey.Beneficiaries => true,
                     _ => false
                 };
             }
@@ -407,7 +430,7 @@ namespace HRMS.View
                     ModuleKey.Adjustments => true,
                     ModuleKey.Leave => true,
                     ModuleKey.Payroll => true,
-                    ModuleKey.MyDocuments => true,
+                    ModuleKey.Documents => true,
                     ModuleKey.Development => true,
                     ModuleKey.Users => true, // profile tab only
                     _ => false
@@ -418,8 +441,10 @@ namespace HRMS.View
             return module is ModuleKey.Dashboard or ModuleKey.Users;
         }
 
-        private bool CanOpenPersonalDocuments() =>
-            _authenticatedUser?.EmployeeId is int employeeId && employeeId > 0;
+        private bool CanOpenDocumentsModule() =>
+            IsAdminAccess ||
+            IsHrAccess ||
+            (_authenticatedUser?.EmployeeId is int employeeId && employeeId > 0);
 
         private bool EnsureModuleAccess(ModuleKey module, string moduleLabel)
         {
@@ -591,6 +616,19 @@ namespace HRMS.View
             OpenUsersModule(preferProfileTab: !IsAdminAccess);
         }
 
+        private void BeneficiariesNavButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (!EnsureModuleAccess(ModuleKey.Beneficiaries, "Beneficiary Verification"))
+            {
+                return;
+            }
+
+            if (DataContext is DashboardViewModel vm)
+            {
+                vm.ShowBeneficiaries();
+            }
+        }
+
         private void UserAccountSettingsButton_OnClick(object sender, RoutedEventArgs e)
         {
             if (!EnsureModuleAccess(ModuleKey.Users, "Account"))
@@ -716,13 +754,13 @@ namespace HRMS.View
             }
         }
 
-        private void MyDocumentsNavButton_OnClick(object sender, RoutedEventArgs e)
+        private void DocumentsNavButton_OnClick(object sender, RoutedEventArgs e)
         {
-            if (!CanOpenPersonalDocuments())
+            if (!CanOpenDocumentsModule())
             {
                 MessageBox.Show(
-                    "Your account must be linked to an employee profile before personal documents can be opened.",
-                    "My Documents",
+                    "Your account must be linked to an employee profile before this module can be opened.",
+                    "Documents",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
                 return;
@@ -730,10 +768,10 @@ namespace HRMS.View
 
             if (DataContext is DashboardViewModel vm)
             {
-                vm.ShowMyDocuments();
+                vm.ShowDocuments();
             }
 
-            _ = MyDocumentsModule?.RefreshAsync();
+            _ = DocumentsModule?.RefreshAsync();
         }
 
         private void DashboardOpenAttendanceButton_OnClick(object sender, RoutedEventArgs e) =>
@@ -754,8 +792,8 @@ namespace HRMS.View
         private void DashboardOpenDevelopmentButton_OnClick(object sender, RoutedEventArgs e) =>
             TrainingNavButton_OnClick(sender, e);
 
-        private void DashboardOpenMyDocumentsButton_OnClick(object sender, RoutedEventArgs e) =>
-            MyDocumentsNavButton_OnClick(sender, e);
+        private void DashboardOpenDocumentsButton_OnClick(object sender, RoutedEventArgs e) =>
+            DocumentsNavButton_OnClick(sender, e);
 
         private void DashboardOpenPendingRequestsButton_OnClick(object sender, RoutedEventArgs e)
         {
@@ -903,9 +941,9 @@ namespace HRMS.View
 
             if (q.Contains("document") || q.Contains("certificate") || q.Contains("attachment"))
             {
-                if (EnsureModuleAccess(ModuleKey.MyDocuments, "My Documents"))
+                if (EnsureModuleAccess(ModuleKey.Documents, IsEmployeeAccess ? "My Documents" : "Documents"))
                 {
-                    vm.ShowMyDocuments();
+                    vm.ShowDocuments();
                 }
                 return;
             }

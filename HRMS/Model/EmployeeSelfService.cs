@@ -194,6 +194,181 @@ LIMIT @limit;";
             return results;
         }
 
+        public async Task<IReadOnlyList<EmployeeDocumentDto>> GetAllEmployeeDocumentsAsync(int limit = 500)
+        {
+            var safeLimit = Math.Clamp(limit, 20, 2000);
+            var results = new List<EmployeeDocumentDto>();
+
+            const string sql = @"
+SELECT
+    src.source_id,
+    src.document_type,
+    src.title,
+    src.details,
+    src.status,
+    src.event_at,
+    src.module_key,
+    src.file_path
+FROM (
+    SELECT
+        pr.payroll_run_id AS source_id,
+        'Payslip' COLLATE utf8mb4_general_ci AS document_type,
+        CONCAT(
+            CONCAT(e.last_name, ', ', e.first_name, IFNULL(CONCAT(' ', e.middle_name), '')),
+            ' - Payslip ',
+            COALESCE(pp.period_code, CONCAT('#', pr.payroll_run_id))
+        ) COLLATE utf8mb4_general_ci AS title,
+        CONCAT(
+            'Employee #', pr.employee_id,
+            ' | Net Pay: PHP ',
+            FORMAT(COALESCE(pr.net_pay, 0), 2)
+        ) COLLATE utf8mb4_general_ci AS details,
+        COALESCE(pr.status, 'GENERATED') COLLATE utf8mb4_general_ci AS status,
+        COALESCE(rel.released_at, pr.generated_at) AS event_at,
+        'PAYROLL' COLLATE utf8mb4_general_ci AS module_key,
+        CAST(NULL AS CHAR(255)) COLLATE utf8mb4_general_ci AS file_path
+    FROM payroll_runs pr
+    INNER JOIN employees e ON e.employee_id = pr.employee_id
+    LEFT JOIN payroll_periods pp ON pp.payroll_period_id = pr.payroll_period_id
+    LEFT JOIN payslip_releases rel ON rel.payroll_run_id = pr.payroll_run_id
+
+    UNION ALL
+
+    SELECT
+        ld.leave_document_id AS source_id,
+        'Leave Attachment' COLLATE utf8mb4_general_ci AS document_type,
+        COALESCE(
+            NULLIF(ld.file_name, ''),
+            CONCAT(
+                CONCAT(e.last_name, ', ', e.first_name, IFNULL(CONCAT(' ', e.middle_name), '')),
+                ' - Leave Attachment #',
+                ld.leave_document_id
+            )
+        ) COLLATE utf8mb4_general_ci AS title,
+        CONCAT(
+            CONCAT(e.last_name, ', ', e.first_name, IFNULL(CONCAT(' ', e.middle_name), '')),
+            ' | ',
+            COALESCE(lt.name, 'Leave'),
+            ' (',
+            DATE_FORMAT(la.date_from, '%b %d, %Y'),
+            ' - ',
+            DATE_FORMAT(la.date_to, '%b %d, %Y'),
+            ')'
+        ) COLLATE utf8mb4_general_ci AS details,
+        COALESCE(la.status, 'SUBMITTED') COLLATE utf8mb4_general_ci AS status,
+        COALESCE(ld.uploaded_at, la.filed_at) AS event_at,
+        'LEAVE' COLLATE utf8mb4_general_ci AS module_key,
+        ld.file_path COLLATE utf8mb4_general_ci AS file_path
+    FROM leave_documents ld
+    INNER JOIN leave_applications la ON la.leave_application_id = ld.leave_application_id
+    INNER JOIN employees e ON e.employee_id = la.employee_id
+    LEFT JOIN leave_types lt ON lt.leave_type_id = la.leave_type_id
+
+    UNION ALL
+
+    SELECT
+        te.enrollment_id AS source_id,
+        'Training Certificate' COLLATE utf8mb4_general_ci AS document_type,
+        CONCAT(
+            CONCAT(e.last_name, ', ', e.first_name, IFNULL(CONCAT(' ', e.middle_name), '')),
+            ' - ',
+            COALESCE(tc.course_name, 'Training Course'),
+            ' Certificate'
+        ) COLLATE utf8mb4_general_ci AS title,
+        CONCAT(
+            'Employee #', te.employee_id,
+            ' | Session Date: ',
+            DATE_FORMAT(ts.session_date, '%b %d, %Y')
+        ) COLLATE utf8mb4_general_ci AS details,
+        COALESCE(te.status, 'COMPLETED') COLLATE utf8mb4_general_ci AS status,
+        CAST(ts.session_date AS DATETIME) AS event_at,
+        'DEVELOPMENT' COLLATE utf8mb4_general_ci AS module_key,
+        CAST(NULL AS CHAR(255)) COLLATE utf8mb4_general_ci AS file_path
+    FROM training_enrollments te
+    INNER JOIN employees e ON e.employee_id = te.employee_id
+    INNER JOIN training_sessions ts ON ts.session_id = te.session_id
+    INNER JOIN training_courses tc ON tc.course_id = ts.course_id
+    WHERE te.status = 'COMPLETED'
+) src
+ORDER BY src.event_at DESC, src.source_id DESC
+LIMIT @limit;";
+
+            try
+            {
+                await using var connection = new MySqlConnection(_connectionString);
+                await connection.OpenAsync();
+
+                await using var command = new MySqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@limit", safeLimit);
+
+                await using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    results.Add(new EmployeeDocumentDto(
+                        SourceId: ToLong(reader["source_id"]),
+                        DocumentType: ToText(reader["document_type"], "Document"),
+                        Title: ToText(reader["title"], "Document"),
+                        Details: ToText(reader["details"], "-"),
+                        Status: ToText(reader["status"], "-"),
+                        EventAt: ToDateTime(reader["event_at"]),
+                        ModuleKey: ToText(reader["module_key"], "DASHBOARD"),
+                        FilePath: reader["file_path"] == DBNull.Value ? null : reader["file_path"]?.ToString()));
+                }
+            }
+            catch (MySqlException ex) when (IsMissingObjectError(ex))
+            {
+                // Keep UI stable when optional tables are not yet migrated.
+            }
+
+            return results;
+        }
+
+        public async Task<(string FileName, byte[] FileBlob)?> GetLeaveAttachmentFileAsync(long leaveDocumentId)
+        {
+            if (leaveDocumentId <= 0)
+            {
+                return null;
+            }
+
+            const string sql = @"
+SELECT file_name, file_blob
+FROM leave_documents
+WHERE leave_document_id = @leave_document_id
+LIMIT 1;";
+
+            try
+            {
+                await using var connection = new MySqlConnection(_connectionString);
+                await connection.OpenAsync();
+
+                await using var command = new MySqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@leave_document_id", leaveDocumentId);
+
+                await using var reader = await command.ExecuteReaderAsync();
+                if (!await reader.ReadAsync())
+                {
+                    return null;
+                }
+
+                var fileName = ToText(reader["file_name"], $"leave_attachment_{leaveDocumentId}");
+                if (reader["file_blob"] == DBNull.Value)
+                {
+                    return null;
+                }
+
+                if (reader["file_blob"] is not byte[] fileBlob || fileBlob.Length == 0)
+                {
+                    return null;
+                }
+
+                return (fileName, fileBlob);
+            }
+            catch (MySqlException ex) when (IsMissingObjectError(ex))
+            {
+                return null;
+            }
+        }
+
         public async Task<IReadOnlyList<EmployeeNotificationDto>> GetEmployeeNotificationsAsync(int employeeId, int limit = 300)
         {
             var safeLimit = Math.Clamp(limit, 20, 1000);

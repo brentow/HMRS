@@ -26,8 +26,10 @@
             <SolidColorBrush x:Key="PrimaryHueLightBrush" Color="#CBE9FE"/>
             <SolidColorBrush x:Key="PrimaryHueMidForegroundBrush" Color="White"/>
 
-            <!-- Simple converter for active/inactive text -->
+            <!-- Value Converters -->
             <local:BooleanToActiveTextConverter x:Key="BooleanToActiveText"/>
+            <local:InverseBoolConverter x:Key="InverseBoolConverter"/>
+            <local:ObjectToVisibilityConverter x:Key="ObjectToVisibilityConverter"/>
 
         </ResourceDictionary>
     </Application.Resources>

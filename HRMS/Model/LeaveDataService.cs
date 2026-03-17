@@ -831,11 +831,38 @@ LIMIT @limit;";
                 throw new InvalidOperationException("File path is required.");
             }
 
+            var normalizedPath = filePath.Trim();
+            if (!File.Exists(normalizedPath))
+            {
+                throw new InvalidOperationException($"Selected file not found: {normalizedPath}");
+            }
+
+            byte[] fileBytes;
+            try
+            {
+                fileBytes = await File.ReadAllBytesAsync(normalizedPath);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Unable to read selected file: {ex.Message}");
+            }
+
+            if (fileBytes.Length == 0)
+            {
+                throw new InvalidOperationException("Selected file is empty.");
+            }
+
             var employeeId = uploadedByUserId.HasValue && uploadedByUserId.Value > 0
                 ? await ResolveEmployeeIdByUserIdAsync(uploadedByUserId.Value)
                 : null;
 
-            const string sql = @"
+            const string sqlWithBlob = @"
+INSERT INTO leave_documents
+    (leave_application_id, file_name, file_path, file_blob, file_size, uploaded_by_employee_id)
+VALUES
+    (@leave_application_id, @file_name, @file_path, @file_blob, @file_size, @uploaded_by_employee_id);";
+
+            const string sqlFallback = @"
 INSERT INTO leave_documents
     (leave_application_id, file_name, file_path, uploaded_by_employee_id)
 VALUES
@@ -843,12 +870,32 @@ VALUES
 
             await using var connection = new MySqlConnection(_connectionString);
             await connection.OpenAsync();
-            await using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@leave_application_id", leaveApplicationId);
-            command.Parameters.AddWithValue("@file_name", Path.GetFileName(filePath));
-            command.Parameters.AddWithValue("@file_path", filePath.Trim());
-            command.Parameters.AddWithValue("@uploaded_by_employee_id", employeeId.HasValue && employeeId.Value > 0 ? employeeId.Value : DBNull.Value);
-            await command.ExecuteNonQueryAsync();
+
+            var fileName = Path.GetFileName(normalizedPath);
+            object uploader = employeeId.HasValue && employeeId.Value > 0 ? employeeId.Value : DBNull.Value;
+
+            try
+            {
+                await EnsureLeaveDocumentStorageColumnsAsync(connection);
+                await using var command = new MySqlCommand(sqlWithBlob, connection);
+                command.Parameters.AddWithValue("@leave_application_id", leaveApplicationId);
+                command.Parameters.AddWithValue("@file_name", fileName);
+                command.Parameters.AddWithValue("@file_path", normalizedPath);
+                command.Parameters.Add("@file_blob", MySqlDbType.LongBlob).Value = fileBytes;
+                command.Parameters.AddWithValue("@file_size", fileBytes.LongLength);
+                command.Parameters.AddWithValue("@uploaded_by_employee_id", uploader);
+                await command.ExecuteNonQueryAsync();
+            }
+            catch (MySqlException ex) when (IsUnknownColumnError(ex) || ex.Number == 1142)
+            {
+                // Fallback keeps uploads usable when blob columns cannot be altered/read yet.
+                await using var fallback = new MySqlCommand(sqlFallback, connection);
+                fallback.Parameters.AddWithValue("@leave_application_id", leaveApplicationId);
+                fallback.Parameters.AddWithValue("@file_name", fileName);
+                fallback.Parameters.AddWithValue("@file_path", normalizedPath);
+                fallback.Parameters.AddWithValue("@uploaded_by_employee_id", uploader);
+                await fallback.ExecuteNonQueryAsync();
+            }
         }
 
         public async Task DeleteLeaveAttachmentAsync(long leaveDocumentId)
@@ -1299,6 +1346,43 @@ FROM employees
         private static bool IsUnknownColumnError(MySqlException ex) =>
             ex.Number == 1054 ||
             ex.Message.Contains("Unknown column", StringComparison.OrdinalIgnoreCase);
+
+                private static async Task EnsureLeaveDocumentStorageColumnsAsync(MySqlConnection connection)
+                {
+                        const string hasBlobSql = @"
+SELECT 1
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'leave_documents'
+    AND COLUMN_NAME = 'file_blob'
+LIMIT 1;";
+
+                        const string hasSizeSql = @"
+SELECT 1
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'leave_documents'
+    AND COLUMN_NAME = 'file_size'
+LIMIT 1;";
+
+                        await using var blobCheck = new MySqlCommand(hasBlobSql, connection);
+                        var blobExists = await blobCheck.ExecuteScalarAsync() != null;
+                        if (!blobExists)
+                        {
+                                const string addBlobSql = "ALTER TABLE leave_documents ADD COLUMN file_blob LONGBLOB NULL AFTER file_path;";
+                                await using var addBlob = new MySqlCommand(addBlobSql, connection);
+                                await addBlob.ExecuteNonQueryAsync();
+                        }
+
+                        await using var sizeCheck = new MySqlCommand(hasSizeSql, connection);
+                        var sizeExists = await sizeCheck.ExecuteScalarAsync() != null;
+                        if (!sizeExists)
+                        {
+                                const string addSizeSql = "ALTER TABLE leave_documents ADD COLUMN file_size BIGINT NULL AFTER file_blob;";
+                                await using var addSize = new MySqlCommand(addSizeSql, connection);
+                                await addSize.ExecuteNonQueryAsync();
+                        }
+                }
 
         private static int ToInt(object value) =>
             value == DBNull.Value || value == null ? 0 : Convert.ToInt32(value, CultureInfo.InvariantCulture);

@@ -334,12 +334,12 @@
                             </StackPanel>
                         </Button>
 
-                        <Button x:Name="MyDocumentsNavButton"
-                                Click="MyDocumentsNavButton_OnClick">
+                        <Button x:Name="DocumentsNavButton"
+                            Click="DocumentsNavButton_OnClick">
                             <Button.Style>
                                 <Style BasedOn="{StaticResource NavSelectableButtonStyleLocal}" TargetType="Button">
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsMyDocumentsVisible}" Value="True">
+                                        <DataTrigger Binding="{Binding IsDocumentsVisible}" Value="True">
                                             <Setter Property="Background" Value="#2D5783"/>
                                         </DataTrigger>
                                     </Style.Triggers>
@@ -347,7 +347,7 @@
                             </Button.Style>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <materialDesign:PackIcon Kind="FolderOutline" Style="{StaticResource SidebarNavIconStyle}" />
-                                <TextBlock Text="Documents" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
+                                <TextBlock Text="{Binding DocumentsNavLabel}" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
                             </StackPanel>
                         </Button>
 
@@ -382,6 +382,23 @@
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <materialDesign:PackIcon Kind="SchoolOutline" Style="{StaticResource SidebarNavIconStyle}" />
                                 <TextBlock Text="Development" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="BeneficiariesNavButton"
+                                Click="BeneficiariesNavButton_OnClick">
+                            <Button.Style>
+                                <Style BasedOn="{StaticResource NavSelectableButtonStyleLocal}" TargetType="Button">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsBeneficiariesVisible}" Value="True">
+                                            <Setter Property="Background" Value="#2D5783"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <materialDesign:PackIcon Kind="AccountMultiplePlus" Style="{StaticResource SidebarNavIconStyle}" />
+                                <TextBlock Text="Beneficiaries" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -879,14 +896,14 @@
                         </Button>
                         <Button x:Name="QuickDocumentsButton"
                                 Style="{StaticResource QuickActionButtonStyle}"
-                                Click="MyDocumentsNavButton_OnClick"
+                            Click="DocumentsNavButton_OnClick"
                                 Margin="4"
                                 Height="56"
                                 Background="#E6F3FF"
                                 Foreground="{StaticResource PrimaryBrush}">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="FolderOutline" Width="18" Height="18" Margin="0,0,8,0" />
-                                <TextBlock Text="Documents" />
+                                <TextBlock Text="{Binding DocumentsNavLabel}" />
                             </StackPanel>
                         </Button>
                     </UniformGrid>
@@ -1230,8 +1247,8 @@
             </Grid>
 
             <!-- Documents -->
-            <Grid Grid.Row="1" Grid.RowSpan="2" Margin="20" Visibility="{Binding IsMyDocumentsVisible, Converter={StaticResource BoolToVis}}">
-                <local:MyDocumentsWindow x:Name="MyDocumentsModule" />
+            <Grid Grid.Row="1" Grid.RowSpan="2" Margin="20" Visibility="{Binding IsDocumentsVisible, Converter={StaticResource BoolToVis}}">
+                <local:DocumentsWindow x:Name="DocumentsModule" />
             </Grid>
 
             <!-- Recruitment -->
@@ -1242,6 +1259,11 @@
             <!-- Users & Roles -->
             <Grid Grid.Row="1" Grid.RowSpan="2" Margin="20" Visibility="{Binding IsUsersVisible, Converter={StaticResource BoolToVis}}">
                 <local:UsersRolesWindow x:Name="UsersRolesModule" />
+            </Grid>
+
+            <!-- Beneficiary Verification -->
+            <Grid Grid.Row="1" Grid.RowSpan="2" Margin="20" Visibility="{Binding IsBeneficiariesVisible, Converter={StaticResource BoolToVis}}">
+                <local:BeneficiaryVerificationWindow x:Name="BeneficiaryVerificationModule" />
             </Grid>
 
 

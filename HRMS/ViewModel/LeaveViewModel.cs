@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -1004,14 +1005,23 @@ namespace HRMS.ViewModel
 
             try
             {
+                var uploadedPath = SelectedAttachmentFilePath;
                 await _dataService.AddLeaveAttachmentAsync(
                     SelectedAttachmentRequestId.Value,
-                    SelectedAttachmentFilePath,
+                    uploadedPath,
                     _currentUserId > 0 ? _currentUserId : null);
 
                 SelectedAttachmentFilePath = string.Empty;
                 await RefreshAsync();
-                SetMessage("Attachment uploaded.", SuccessBrush);
+                var extension = Path.GetExtension(uploadedPath ?? string.Empty);
+                if (string.Equals(extension, ".pdf", StringComparison.OrdinalIgnoreCase))
+                {
+                    SetMessage("PDF attachment uploaded.", SuccessBrush);
+                }
+                else
+                {
+                    SetMessage("Attachment uploaded and stored in database (non-PDF).", SuccessBrush);
+                }
                 SystemRefreshBus.Raise("LeaveAttachmentAdded");
             }
             catch (Exception ex)

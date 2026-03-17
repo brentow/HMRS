@@ -59,7 +59,19 @@ namespace HRMS.ViewModel
         private string _addUserRole = string.Empty;
 
         private bool _useLocalDatabase;
+        private bool _useHostingerDatabase;
         private bool _useRemoteDatabase;
+        private const string LocalHostDefault = "127.0.0.1";
+        private const string LocalPortDefault = "3306";
+        private const string LocalDbDefault = "hrms_db";
+        private const string LocalUserDefault = "hrms_app";
+        private const string LocalPasswordDefault = "15248130";
+
+        private const string HostingerHostDefault = "srv1237.hstgr.io";
+        private const string HostingerPortDefault = "3306";
+        private const string HostingerDbDefault = "u621755393_hrms3b";
+        private const string HostingerUserDefault = "u621755393_hrms3b_user";
+        private const string HostingerPasswordDefault = "Hrms3b@2026";
         private string _dbHost = "127.0.0.1";
         private string _dbPort = "3306";
         private string _dbName = "hrms_db";
@@ -95,6 +107,7 @@ namespace HRMS.ViewModel
         public ICommand ClearTempFilesCommand { get; }
         public ICommand SeedDatabaseCommand { get; }
         public ICommand ResetAndSeedCommand { get; }
+        public ICommand ImportBeneficiariesCommand { get; }
 
         public bool IsBusy
         {
@@ -216,7 +229,35 @@ namespace HRMS.ViewModel
                     return;
                 }
 
-                SetConnectionMode(value);
+                if (value)
+                {
+                    SetConnectionMode(ConnectionMode.Local, applyDefaults: true);
+                    return;
+                }
+
+                _useLocalDatabase = false;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool UseHostingerDatabase
+        {
+            get => _useHostingerDatabase;
+            set
+            {
+                if (_useHostingerDatabase == value)
+                {
+                    return;
+                }
+
+                if (value)
+                {
+                    SetConnectionMode(ConnectionMode.HostingerOnline, applyDefaults: true);
+                    return;
+                }
+
+                _useHostingerDatabase = false;
+                OnPropertyChanged();
             }
         }
 
@@ -230,9 +271,23 @@ namespace HRMS.ViewModel
                     return;
                 }
 
-                SetConnectionMode(!value);
+                if (value)
+                {
+                    SetConnectionMode(ConnectionMode.RemoteCustom, applyDefaults: false);
+                    return;
+                }
+
+                _useRemoteDatabase = false;
+                OnPropertyChanged();
             }
         }
+
+        public string DatabaseModeHint =>
+            UseLocalDatabase
+                ? "Using local MySQL defaults for this computer."
+                : UseHostingerDatabase
+                    ? "Using Hostinger online MySQL preset values."
+                    : "Enter custom remote MySQL server details manually.";
 
         public string DbHost
         {
@@ -427,6 +482,7 @@ namespace HRMS.ViewModel
             ClearTempFilesCommand = new AsyncRelayCommand(_ => ClearTempFilesAsync());
             SeedDatabaseCommand = new AsyncRelayCommand(_ => SeedDatabaseAsync());
             ResetAndSeedCommand = new AsyncRelayCommand(_ => ResetAndSeedAsync());
+            ImportBeneficiariesCommand = new AsyncRelayCommand(_ => ImportBeneficiariesAsync());
 
             InitializeConnectionSettings();
             InitializeStoragePaths();
@@ -740,20 +796,44 @@ namespace HRMS.ViewModel
             }
         }
 
-        private void SetConnectionMode(bool useLocal)
+        private enum ConnectionMode
         {
-            _useLocalDatabase = useLocal;
-            _useRemoteDatabase = !useLocal;
+            Local,
+            HostingerOnline,
+            RemoteCustom
+        }
 
-            if (useLocal &&
-                !string.Equals(DbHost, "127.0.0.1", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(DbHost, "localhost", StringComparison.OrdinalIgnoreCase))
+        private void SetConnectionMode(ConnectionMode mode, bool applyDefaults)
+        {
+            _useLocalDatabase = mode == ConnectionMode.Local;
+            _useHostingerDatabase = mode == ConnectionMode.HostingerOnline;
+            _useRemoteDatabase = mode == ConnectionMode.RemoteCustom;
+
+            if (applyDefaults)
             {
-                DbHost = "127.0.0.1";
+                switch (mode)
+                {
+                    case ConnectionMode.Local:
+                        DbHost = LocalHostDefault;
+                        DbPort = LocalPortDefault;
+                        DbName = LocalDbDefault;
+                        DbUsername = LocalUserDefault;
+                        DbPassword = LocalPasswordDefault;
+                        break;
+                    case ConnectionMode.HostingerOnline:
+                        DbHost = HostingerHostDefault;
+                        DbPort = HostingerPortDefault;
+                        DbName = HostingerDbDefault;
+                        DbUsername = HostingerUserDefault;
+                        DbPassword = HostingerPasswordDefault;
+                        break;
+                }
             }
 
             OnPropertyChanged(nameof(UseLocalDatabase));
+            OnPropertyChanged(nameof(UseHostingerDatabase));
             OnPropertyChanged(nameof(UseRemoteDatabase));
+            OnPropertyChanged(nameof(DatabaseModeHint));
         }
 
         private void InitializeConnectionSettings()
@@ -765,22 +845,57 @@ namespace HRMS.ViewModel
             DbUsername = settings.Username;
             DbPassword = settings.Password;
 
-            var local = string.Equals(settings.Host, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
+            var local = string.Equals(settings.Host, LocalHostDefault, StringComparison.OrdinalIgnoreCase)
                         || string.Equals(settings.Host, "localhost", StringComparison.OrdinalIgnoreCase);
-            _useLocalDatabase = local;
-            _useRemoteDatabase = !local;
-            OnPropertyChanged(nameof(UseLocalDatabase));
-            OnPropertyChanged(nameof(UseRemoteDatabase));
+            var hostinger = string.Equals(settings.Host, HostingerHostDefault, StringComparison.OrdinalIgnoreCase)
+                            && string.Equals(settings.Database, HostingerDbDefault, StringComparison.Ordinal)
+                            && string.Equals(settings.Username, HostingerUserDefault, StringComparison.Ordinal);
+
+            if (local)
+            {
+                SetConnectionMode(ConnectionMode.Local, applyDefaults: false);
+            }
+            else if (hostinger)
+            {
+                SetConnectionMode(ConnectionMode.HostingerOnline, applyDefaults: false);
+            }
+            else
+            {
+                SetConnectionMode(ConnectionMode.RemoteCustom, applyDefaults: false);
+            }
         }
 
         private void InitializeStoragePaths()
         {
-            StorageLocation = Path.Combine(AppContext.BaseDirectory, "Storage");
+            StorageLocation = ResolveStorageLocation();
             TempFolderPath = Path.Combine(Path.GetTempPath(), "HRMS");
 
-            Directory.CreateDirectory(StorageLocation);
-            Directory.CreateDirectory(TempFolderPath);
+            EnsureDirectoryExists(StorageLocation);
+            EnsureDirectoryExists(TempFolderPath);
             UpdateTempFilesSize();
+        }
+
+        private static string ResolveStorageLocation()
+        {
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (!string.IsNullOrWhiteSpace(localAppData))
+            {
+                return Path.Combine(localAppData, "HRMS", "Storage");
+            }
+
+            return Path.Combine(Path.GetTempPath(), "HRMS", "Storage");
+        }
+
+        private static void EnsureDirectoryExists(string path)
+        {
+            try
+            {
+                Directory.CreateDirectory(path);
+            }
+            catch
+            {
+                // Keep module startup resilient even if folder creation fails.
+            }
         }
 
         private DbConnectionSettings GetCurrentConnectionSettings() =>
@@ -1069,6 +1184,34 @@ namespace HRMS.ViewModel
             catch (Exception ex)
             {
                 SetMessage($"Seed failed: {ex.Message}", ErrorBrush);
+            }
+        }
+
+        private async Task ImportBeneficiariesAsync()
+        {
+            try
+            {
+                var hrmsConnectionString = BuildCurrentConnectionString();
+                var sulopConnectionString = SulopConfig.ConnectionString;
+                var importService = new BeneficiaryImportService(hrmsConnectionString, sulopConnectionString);
+
+                SetMessage("Importing beneficiaries from Sulop...", InfoBrush);
+                var result = await importService.ImportFromSulopAsync();
+
+                SetMessage(
+                    $"Import complete. Imported: {result.Imported}, Skipped: {result.Skipped}, Invalid: {result.Invalid}.",
+                    SuccessBrush);
+                SystemRefreshBus.Raise("BeneficiariesImported");
+            }
+            catch (MySqlException ex) when (ex.Number == 1146)
+            {
+                SetMessage(
+                    "Import failed: missing required tables. Run Seed Database first to apply the latest migrations.",
+                    ErrorBrush);
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Beneficiary import failed: {ex.Message}", ErrorBrush);
             }
         }
 

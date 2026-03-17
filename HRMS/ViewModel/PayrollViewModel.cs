@@ -27,6 +27,7 @@ namespace HRMS.ViewModel
         private readonly List<PayrollPeriodVm> _allPeriods = new();
         private readonly List<PayrollRunVm> _allRuns = new();
         private readonly List<PayrollReleaseLogVm> _allReleaseLogs = new();
+        private const int SulopOfficeId = 3;
 
         private int _currentUserId;
         private string _currentUsername = "-";
@@ -42,6 +43,13 @@ namespace HRMS.ViewModel
         private decimal _ytdDeductions;
         private decimal _ytdNetPay;
         private bool _isBusy;
+        private long _sulopAllocationId;
+        private string _sulopProgram = "-";
+        private decimal _sulopAllocatedAmount;
+        private decimal _sulopUsedAmount;
+        private decimal _sulopRemainingAmount;
+        private string _sulopSyncStatus = "Sulop allocation not synced yet.";
+        private Brush _sulopSyncStatusBrush = InfoBrush;
 
         private string _periodSearchText = string.Empty;
         private string _selectedPeriodStatusFilter = "All";
@@ -123,6 +131,110 @@ namespace HRMS.ViewModel
         public string YtdGrossPayText => $"PHP {YtdGrossPay:N2}";
         public string YtdDeductionsText => $"PHP {YtdDeductions:N2}";
         public string YtdNetPayText => $"PHP {YtdNetPay:N2}";
+        public long SulopAllocationId
+        {
+            get => _sulopAllocationId;
+            private set
+            {
+                if (_sulopAllocationId == value)
+                {
+                    return;
+                }
+
+                _sulopAllocationId = value;
+                OnPropertyChanged();
+            }
+        }
+        public string SulopProgram
+        {
+            get => _sulopProgram;
+            private set
+            {
+                if (string.Equals(_sulopProgram, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                _sulopProgram = value;
+                OnPropertyChanged();
+            }
+        }
+        public decimal SulopAllocatedAmount
+        {
+            get => _sulopAllocatedAmount;
+            private set
+            {
+                if (_sulopAllocatedAmount == value)
+                {
+                    return;
+                }
+
+                _sulopAllocatedAmount = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SulopAllocatedAmountText));
+            }
+        }
+        public decimal SulopUsedAmount
+        {
+            get => _sulopUsedAmount;
+            private set
+            {
+                if (_sulopUsedAmount == value)
+                {
+                    return;
+                }
+
+                _sulopUsedAmount = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SulopUsedAmountText));
+            }
+        }
+        public decimal SulopRemainingAmount
+        {
+            get => _sulopRemainingAmount;
+            private set
+            {
+                if (_sulopRemainingAmount == value)
+                {
+                    return;
+                }
+
+                _sulopRemainingAmount = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SulopRemainingAmountText));
+            }
+        }
+        public string SulopAllocatedAmountText => $"PHP {SulopAllocatedAmount:N2}";
+        public string SulopUsedAmountText => $"PHP {SulopUsedAmount:N2}";
+        public string SulopRemainingAmountText => $"PHP {SulopRemainingAmount:N2}";
+        public string SulopSyncStatus
+        {
+            get => _sulopSyncStatus;
+            private set
+            {
+                if (string.Equals(_sulopSyncStatus, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                _sulopSyncStatus = value;
+                OnPropertyChanged();
+            }
+        }
+        public Brush SulopSyncStatusBrush
+        {
+            get => _sulopSyncStatusBrush;
+            private set
+            {
+                if (Equals(_sulopSyncStatusBrush, value))
+                {
+                    return;
+                }
+
+                _sulopSyncStatusBrush = value;
+                OnPropertyChanged();
+            }
+        }
         public bool IsBusy { get => _isBusy; private set { _isBusy = value; OnPropertyChanged(); } }
         public bool IsEmployeeMode
         {
@@ -413,12 +525,14 @@ namespace HRMS.ViewModel
                 var employeesTask = _dataService.GetEmployeesAsync(scopedEmployeeId);
                 var runsTask = _dataService.GetRunsAsync(limit: 700, employeeId: scopedEmployeeId);
                 var releasesTask = _dataService.GetReleaseLogsAsync(limit: 700, employeeId: scopedEmployeeId);
+                var sulopAllocationTask = LoadSulopAllocationAsync();
 
                 var stats = await statsTask;
                 var periods = await periodsTask;
                 var employees = await employeesTask;
                 var runs = await runsTask;
                 var releases = await releasesTask;
+                await sulopAllocationTask;
 
                 TotalPeriods = stats.TotalPeriods;
                 OpenPeriods = stats.OpenPeriods;
@@ -479,6 +593,39 @@ namespace HRMS.ViewModel
                     _refreshQueued = false;
                     _ = RefreshAsync();
                 }
+            }
+        }
+
+        private async Task LoadSulopAllocationAsync()
+        {
+            try
+            {
+                var sulopService = new SulopFundAllocationService(SulopConfig.ConnectionString, SulopOfficeId);
+                var allocation = await sulopService.GetActiveAllocationAsync();
+                if (allocation == null)
+                {
+                    SulopAllocationId = 0;
+                    SulopProgram = "-";
+                    SulopAllocatedAmount = 0m;
+                    SulopUsedAmount = 0m;
+                    SulopRemainingAmount = 0m;
+                    SulopSyncStatus = "No active Sulop allocation found for Office ID 3.";
+                    SulopSyncStatusBrush = ErrorBrush;
+                    return;
+                }
+
+                SulopAllocationId = allocation.AllocationId;
+                SulopProgram = allocation.Program;
+                SulopAllocatedAmount = allocation.AllocatedAmount;
+                SulopUsedAmount = allocation.UsedAmount;
+                SulopRemainingAmount = allocation.RemainingAmount;
+                SulopSyncStatus = $"Sulop allocation synced (ID #{allocation.AllocationId}, Program: {allocation.Program}).";
+                SulopSyncStatusBrush = SuccessBrush;
+            }
+            catch (Exception ex)
+            {
+                SulopSyncStatus = $"Sulop sync failed: {ex.Message}";
+                SulopSyncStatusBrush = ErrorBrush;
             }
         }
 
@@ -673,14 +820,18 @@ namespace HRMS.ViewModel
                 return;
             }
 
+            PayrollRunVm? targetRun = null;
             long runId = 0;
             if (parameter is PayrollRunVm runRow)
             {
                 runId = runRow.PayrollRunId;
+                targetRun = runRow;
             }
             else if (SelectedReleaseRunId.HasValue && SelectedReleaseRunId.Value > 0)
             {
                 runId = SelectedReleaseRunId.Value;
+                targetRun = _allRuns.FirstOrDefault(x => x.PayrollRunId == runId)
+                            ?? PayrollRuns.FirstOrDefault(x => x.PayrollRunId == runId);
             }
 
             if (runId <= 0)
@@ -689,13 +840,55 @@ namespace HRMS.ViewModel
                 return;
             }
 
+            if (targetRun == null)
+            {
+                SetMessage("Could not resolve selected payroll run.", ErrorBrush);
+                return;
+            }
+
+            var disbursementAmount = targetRun.NetPay;
+            if (disbursementAmount <= 0)
+            {
+                SetMessage("Cannot release payslip with zero or negative net pay.", ErrorBrush);
+                return;
+            }
+
+            if (SulopAllocationId <= 0)
+            {
+                SetMessage("Sulop allocation is not available for Office ID 3. Refresh and verify connection first.", ErrorBrush);
+                return;
+            }
+
+            if (disbursementAmount > SulopRemainingAmount)
+            {
+                SetMessage(
+                    $"Amount exceeds remaining allocation. Remaining: {SulopRemainingAmountText}, Requested: PHP {disbursementAmount:N2}.",
+                    ErrorBrush);
+                return;
+            }
+
             try
             {
+                var sulopService = new SulopFundAllocationService(SulopConfig.ConnectionString, SulopOfficeId);
+                var purpose = $"Payroll disbursement ({targetRun.PeriodCode})";
+                var description = string.IsNullOrWhiteSpace(ReleaseRemarks)
+                    ? $"HRMS payroll release for {targetRun.EmployeeNo} - {targetRun.EmployeeName}."
+                    : ReleaseRemarks.Trim();
+
+                var sulopResult = await sulopService.RecordPayrollDisbursementAsync(
+                    allocationId: SulopAllocationId,
+                    amount: disbursementAmount,
+                    recipientName: targetRun.EmployeeName,
+                    purpose: purpose,
+                    description: description);
+
                 await _dataService.ReleasePayslipAsync(runId, _currentUserId > 0 ? _currentUserId : null, ReleaseRemarks);
                 ReleaseRemarks = string.Empty;
                 await RefreshAsync();
                 SelectedRun = PayrollRuns.FirstOrDefault(x => x.PayrollRunId == runId);
-                SetMessage($"Payslip released for run #{runId}.", SuccessBrush);
+                SetMessage(
+                    $"Payslip released and Sulop posted. Run #{runId}, Txn #{sulopResult.TransactionId}, Remaining: PHP {sulopResult.RemainingAfter:N2}.",
+                    SuccessBrush);
                 SystemRefreshBus.Raise("PayslipReleased");
             }
             catch (Exception ex)

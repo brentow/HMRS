@@ -6,12 +6,12 @@ using System.Windows.Controls;
 
 namespace HRMS.View
 {
-    public partial class MyDocumentsWindow : UserControl
+    public partial class DocumentsWindow : UserControl
     {
-        public MyDocumentsWindow()
+        public DocumentsWindow()
         {
             InitializeComponent();
-            var vm = new MyDocumentsViewModel();
+            var vm = new DocumentsViewModel();
             vm.OpenModuleRequested += OnOpenModuleRequested;
             DataContext = vm;
         }
@@ -20,7 +20,7 @@ namespace HRMS.View
 
         public async Task RefreshAsync()
         {
-            if (DataContext is MyDocumentsViewModel vm)
+            if (DataContext is DocumentsViewModel vm)
             {
                 await vm.RefreshAsync();
             }
@@ -28,7 +28,7 @@ namespace HRMS.View
 
         public void SetCurrentUser(AuthenticatedUser? user)
         {
-            if (DataContext is MyDocumentsViewModel vm)
+            if (DataContext is DocumentsViewModel vm)
             {
                 vm.SetCurrentUser(user);
             }

@@ -14,19 +14,20 @@ using System.Windows.Media;
 
 namespace HRMS.ViewModel
 {
-    public class MyDocumentsViewModel : INotifyPropertyChanged
+    public class DocumentsViewModel : INotifyPropertyChanged
     {
         private readonly EmployeeSelfService _dataService = new(DbConfig.ConnectionString);
         private readonly ObservableCollection<MyDocumentRowVm> _allDocuments = new();
         private int _currentUserId;
         private int? _currentEmployeeId;
+        private bool _isAdminOrHr;
         private bool _isLoading;
         private string _searchText = string.Empty;
         private string _selectedType = "All";
         private string _statusMessage = "Ready.";
         private Brush _statusBrush = Brushes.SeaGreen;
 
-        public MyDocumentsViewModel()
+        public DocumentsViewModel()
         {
             TypeOptions.Add("All");
             TypeOptions.Add("Payslip");
@@ -42,6 +43,12 @@ namespace HRMS.ViewModel
 
         public ICommand RefreshCommand { get; }
         public ICommand OpenDocumentCommand { get; }
+
+        public string DocumentsTitle => _isAdminOrHr ? "Documents" : "My Documents";
+
+        public string DocumentsSubtitle => _isAdminOrHr
+            ? "Central access to employee payslips, leave attachments, and training certificates."
+            : "Central access for payslips, leave attachments, and training certificates.";
 
         public bool IsLoading
         {
@@ -92,6 +99,9 @@ namespace HRMS.ViewModel
         {
             _currentUserId = user?.UserId ?? 0;
             _currentEmployeeId = user?.EmployeeId;
+            _isAdminOrHr = IsAdminOrHrRole(user?.RoleName);
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DocumentsTitle)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DocumentsSubtitle)));
             _ = RefreshAsync();
         }
 
@@ -100,6 +110,15 @@ namespace HRMS.ViewModel
             IsLoading = true;
             try
             {
+                if (_isAdminOrHr)
+                {
+                    var allData = await _dataService.GetAllEmployeeDocumentsAsync(800);
+                    RebuildRows(allData);
+                    ApplyFilter();
+                    SetMessage($"Loaded {Documents.Count} document(s).", Brushes.SeaGreen);
+                    return;
+                }
+
                 if ((!_currentEmployeeId.HasValue || _currentEmployeeId.Value <= 0) && _currentUserId > 0)
                 {
                     _currentEmployeeId = await _dataService.GetEmployeeIdByUserIdAsync(_currentUserId);
@@ -139,12 +158,33 @@ namespace HRMS.ViewModel
 
             try
             {
+                if (string.Equals(row.ModuleKey, "LEAVE", StringComparison.OrdinalIgnoreCase) && row.SourceId > 0)
+                {
+                    var attachment = await _dataService.GetLeaveAttachmentFileAsync(row.SourceId);
+                    if (attachment.HasValue)
+                    {
+                        var extractedPath = WriteLeaveAttachmentToLocalCache(
+                            row.SourceId,
+                            attachment.Value.FileName,
+                            attachment.Value.FileBlob);
+
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = extractedPath,
+                            UseShellExecute = true
+                        });
+
+                        SetMessage("Document opened.", Brushes.SeaGreen);
+                        return;
+                    }
+                }
+
                 if (!string.IsNullOrWhiteSpace(row.FilePath))
                 {
                     var fullPath = row.FilePath!;
                     if (!Path.IsPathRooted(fullPath))
                     {
-                        fullPath = Path.GetFullPath(fullPath);
+                        fullPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, fullPath));
                     }
 
                     if (!File.Exists(fullPath))
@@ -179,6 +219,23 @@ namespace HRMS.ViewModel
             }
         }
 
+        private static string WriteLeaveAttachmentToLocalCache(long sourceId, string fileName, byte[] fileBlob)
+        {
+            var baseName = string.IsNullOrWhiteSpace(fileName)
+                ? $"leave_attachment_{sourceId}.bin"
+                : fileName.Trim();
+            var sanitized = string.Concat(baseName.Select(ch => Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch));
+            var folder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "HRMS",
+                "leave_attachments_cache");
+            Directory.CreateDirectory(folder);
+
+            var targetPath = Path.Combine(folder, $"{sourceId}_{sanitized}");
+            File.WriteAllBytes(targetPath, fileBlob);
+            return targetPath;
+        }
+
         private void ApplyFilter()
         {
             var query = (SearchText ?? string.Empty).Trim();
@@ -211,6 +268,19 @@ namespace HRMS.ViewModel
         private static bool ContainsText(string? text, string query) =>
             !string.IsNullOrWhiteSpace(text) &&
             text.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0;
+
+        private static bool IsAdminOrHrRole(string? roleName)
+        {
+            if (string.IsNullOrWhiteSpace(roleName))
+            {
+                return false;
+            }
+
+            var normalized = roleName.Trim();
+            return string.Equals(normalized, "Admin", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(normalized, "HR", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(normalized, "HR Manager", StringComparison.OrdinalIgnoreCase);
+        }
 
         private void SetMessage(string message, Brush brush)
         {

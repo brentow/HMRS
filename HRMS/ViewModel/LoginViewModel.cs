@@ -10,7 +10,6 @@ namespace HRMS.ViewModel
 {
     public class LoginViewModel : INotifyPropertyChanged
     {
-        private readonly LoginDataService _loginDataService = new(DbConfig.ConnectionString);
         private string _username = string.Empty;
         private string _password = string.Empty;
 
@@ -60,7 +59,8 @@ namespace HRMS.ViewModel
         {
             try
             {
-                var result = await _loginDataService.ValidateCredentialsAsync(Username.Trim(), Password);
+                var loginDataService = new LoginDataService(DbConfig.ConnectionString);
+                var result = await loginDataService.ValidateCredentialsAsync(Username.Trim(), Password);
                 switch (result.Status)
                 {
                     case LoginStatus.Success:

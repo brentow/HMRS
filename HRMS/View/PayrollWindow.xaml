@@ -178,42 +178,84 @@
             </Button>
         </Grid>
 
-        <UniformGrid Grid.Row="1" Columns="5" Margin="0,0,0,12">
-            <Border Margin="6" Style="{StaticResource CardStyle}" Background="#F5FBFF">
-                <StackPanel>
-                    <TextBlock Text="Total Periods" Foreground="#6A7684" />
-                    <TextBlock Text="{Binding TotalPeriods}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
-                </StackPanel>
+        <StackPanel Grid.Row="1" Margin="0,0,0,12">
+            <UniformGrid Columns="5" Margin="0,0,0,8">
+                <Border Margin="6" Style="{StaticResource CardStyle}" Background="#F5FBFF">
+                    <StackPanel>
+                        <TextBlock Text="Total Periods" Foreground="#6A7684" />
+                        <TextBlock Text="{Binding TotalPeriods}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
+                    </StackPanel>
+                </Border>
+                <Border Margin="6" Style="{StaticResource CardStyle}" Background="#F2FBF5">
+                    <StackPanel>
+                        <TextBlock Text="Open Periods" Foreground="#6A7684" />
+                        <TextBlock Text="{Binding OpenPeriods}" FontSize="28" FontWeight="Bold" Foreground="#2E9D5B" />
+                    </StackPanel>
+                </Border>
+                <Border Margin="6" Style="{StaticResource CardStyle}" Background="#F5FBFF">
+                    <StackPanel>
+                        <TextBlock Text="{Binding RunsCardLabel}" Foreground="#6A7684" />
+                        <TextBlock Text="{Binding TotalRuns}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
+                    </StackPanel>
+                </Border>
+                <Border Margin="6" Style="{StaticResource CardStyle}" Background="#FFF8EC">
+                    <StackPanel>
+                        <TextBlock Text="{Binding ReleasesCardLabel}" Foreground="#6A7684" />
+                        <TextBlock Text="{Binding ReleasedPayslips}" FontSize="28" FontWeight="Bold" Foreground="#B9831A" />
+                    </StackPanel>
+                </Border>
+                <Border Margin="6" Style="{StaticResource CardStyle}" Background="#F3F4FB">
+                    <StackPanel>
+                        <TextBlock Text="{Binding NetPayCardLabel}" Foreground="#6A7684" />
+                        <TextBlock Text="{Binding TotalNetPayText}"
+                                   FontSize="26"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource PrimaryBrush}"
+                                   TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <Border Margin="6,0,6,0" Style="{StaticResource CardStyle}" Background="#F7FBFF">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.2*" />
+                        <ColumnDefinition Width="1*" />
+                        <ColumnDefinition Width="1*" />
+                        <ColumnDefinition Width="1*" />
+                        <ColumnDefinition Width="2*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="ILGIS Allocation (Office ID 3)" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
+                        <TextBlock Text="{Binding SulopProgram, StringFormat=Program: {0}}" Foreground="#5B6A7A" FontSize="12" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                        <TextBlock Text="Allocated" Foreground="#6A7684" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding SulopAllocatedAmountText}" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold" HorizontalAlignment="Center" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                        <TextBlock Text="Used" Foreground="#6A7684" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding SulopUsedAmountText}" Foreground="#B9831A" FontWeight="Bold" HorizontalAlignment="Center" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="3" HorizontalAlignment="Center">
+                        <TextBlock Text="Remaining" Foreground="#6A7684" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding SulopRemainingAmountText}" Foreground="#2E9D5B" FontWeight="Bold" HorizontalAlignment="Center" />
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="4"
+                               Margin="12,0,0,0"
+                               VerticalAlignment="Center"
+                               Text="{Binding SulopSyncStatus}"
+                               Foreground="{Binding SulopSyncStatusBrush}"
+                               FontWeight="SemiBold"
+                               TextWrapping="Wrap" />
+                </Grid>
             </Border>
-            <Border Margin="6" Style="{StaticResource CardStyle}" Background="#F2FBF5">
-                <StackPanel>
-                    <TextBlock Text="Open Periods" Foreground="#6A7684" />
-                    <TextBlock Text="{Binding OpenPeriods}" FontSize="28" FontWeight="Bold" Foreground="#2E9D5B" />
-                </StackPanel>
-            </Border>
-            <Border Margin="6" Style="{StaticResource CardStyle}" Background="#F5FBFF">
-                <StackPanel>
-                    <TextBlock Text="{Binding RunsCardLabel}" Foreground="#6A7684" />
-                    <TextBlock Text="{Binding TotalRuns}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
-                </StackPanel>
-            </Border>
-            <Border Margin="6" Style="{StaticResource CardStyle}" Background="#FFF8EC">
-                <StackPanel>
-                    <TextBlock Text="{Binding ReleasesCardLabel}" Foreground="#6A7684" />
-                    <TextBlock Text="{Binding ReleasedPayslips}" FontSize="28" FontWeight="Bold" Foreground="#B9831A" />
-                </StackPanel>
-            </Border>
-            <Border Margin="6" Style="{StaticResource CardStyle}" Background="#F3F4FB">
-                <StackPanel>
-                    <TextBlock Text="{Binding NetPayCardLabel}" Foreground="#6A7684" />
-                    <TextBlock Text="{Binding TotalNetPayText}"
-                               FontSize="26"
-                               FontWeight="Bold"
-                               Foreground="{StaticResource PrimaryBrush}"
-                               TextTrimming="CharacterEllipsis" />
-                </StackPanel>
-            </Border>
-        </UniformGrid>
+        </StackPanel>
 
         <TabControl Grid.Row="2" Margin="6,0,6,8">
             <TabItem Header="{Binding PeriodsTabLabel}">

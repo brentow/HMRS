@@ -77,8 +77,7 @@ namespace HRMS.Model
                 {
                     try
                     {
-                        await using var migrationCommand = new MySqlCommand(sql, connection);
-                        await migrationCommand.ExecuteNonQueryAsync();
+                        await ExecuteMigrationScriptAsync(connection, sql);
                     }
                     catch (Exception ex)
                     {
@@ -88,7 +87,16 @@ namespace HRMS.Model
                     }
                 }
 
-                await MarkMigrationAppliedAsync(connection, migrationKey);
+                try
+                {
+                    await MarkMigrationAppliedAsync(connection, migrationKey);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException(
+                        $"Migration '{migrationKey}' ran but could not be recorded in schema_migrations. {ex.Message}",
+                        ex);
+                }
                 appliedNow.Add(migrationKey);
             }
 
@@ -140,6 +148,12 @@ VALUES (@migration_key);";
             await using var command = new MySqlCommand(sql, connection);
             command.Parameters.AddWithValue("@migration_key", migrationKey);
             await command.ExecuteNonQueryAsync();
+        }
+
+        private static async Task ExecuteMigrationScriptAsync(MySqlConnection connection, string sql)
+        {
+            await using var migrationCommand = new MySqlCommand(sql, connection);
+            await migrationCommand.ExecuteNonQueryAsync();
         }
     }
 }

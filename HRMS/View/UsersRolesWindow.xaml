@@ -503,6 +503,9 @@
                                     <RadioButton Content="Local Database (localhost)"
                                                  IsChecked="{Binding UseLocalDatabase, Mode=TwoWay}"
                                                  Margin="0,0,20,0"/>
+                                    <RadioButton Content="Online Database (Hostinger)"
+                                                 IsChecked="{Binding UseHostingerDatabase, Mode=TwoWay}"
+                                                 Margin="0,0,20,0"/>
                                     <RadioButton Content="Remote Database (Custom IP)"
                                                  IsChecked="{Binding UseRemoteDatabase, Mode=TwoWay}"/>
                                 </StackPanel>
@@ -510,7 +513,7 @@
                                 <Border Background="#EAF4FF" BorderBrush="#D6E8FF" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,10">
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="InformationOutline" Width="16" Height="16" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Enter the server running MySQL. Use localhost if this PC hosts the database." Foreground="#2D5783"/>
+                                        <TextBlock Text="{Binding DatabaseModeHint}" Foreground="#2D5783"/>
                                     </StackPanel>
                                 </Border>
 
@@ -579,12 +582,26 @@
                                             <TextBlock Text="Save &amp; Apply"/>
                                         </StackPanel>
                                     </Button>
+                                    <Button Width="190"
+                                            Height="40"
+                                            Margin="8,0,0,0"
+                                            Command="{Binding ImportBeneficiariesCommand}"
+                                            Style="{StaticResource ProfileSecondaryButtonStyle}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="DatabaseImportOutline" Width="16" Height="16" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Import Beneficiaries"/>
+                                        </StackPanel>
+                                    </Button>
                                     <TextBlock Text="{Binding DbConnectionStatus}"
                                                Foreground="{Binding DbConnectionStatusBrush}"
                                                VerticalAlignment="Center"
                                                Margin="12,0,0,0"
                                                FontWeight="SemiBold"/>
                                 </StackPanel>
+                                <TextBlock Text="Reads from Sulop beneficiaries_validation and inserts only into BeneficiaryStaging as Pending."
+                                           Foreground="#5B6A7A"
+                                           Margin="0,8,0,0"
+                                           TextWrapping="Wrap"/>
                             </StackPanel>
                         </Border>
 
@@ -606,13 +623,13 @@
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
                                     <TextBlock Text="System Version:" Foreground="#5B6A7A" Margin="0,0,0,6"/>
-                                    <TextBlock Grid.Column="1" Text="Version 1.0.0 - HRMS Desktop Release" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,6"/>
+                                    <TextBlock Grid.Column="1" Text="Version 1.0.0 - HRMS Desktop (DSSC Release)" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,6"/>
                                     <TextBlock Grid.Row="1" Text="Developer:" Foreground="#5B6A7A" Margin="0,0,0,6"/>
-                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="IT Student Final Project" Foreground="#2A3C50" Margin="0,0,0,6"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="IT Student Final Project - DSSC" Foreground="#2A3C50" Margin="0,0,0,6"/>
                                     <TextBlock Grid.Row="2" Text="University:" Foreground="#5B6A7A" Margin="0,0,0,6"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Philippine University" Foreground="#2A3C50" Margin="0,0,0,6"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Davao del Sur State College (DSSC)" Foreground="#2A3C50" Margin="0,0,0,6"/>
                                     <TextBlock Grid.Row="3" Text="Description:" Foreground="#5B6A7A"/>
-                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Desktop WPF Human Resource Management System with MySQL database." Foreground="#2A3C50"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Desktop WPF Human Resource Management System using MySQL and online Hostinger database." Foreground="#2A3C50"/>
                                 </Grid>
                             </StackPanel>
                         </Border>

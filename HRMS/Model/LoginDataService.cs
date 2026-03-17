@@ -270,5 +270,62 @@ LIMIT 1;";
 
         private static string NormalizeUsername(string username) => username.Trim();
 
+        /// <summary>
+        /// Changes the password for a user account (typically after first login).
+        /// </summary>
+        /// <param name="userId">The user account ID.</param>
+        /// <param name="newPassword">The new password (must be at least 8 characters).</param>
+        /// <returns>True if successful; throws exception if validation fails.</returns>
+        public async Task<bool> ChangePasswordAsync(int userId, string newPassword)
+        {
+            if (userId <= 0)
+            {
+                throw new ArgumentException("Invalid user ID.", nameof(userId));
+            }
+
+            if (string.IsNullOrWhiteSpace(newPassword))
+            {
+                throw new ArgumentException("Password cannot be empty.", nameof(newPassword));
+            }
+
+            var trimmedPassword = newPassword.Trim();
+            if (trimmedPassword.Length < 8)
+            {
+                throw new InvalidOperationException("Password must be at least 8 characters long.");
+            }
+
+            const string sql = @"
+UPDATE user_accounts
+SET password_hash = @password_hash,
+    must_change_password = 0,
+    password_changed_at = CURRENT_TIMESTAMP,
+    updated_at = CURRENT_TIMESTAMP
+WHERE user_id = @user_id;";
+
+            try
+            {
+                await using var connection = new MySqlConnection(_connectionString);
+                await connection.OpenAsync();
+
+                await using var command = new MySqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@password_hash", PasswordSecurity.HashPassword(trimmedPassword));
+                command.Parameters.AddWithValue("@user_id", userId);
+
+                var rowsAffected = await command.ExecuteNonQueryAsync();
+                if (rowsAffected == 0)
+                {
+                    throw new InvalidOperationException("User account not found.");
+                }
+
+                return true;
+            }
+            catch (MySqlException ex)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to update password: {ex.Message}",
+                    ex);
+            }
+        }
+
     }
 }

@@ -27,7 +27,8 @@ namespace HRMS.ViewModel
         private bool _isAdjustmentsVisible = false;
         private bool _isLeaveVisible = false;
         private bool _isPayrollVisible = false;
-        private bool _isMyDocumentsVisible = false;
+        private bool _isDocumentsVisible = false;
+        private bool _isBeneficiariesVisible = false;
 
         public DashboardViewModel(AuthenticatedUser? authenticatedUser = null)
         {
@@ -54,6 +55,7 @@ namespace HRMS.ViewModel
 
         public bool ShowAdminHrDashboard => IsAdminAccess || IsHrAccess;
         public bool ShowEmployeeDashboard => IsEmployeeAccess;
+        public string DocumentsNavLabel => ShowEmployeeDashboard ? "My Documents" : "Documents";
 
         public string SnapshotTitle => ShowEmployeeDashboard ? "My Workday Snapshot" : "Organization Snapshot";
 
@@ -216,10 +218,16 @@ namespace HRMS.ViewModel
             private set { if (_isPayrollVisible != value) { _isPayrollVisible = value; OnPropertyChanged(); } }
         }
 
-        public bool IsMyDocumentsVisible
+        public bool IsDocumentsVisible
         {
-            get => _isMyDocumentsVisible;
-            private set { if (_isMyDocumentsVisible != value) { _isMyDocumentsVisible = value; OnPropertyChanged(); } }
+            get => _isDocumentsVisible;
+            private set { if (_isDocumentsVisible != value) { _isDocumentsVisible = value; OnPropertyChanged(); } }
+        }
+
+        public bool IsBeneficiariesVisible
+        {
+            get => _isBeneficiariesVisible;
+            private set { if (_isBeneficiariesVisible != value) { _isBeneficiariesVisible = value; OnPropertyChanged(); } }
         }
 
         private void HideAllModules()
@@ -236,7 +244,8 @@ namespace HRMS.ViewModel
             IsAdjustmentsVisible = false;
             IsLeaveVisible = false;
             IsPayrollVisible = false;
-            IsMyDocumentsVisible = false;
+            IsDocumentsVisible = false;
+            IsBeneficiariesVisible = false;
         }
 
         public void ShowDashboard()
@@ -311,10 +320,16 @@ namespace HRMS.ViewModel
             IsPayrollVisible = true;
         }
 
-        public void ShowMyDocuments()
+        public void ShowDocuments()
         {
             HideAllModules();
-            IsMyDocumentsVisible = true;
+            IsDocumentsVisible = true;
+        }
+
+        public void ShowBeneficiaries()
+        {
+            HideAllModules();
+            IsBeneficiariesVisible = true;
         }
 
         private async Task LoadStatsAsync()

@@ -1,0 +1,7 @@
+# Sulop Database Connection Settings
+# Edit these values using Login > Configure > Save.
+Server=srv1237.hstgr.io
+Port=3306
+Database=u621755393_sulop
+User=u621755393_sulop_user
+Password=Sulop@2026

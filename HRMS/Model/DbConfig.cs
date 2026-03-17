@@ -7,11 +7,11 @@ namespace HRMS.Model
 {
     public sealed class DbConnectionSettings
     {
-        public string Host { get; set; } = "127.0.0.1";
+        public string Host { get; set; } = "srv1237.hstgr.io";
         public string Port { get; set; } = "3306";
-        public string Database { get; set; } = "hrms_db";
-        public string Username { get; set; } = "hrms_app";
-        public string Password { get; set; } = string.Empty;
+        public string Database { get; set; } = "u621755393_hrms3b";
+        public string Username { get; set; } = "u621755393_hrms3b_user";
+        public string Password { get; set; } = "Hrms3b@2026";
     }
 
     /// <summary>
@@ -20,11 +20,11 @@ namespace HRMS.Model
     /// </summary>
     public static class DbConfig
     {
-        private const string DefaultHost = "127.0.0.1";
+        private const string DefaultHost = "srv1237.hstgr.io";
         private const string DefaultPort = "3306";
-        private const string DefaultDatabase = "hrms_db";
-        private const string DefaultUser = "hrms_app";
-        private const string DefaultPassword = "";
+        private const string DefaultDatabase = "u621755393_hrms3b";
+        private const string DefaultUser = "u621755393_hrms3b_user";
+        private const string DefaultPassword = "Hrms3b@2026";
 
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
@@ -91,7 +91,16 @@ namespace HRMS.Model
                 $"Pwd={normalized.Password};" +
                 $"SslMode={sslMode};" +
                 (isLocalHost ? "AllowPublicKeyRetrieval=True;" : string.Empty) +
-                "AllowUserVariables=True;";
+                "AllowZeroDateTime=True;" +
+                "ConvertZeroDateTime=True;" +
+                "AllowUserVariables=True;" +
+                "Pooling=True;" +
+                "MinimumPoolSize=1;" +
+                "MaximumPoolSize=12;" +
+                "ConnectionIdleTimeout=3600;" +
+                "ConnectionReset=True;" +
+                "DefaultCommandTimeout=180;" +
+                "Keepalive=30;";
         }
 
         public static void ApplyToProcessEnvironment(DbConnectionSettings settings)

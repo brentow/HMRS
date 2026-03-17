@@ -1,4 +1,4 @@
-<UserControl x:Class="HRMS.View.MyDocumentsWindow"
+<UserControl x:Class="HRMS.View.DocumentsWindow"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -87,8 +87,8 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel>
-                <TextBlock Text="My Documents" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
-                <TextBlock Text="Central access for payslips, leave attachments, and training certificates." Foreground="#5B6A7A" />
+                <TextBlock Text="{Binding DocumentsTitle}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
+                <TextBlock Text="{Binding DocumentsSubtitle}" Foreground="#5B6A7A" />
             </StackPanel>
             <Button Grid.Column="1"
                     Style="{StaticResource ButtonStyle}"

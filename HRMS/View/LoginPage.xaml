@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="Login" Height="643" Width="422"
+        Title="Login" Height="719" Width="422"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
@@ -22,6 +22,248 @@
 
         <materialDesign:DialogHost CloseOnClickAway="True"
                                    x:Name="DialogHost">
+
+            <materialDesign:DialogHost.DialogContent>
+                <Border Width="460"
+                        Padding="20"
+                        Background="White"
+                        CornerRadius="12"
+                        BorderBrush="#DDE8F6"
+                        BorderThickness="1">
+                    <Border.Resources>
+                        <Style x:Key="DbPopupInputStyle" TargetType="TextBox">
+                            <Setter Property="Height" Value="42"/>
+                            <Setter Property="BorderBrush" Value="#6C6C6C"/>
+                            <Setter Property="BorderThickness" Value="1"/>
+                            <Setter Property="Background" Value="#FFFFFF"/>
+                            <Setter Property="Padding" Value="10,0"/>
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                            <Setter Property="FontSize" Value="16"/>
+                        </Style>
+                    </Border.Resources>
+                    <StackPanel>
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <materialDesign:PackIcon Grid.RowSpan="2"
+                                                     Kind="DatabaseCogOutline"
+                                                     Width="22"
+                                                     Height="22"
+                                                     Foreground="#1E4368"
+                                                     VerticalAlignment="Top"
+                                                     Margin="0,1,10,0"/>
+
+                            <TextBlock Grid.Column="1"
+                                       Grid.Row="0"
+                                       Text="Database Connection"
+                                       FontSize="19"
+                                       FontWeight="Bold"
+                                       Foreground="#1E4368"
+                                       Margin="0,0,0,2"/>
+
+                            <TextBlock x:Name="DbEndpointText"
+                                       Grid.Column="1"
+                                       Grid.Row="1"
+                                       Foreground="#5B6A7A"
+                                       FontSize="13"
+                                       TextWrapping="NoWrap"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </Grid>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <RadioButton x:Name="LocalDbRadio"
+                                         Content="Local"
+                                         FontSize="15"
+                                         Margin="0,0,18,0"
+                                         Checked="DatabaseModeRadio_OnChecked"/>
+                            <RadioButton x:Name="NetworkDbRadio"
+                                         Content="Network (LAN)"
+                                         FontSize="15"
+                                         Margin="0,0,18,0"
+                                         Checked="DatabaseModeRadio_OnChecked"/>
+                            <RadioButton x:Name="RemoteDbRadio"
+                                         Content="Remote"
+                                         FontSize="15"
+                                         Checked="DatabaseModeRadio_OnChecked"/>
+                        </StackPanel>
+
+                        <Border Background="#EAF4FF"
+                                BorderBrush="#D6E8FF"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="10"
+                                Margin="0,0,0,12">
+                            <TextBlock x:Name="DbModeHintText"
+                                       Foreground="#2D5783"
+                                       FontSize="13"
+                                       TextWrapping="Wrap"/>
+                        </Border>
+
+                        <TextBlock Text="HRMS Database"
+                                   Foreground="#1E4368"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,6"/>
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="95"/>
+                                <ColumnDefinition Width="2*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,8,0">
+                                <TextBlock Text="Server / Host" Foreground="#5B6A7A" FontSize="14" Margin="0,0,0,5"/>
+                                <TextBox x:Name="DbHostTextBox"
+                                         Style="{StaticResource DbPopupInputStyle}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="4,0">
+                                <TextBlock Text="Port" Foreground="#5B6A7A" FontSize="14" Margin="0,0,0,5"/>
+                                <TextBox x:Name="DbPortTextBox"
+                                         Style="{StaticResource DbPopupInputStyle}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Margin="8,0,0,0">
+                                <TextBlock Text="Database" Foreground="#5B6A7A" FontSize="14" Margin="0,0,0,5"/>
+                                <TextBox x:Name="DbNameTextBox"
+                                         Style="{StaticResource DbPopupInputStyle}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,8,0">
+                                <TextBlock Text="Username" Foreground="#5B6A7A" FontSize="14" Margin="0,0,0,5"/>
+                                <TextBox x:Name="DbUsernameTextBox"
+                                         Style="{StaticResource DbPopupInputStyle}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                <TextBlock Text="Password" Foreground="#5B6A7A" FontSize="14" Margin="0,0,0,5"/>
+                                <TextBox x:Name="DbPasswordTextBox"
+                                         Style="{StaticResource DbPopupInputStyle}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="Municipality of Sulop Database"
+                                   Foreground="#1E4368"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Margin="0,4,0,6"/>
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="95"/>
+                                <ColumnDefinition Width="2*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,8,0">
+                                <TextBlock Text="Sulop Host" Foreground="#5B6A7A" FontSize="14" Margin="0,0,0,5"/>
+                                <TextBox x:Name="SulopHostTextBox"
+                                         Style="{StaticResource DbPopupInputStyle}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="4,0">
+                                <TextBlock Text="Port" Foreground="#5B6A7A" FontSize="14" Margin="0,0,0,5"/>
+                                <TextBox x:Name="SulopPortTextBox"
+                                         Style="{StaticResource DbPopupInputStyle}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Margin="8,0,0,0">
+                                <TextBlock Text="Database" Foreground="#5B6A7A" FontSize="14" Margin="0,0,0,5"/>
+                                <TextBox x:Name="SulopNameTextBox"
+                                         Style="{StaticResource DbPopupInputStyle}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,8,0">
+                                <TextBlock Text="Username" Foreground="#5B6A7A" FontSize="14" Margin="0,0,0,5"/>
+                                <TextBox x:Name="SulopUsernameTextBox"
+                                         Style="{StaticResource DbPopupInputStyle}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                <TextBlock Text="Password" Foreground="#5B6A7A" FontSize="14" Margin="0,0,0,5"/>
+                                <TextBox x:Name="SulopPasswordTextBox"
+                                         Style="{StaticResource DbPopupInputStyle}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Height="40"
+                                    FontSize="14"
+                                    Margin="0,0,8,0"
+                                    Click="TestDatabaseConnectionButton_OnClick"
+                                    Style="{StaticResource MaterialDesignFlatButton}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="DatabaseSearchOutline" Width="16" Height="16" Margin="0,0,5,0"/>
+                                    <TextBlock Text="Test Both"/>
+                                </StackPanel>
+                            </Button>
+                                <Button Grid.Column="1"
+                                    Height="40"
+                                        FontSize="14"
+                                    Margin="0,0,8,0"
+                                    Click="CreateDatabaseButton_OnClick"
+                                    Style="{StaticResource MaterialDesignFlatButton}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="DatabasePlusOutline" Width="16" Height="16" Margin="0,0,5,0"/>
+                                    <TextBlock Text="Create DB"/>
+                                </StackPanel>
+                            </Button>
+                                <Button Grid.Column="2"
+                                    Height="40"
+                                        FontSize="14"
+                                    Foreground="White"
+                                    Background="#1E4368"
+                                    BorderThickness="0"
+                                    Click="SaveDatabaseSettingsButton_OnClick"
+                                    Style="{StaticResource MaterialDesignFlatMidBgButton}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="ContentSaveOutline" Width="16" Height="16" Margin="0,0,5,0"/>
+                                    <TextBlock Text="Save"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
+                        <Grid Margin="0,6,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="DbStatusText"
+                                       Foreground="#4A5B6C"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       Text="Not tested"/>
+                            <Button Grid.Column="1"
+                                    Content="Close"
+                                    FontSize="14"
+                                    Margin="10,0,0,0"
+                                    Padding="10,0"
+                                    Click="CloseDbDialogButton_OnClick"
+                                    Style="{StaticResource MaterialDesignFlatButton}"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </materialDesign:DialogHost.DialogContent>
 
             <StackPanel>
 
@@ -74,8 +316,33 @@
                            HorizontalAlignment="Center"
                            Text="Login Your Credentials" />
 
+                <!-- Demo credentials hint -->
+                <Border Width="300"
+                        Margin="0,10,0,0"
+                        Padding="10,8"
+                        Background="#EAF4FF"
+                        CornerRadius="6"
+                        BorderBrush="#B3D4F5"
+                        BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock FontSize="12"
+                                   Foreground="#5B6A7A"
+                                   FontWeight="SemiBold"
+                                   Text="Credentials" />
+                        <TextBlock FontSize="12"
+                                   Foreground="#1E4368"
+                                   Margin="0,3,0,0">
+                            <Run FontWeight="SemiBold">Username:</Run>
+                            <Run>admin</Run>
+                            <Run>  </Run>
+                            <Run FontWeight="SemiBold">Password:</Run>
+                            <Run>admin</Run>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
                 <!-- Username -->
-                <TextBox Margin="0,40,0,0"
+                <TextBox Margin="0,20,0,0"
                          Width="300"
                          FontSize="15"
                          x:Name="UsernameTextBox"
@@ -121,7 +388,7 @@
                         Command="{Binding LoginCommand}"
                         Content="LOG IN" />
 
-                <!-- Create Account -->
+                <!-- Request Access -->
                 <Button Margin="0,20,0,0"
                         x:Name="signupBtn"
                         Foreground="#1F4E79"
@@ -131,7 +398,40 @@
                         Width="300"
                         materialDesign:ButtonAssist.CornerRadius="10"
                         FontSize="15"
-                        Content="Create Account" />
+                    Click="RequestAccessButton_OnClick"
+                    Content="Request Access" />
+
+                <Grid Width="300" Margin="0,6,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="Need database setup?"
+                               VerticalAlignment="Center"
+                               FontSize="14"
+                               Foreground="#5B6A7A"/>
+
+                    <Button Grid.Column="1"
+                            Padding="4,2"
+                            Foreground="#1E4368"
+                            FontSize="15"
+                            FontWeight="SemiBold"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            Style="{StaticResource MaterialDesignFlatButton}"
+                            Click="OpenDatabaseDialogButton_OnClick">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="CogOutline"
+                                                     Width="16"
+                                                     Height="16"
+                                                     Margin="0,0,6,0"
+                                                     VerticalAlignment="Center"/>
+                            <TextBlock Text="Configure" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
 
             </StackPanel>
         </materialDesign:DialogHost>
