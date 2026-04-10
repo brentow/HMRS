@@ -9,6 +9,11 @@ namespace HRMS.View
 {
     public partial class AttendanceWindow : UserControl
     {
+        private static readonly GridLength AdminDtrDailyHeight = new(1.1, GridUnitType.Star);
+        private static readonly GridLength AdminDtrCertificationHeight = new(0.9, GridUnitType.Star);
+        private static readonly GridLength EmployeeDtrDailyHeight = new(1, GridUnitType.Star);
+        private static readonly GridLength HiddenDtrCertificationHeight = new(0);
+
         public AttendanceWindow()
         {
             InitializeComponent();
@@ -31,6 +36,8 @@ namespace HRMS.View
 
                 var isEmployee = string.Equals(user?.RoleName, "Employee", StringComparison.OrdinalIgnoreCase);
                 ShiftAssignmentActionsColumn.Visibility = isEmployee ? Visibility.Collapsed : Visibility.Visible;
+                DtrDailyRowDefinition.Height = isEmployee ? EmployeeDtrDailyHeight : AdminDtrDailyHeight;
+                DtrCertificationRowDefinition.Height = isEmployee ? HiddenDtrCertificationHeight : AdminDtrCertificationHeight;
 
                 if (isEmployee)
                 {

@@ -70,6 +70,44 @@ VALUES (@employee_id, @device_id, @log_time, @log_type, @source);";
             return inserted;
         }
 
+        public async Task UpdateAttendanceLogAsync(long logId, int employeeId, int? deviceId, DateTime logTime, string logType, string source)
+        {
+            if (logId <= 0)
+            {
+                throw new InvalidOperationException("Invalid attendance log.");
+            }
+
+            if (employeeId <= 0)
+            {
+                throw new InvalidOperationException("Employee is required.");
+            }
+
+            const string sql = @"
+UPDATE attendance_logs
+SET employee_id = @employee_id,
+    device_id = @device_id,
+    log_time = @log_time,
+    log_type = @log_type,
+    source = @source
+WHERE log_id = @log_id;";
+
+            await using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+            await using var command = new MySqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@log_id", logId);
+            command.Parameters.AddWithValue("@employee_id", employeeId);
+            command.Parameters.AddWithValue("@device_id", deviceId.HasValue && deviceId.Value > 0 ? deviceId.Value : DBNull.Value);
+            command.Parameters.AddWithValue("@log_time", logTime);
+            command.Parameters.AddWithValue("@log_type", NormalizeLogType(logType));
+            command.Parameters.AddWithValue("@source", NormalizeLogSource(source));
+
+            var affected = await command.ExecuteNonQueryAsync();
+            if (affected == 0)
+            {
+                throw new InvalidOperationException("Attendance log not found.");
+            }
+        }
+
         private static string NormalizeLogType(string? logType)
         {
             var value = (logType ?? string.Empty).Trim().ToUpperInvariant();

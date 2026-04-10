@@ -26,6 +26,10 @@
             <SolidColorBrush x:Key="PrimaryHueLightBrush" Color="#CBE9FE"/>
             <SolidColorBrush x:Key="PrimaryHueMidForegroundBrush" Color="White"/>
 
+            <Style TargetType="{x:Type Window}">
+                <Setter Property="Icon" Value="/Images/ePRIME_logo.ico"/>
+            </Style>
+
             <!-- Value Converters -->
             <local:BooleanToActiveTextConverter x:Key="BooleanToActiveText"/>
             <local:InverseBoolConverter x:Key="InverseBoolConverter"/>

@@ -8,6 +8,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -557,6 +558,8 @@ namespace HRMS.ViewModel
         public ICommand BrowseAttachmentCommand { get; }
         public ICommand UploadAttachmentCommand { get; }
         public ICommand DeleteAttachmentCommand { get; }
+        public ICommand ExportLeaveRequestsCommand { get; }
+        public ICommand ExportLeaveBalancesCommand { get; }
 
         public LeaveViewModel()
         {
@@ -570,6 +573,8 @@ namespace HRMS.ViewModel
             BrowseAttachmentCommand = new AsyncRelayCommand(_ => BrowseAttachmentAsync());
             UploadAttachmentCommand = new AsyncRelayCommand(_ => UploadAttachmentAsync());
             DeleteAttachmentCommand = new AsyncRelayCommand(DeleteAttachmentAsync);
+            ExportLeaveRequestsCommand = new AsyncRelayCommand(_ => ExportLeaveRequestsAsync());
+            ExportLeaveBalancesCommand = new AsyncRelayCommand(_ => ExportLeaveBalancesAsync());
 
             _selectedBalanceYearFilter = 0;
             QueueRefresh();
@@ -1056,6 +1061,151 @@ namespace HRMS.ViewModel
             {
                 SetMessage($"Unable to delete attachment: {ex.Message}", ErrorBrush);
             }
+        }
+
+        private async Task ExportLeaveRequestsAsync()
+        {
+            if (!IsAdminOrHrMode)
+            {
+                SetMessage("Leave request reports are available to Admin/HR only.", ErrorBrush);
+                return;
+            }
+
+            if (LeaveRequests.Count == 0)
+            {
+                SetMessage("There are no leave requests to export for the current filters.", ErrorBrush);
+                return;
+            }
+
+            try
+            {
+                var dialog = new SaveFileDialog
+                {
+                    Title = "Export Leave Requests Report",
+                    Filter = "CSV File (*.csv)|*.csv",
+                    DefaultExt = ".csv",
+                    AddExtension = true,
+                    FileName = $"LeaveRequests-{DateTime.Now:yyyyMMdd-HHmm}.csv"
+                };
+
+                if (dialog.ShowDialog() != true)
+                {
+                    SetMessage("Leave request export cancelled.", InfoBrush);
+                    return;
+                }
+
+                await File.WriteAllTextAsync(dialog.FileName, BuildLeaveRequestsCsv(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+                SetMessage($"Leave requests report saved to {Path.GetFileName(dialog.FileName)}.", SuccessBrush);
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Unable to export leave requests report: {ex.Message}", ErrorBrush);
+            }
+        }
+
+        private async Task ExportLeaveBalancesAsync()
+        {
+            if (!IsAdminOrHrMode)
+            {
+                SetMessage("Leave balance reports are available to Admin/HR only.", ErrorBrush);
+                return;
+            }
+
+            if (LeaveBalances.Count == 0)
+            {
+                SetMessage("There are no leave balances to export for the current filters.", ErrorBrush);
+                return;
+            }
+
+            try
+            {
+                var dialog = new SaveFileDialog
+                {
+                    Title = "Export Leave Balances Report",
+                    Filter = "CSV File (*.csv)|*.csv",
+                    DefaultExt = ".csv",
+                    AddExtension = true,
+                    FileName = $"LeaveBalances-{DateTime.Now:yyyyMMdd-HHmm}.csv"
+                };
+
+                if (dialog.ShowDialog() != true)
+                {
+                    SetMessage("Leave balance export cancelled.", InfoBrush);
+                    return;
+                }
+
+                await File.WriteAllTextAsync(dialog.FileName, BuildLeaveBalancesCsv(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+                SetMessage($"Leave balances report saved to {Path.GetFileName(dialog.FileName)}.", SuccessBrush);
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Unable to export leave balances report: {ex.Message}", ErrorBrush);
+            }
+        }
+
+        private string BuildLeaveRequestsCsv()
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine("Leave Application ID,Employee No,Employee Name,Leave Type,Date From,Date To,Days Requested,Status,Reason,Decision Remarks,Filed At,Decision At,Attachments");
+
+            foreach (var request in LeaveRequests)
+            {
+                builder.AppendLine(string.Join(",",
+                    EscapeCsv(request.LeaveApplicationId.ToString(CultureInfo.InvariantCulture)),
+                    EscapeCsv(request.EmployeeNo),
+                    EscapeCsv(request.EmployeeName),
+                    EscapeCsv(request.LeaveTypeName),
+                    EscapeCsv(request.DateFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
+                    EscapeCsv(request.DateTo.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
+                    EscapeCsv(request.DaysRequested.ToString("0.##", CultureInfo.InvariantCulture)),
+                    EscapeCsv(request.Status),
+                    EscapeCsv(request.Reason),
+                    EscapeCsv(request.DecisionRemarks),
+                    EscapeCsv(request.FiledAt.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)),
+                    EscapeCsv(request.DecisionAt.HasValue
+                        ? request.DecisionAt.Value.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)
+                        : string.Empty),
+                    EscapeCsv(request.AttachmentCount.ToString(CultureInfo.InvariantCulture))));
+            }
+
+            return builder.ToString();
+        }
+
+        private string BuildLeaveBalancesCsv()
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine("Leave Balance ID,Employee No,Employee Name,Leave Type,Year,Opening Credits,Earned,Used,Adjustments,Available Credits,As Of Date");
+
+            foreach (var balance in LeaveBalances)
+            {
+                builder.AppendLine(string.Join(",",
+                    EscapeCsv(balance.LeaveBalanceId.ToString(CultureInfo.InvariantCulture)),
+                    EscapeCsv(balance.EmployeeNo),
+                    EscapeCsv(balance.EmployeeName),
+                    EscapeCsv(balance.LeaveTypeName),
+                    EscapeCsv(balance.Year.ToString(CultureInfo.InvariantCulture)),
+                    EscapeCsv(balance.OpeningCredits.ToString("0.##", CultureInfo.InvariantCulture)),
+                    EscapeCsv(balance.Earned.ToString("0.##", CultureInfo.InvariantCulture)),
+                    EscapeCsv(balance.Used.ToString("0.##", CultureInfo.InvariantCulture)),
+                    EscapeCsv(balance.Adjustments.ToString("0.##", CultureInfo.InvariantCulture)),
+                    EscapeCsv(balance.AvailableCredits.ToString("0.##", CultureInfo.InvariantCulture)),
+                    EscapeCsv(balance.AsOfDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))));
+            }
+
+            return builder.ToString();
+        }
+
+        private static string EscapeCsv(string? value)
+        {
+            var sanitized = value ?? string.Empty;
+            if (sanitized.Contains('"'))
+            {
+                sanitized = sanitized.Replace("\"", "\"\"");
+            }
+
+            return sanitized.IndexOfAny([',', '"', '\r', '\n']) >= 0
+                ? $"\"{sanitized}\""
+                : sanitized;
         }
 
         private void RebuildOptions(

@@ -57,6 +57,14 @@ namespace HRMS.Model
         string ReleasedBy,
         string Remarks);
 
+    public record PayrollRunItemDto(
+        long PayrollRunItemId,
+        long PayrollRunId,
+        string ItemType,
+        string Code,
+        string Description,
+        decimal Amount);
+
     public record PayrollRunEditorDefaultsDto(
         decimal BasicPay,
         decimal Allowances,
@@ -64,7 +72,27 @@ namespace HRMS.Model
         decimal OtherEarnings,
         decimal DeductionsTotal,
         string Status,
-        bool FromExistingRun);
+        bool FromExistingRun,
+        string EmploymentTypeName,
+        string PositionName);
+
+    public record PayrollGovernmentContributionSourceDto(
+        long PayrollRunId,
+        long PayrollPeriodId,
+        string PeriodCode,
+        DateTime PayDate,
+        int EmployeeId,
+        string EmployeeNo,
+        string EmployeeName,
+        string EmploymentTypeName,
+        decimal BasicPay,
+        string RunStatus);
+
+    internal record PayrollEmployeeCompensationDto(
+        decimal MonthlyRate,
+        decimal DefaultAllowances,
+        string EmploymentTypeName,
+        string PositionName);
 
     public class PayrollDataService
     {
@@ -500,6 +528,114 @@ LIMIT @limit;";
             return rows;
         }
 
+        public async Task<IReadOnlyList<PayrollGovernmentContributionSourceDto>> GetGovernmentContributionSourcesAsync(long? periodId = null, int limit = 1000)
+        {
+            const string sql = @"
+SELECT
+    pr.payroll_run_id,
+    pr.payroll_period_id,
+    pp.period_code,
+    pp.pay_date,
+    pr.employee_id,
+    COALESCE(e.employee_no, '-') AS employee_no,
+    CONCAT(e.last_name, ', ', e.first_name, IFNULL(CONCAT(' ', e.middle_name), '')) AS employee_name,
+    COALESCE(at.type_name, 'Permanent') AS employment_type_name,
+    pr.basic_pay,
+    pr.status
+FROM payroll_runs pr
+INNER JOIN payroll_periods pp ON pp.payroll_period_id = pr.payroll_period_id
+INNER JOIN employees e ON e.employee_id = pr.employee_id
+LEFT JOIN appointment_types at ON at.appointment_type_id = e.appointment_type_id
+WHERE (@period_id IS NULL OR pr.payroll_period_id = @period_id)
+  AND COALESCE(pr.status, 'GENERATED') <> 'VOID'
+ORDER BY pp.pay_date DESC, e.employee_no
+LIMIT @limit;";
+
+            var rows = new List<PayrollGovernmentContributionSourceDto>();
+
+            try
+            {
+                await using var connection = new MySqlConnection(_connectionString);
+                await connection.OpenAsync();
+                await using var command = new MySqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@period_id", periodId.HasValue && periodId.Value > 0 ? periodId.Value : DBNull.Value);
+                command.Parameters.AddWithValue("@limit", Math.Max(1, limit));
+
+                await using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    rows.Add(new PayrollGovernmentContributionSourceDto(
+                        PayrollRunId: ToLong(reader["payroll_run_id"]),
+                        PayrollPeriodId: ToLong(reader["payroll_period_id"]),
+                        PeriodCode: reader["period_code"]?.ToString() ?? "-",
+                        PayDate: reader["pay_date"] == DBNull.Value ? DateTime.Today : Convert.ToDateTime(reader["pay_date"], CultureInfo.InvariantCulture),
+                        EmployeeId: ToInt(reader["employee_id"]),
+                        EmployeeNo: reader["employee_no"]?.ToString() ?? "-",
+                        EmployeeName: reader["employee_name"]?.ToString() ?? "-",
+                        EmploymentTypeName: reader["employment_type_name"]?.ToString() ?? "Permanent",
+                        BasicPay: ToDecimal(reader["basic_pay"]),
+                        RunStatus: reader["status"]?.ToString() ?? "GENERATED"));
+                }
+            }
+            catch (MySqlException ex) when (IsMissingObjectError(ex))
+            {
+                return Array.Empty<PayrollGovernmentContributionSourceDto>();
+            }
+
+            return rows;
+        }
+
+        public async Task<IReadOnlyList<PayrollRunItemDto>> GetRunItemsAsync(long payrollRunId, string? itemType = null)
+        {
+            if (payrollRunId <= 0)
+            {
+                return Array.Empty<PayrollRunItemDto>();
+            }
+
+            const string sql = @"
+SELECT
+    payroll_run_item_id,
+    payroll_run_id,
+    item_type,
+    code,
+    COALESCE(description, '') AS description,
+    amount
+FROM payroll_run_items
+WHERE payroll_run_id = @payroll_run_id
+  AND (@item_type = '' OR UPPER(item_type) = @item_type)
+ORDER BY
+    CASE WHEN UPPER(item_type) = 'EARNING' THEN 0 ELSE 1 END,
+    payroll_run_item_id;";
+
+            var rows = new List<PayrollRunItemDto>();
+            try
+            {
+                await using var connection = new MySqlConnection(_connectionString);
+                await connection.OpenAsync();
+                await using var command = new MySqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@payroll_run_id", payrollRunId);
+                command.Parameters.AddWithValue("@item_type", string.IsNullOrWhiteSpace(itemType) ? string.Empty : itemType.Trim().ToUpperInvariant());
+
+                await using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    rows.Add(new PayrollRunItemDto(
+                        PayrollRunItemId: ToLong(reader["payroll_run_item_id"]),
+                        PayrollRunId: ToLong(reader["payroll_run_id"]),
+                        ItemType: reader["item_type"]?.ToString() ?? string.Empty,
+                        Code: reader["code"]?.ToString() ?? string.Empty,
+                        Description: reader["description"]?.ToString() ?? string.Empty,
+                        Amount: ToDecimal(reader["amount"])));
+                }
+            }
+            catch (MySqlException ex) when (IsMissingObjectError(ex))
+            {
+                return Array.Empty<PayrollRunItemDto>();
+            }
+
+            return rows;
+        }
+
         public async Task<long> UpsertRunAsync(
             long payrollPeriodId,
             int employeeId,
@@ -515,8 +651,7 @@ LIMIT @limit;";
                 throw new InvalidOperationException("Payroll period and employee are required.");
             }
 
-            var gross = basicPay + allowances + overtimePay + otherEarnings;
-            var net = gross - deductionsTotal;
+            _ = deductionsTotal;
 
             const string sql = @"
 INSERT INTO payroll_runs
@@ -538,28 +673,66 @@ SELECT LAST_INSERT_ID();";
 
             await using var connection = new MySqlConnection(_connectionString);
             await connection.OpenAsync();
-            await using var command = new MySqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@payroll_period_id", payrollPeriodId);
-            command.Parameters.AddWithValue("@employee_id", employeeId);
-            command.Parameters.AddWithValue("@basic_pay", basicPay);
-            command.Parameters.AddWithValue("@allowances", allowances);
-            command.Parameters.AddWithValue("@overtime_pay", overtimePay);
-            command.Parameters.AddWithValue("@other_earnings", otherEarnings);
-            command.Parameters.AddWithValue("@gross_pay", gross);
-            command.Parameters.AddWithValue("@deductions_total", deductionsTotal);
-            command.Parameters.AddWithValue("@net_pay", net);
-            command.Parameters.AddWithValue("@status", NormalizeRunStatus(status));
-            var result = await command.ExecuteScalarAsync();
-            return result == null || result == DBNull.Value
-                ? 0
-                : Convert.ToInt64(result, CultureInfo.InvariantCulture);
+            await using var transaction = await connection.BeginTransactionAsync();
+
+            try
+            {
+                var compensation = await GetEmployeeCompensationAsync(connection, transaction, employeeId);
+                var effectiveBasicPay = basicPay > 0m ? basicPay : compensation.MonthlyRate;
+                var deductions = PhilippinePayrollDeductions.ComputeAll(
+                    basicMonthlySalary: effectiveBasicPay,
+                    employmentTypeName: compensation.EmploymentTypeName,
+                    allowances: allowances,
+                    overtimePay: overtimePay,
+                    otherEarnings: otherEarnings);
+
+                await using var command = new MySqlCommand(sql, connection, transaction);
+                command.Parameters.AddWithValue("@payroll_period_id", payrollPeriodId);
+                command.Parameters.AddWithValue("@employee_id", employeeId);
+                command.Parameters.AddWithValue("@basic_pay", effectiveBasicPay);
+                command.Parameters.AddWithValue("@allowances", allowances);
+                command.Parameters.AddWithValue("@overtime_pay", overtimePay);
+                command.Parameters.AddWithValue("@other_earnings", otherEarnings);
+                command.Parameters.AddWithValue("@gross_pay", deductions.GrossPay);
+                command.Parameters.AddWithValue("@deductions_total", deductions.TotalDeductions);
+                command.Parameters.AddWithValue("@net_pay", deductions.NetPay);
+                command.Parameters.AddWithValue("@status", NormalizeRunStatus(status));
+                var result = await command.ExecuteScalarAsync();
+                var payrollRunId = result == null || result == DBNull.Value
+                    ? 0L
+                    : Convert.ToInt64(result, CultureInfo.InvariantCulture);
+
+                if (payrollRunId <= 0)
+                {
+                    throw new InvalidOperationException("Payroll run could not be saved.");
+                }
+
+                await ReplaceRunItemsAsync(
+                    connection,
+                    transaction,
+                    payrollRunId,
+                    effectiveBasicPay,
+                    allowances,
+                    overtimePay,
+                    otherEarnings,
+                    compensation.EmploymentTypeName,
+                    deductions);
+
+                await transaction.CommitAsync();
+                return payrollRunId;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<PayrollRunEditorDefaultsDto> GetRunEditorDefaultsAsync(long payrollPeriodId, int employeeId)
         {
             if (payrollPeriodId <= 0 || employeeId <= 0)
             {
-                return new PayrollRunEditorDefaultsDto(0m, 0m, 0m, 0m, 0m, "GENERATED", false);
+                return new PayrollRunEditorDefaultsDto(0m, 0m, 0m, 0m, 0m, "GENERATED", false, string.Empty, string.Empty);
             }
 
             const string existingRunSql = @"
@@ -575,37 +748,11 @@ WHERE payroll_period_id = @payroll_period_id
   AND employee_id = @employee_id
 LIMIT 1;";
 
-            const string defaultsSql = @"
-SELECT
-    COALESCE(ss.monthly_rate, 0) AS basic_pay,
-    CASE
-        WHEN COALESCE(d.dept_name, '') = 'General Services Office' THEN 1000.00
-        ELSE 1500.00
-    END AS allowances
-FROM employees e
-LEFT JOIN departments d ON d.department_id = e.department_id
-LEFT JOIN (
-    SELECT src.salary_grade, src.step_no, src.monthly_rate
-    FROM salary_steps src
-    INNER JOIN (
-        SELECT salary_grade, step_no, MAX(effectivity_date) AS effectivity_date
-        FROM salary_steps
-        WHERE effectivity_date <= CURDATE()
-        GROUP BY salary_grade, step_no
-    ) eff
-      ON eff.salary_grade = src.salary_grade
-     AND eff.step_no = src.step_no
-     AND eff.effectivity_date = src.effectivity_date
-) ss
-  ON ss.salary_grade = e.salary_grade
- AND ss.step_no = e.step_no
-WHERE e.employee_id = @employee_id
-LIMIT 1;";
-
             try
             {
                 await using var connection = new MySqlConnection(_connectionString);
                 await connection.OpenAsync();
+                var compensation = await GetEmployeeCompensationAsync(connection, null, employeeId);
 
                 await using (var existingRunCommand = new MySqlCommand(existingRunSql, connection))
                 {
@@ -621,37 +768,35 @@ LIMIT 1;";
                             OtherEarnings: ToDecimal(existingRunReader["other_earnings"]),
                             DeductionsTotal: ToDecimal(existingRunReader["deductions_total"]),
                             Status: existingRunReader["status"]?.ToString() ?? "GENERATED",
-                            FromExistingRun: true);
+                            FromExistingRun: true,
+                            EmploymentTypeName: compensation.EmploymentTypeName,
+                            PositionName: compensation.PositionName);
                     }
                 }
 
-                decimal basicPay = 0m;
-                decimal allowances = 0m;
+                var basicPay = compensation.MonthlyRate;
+                var allowances = compensation.DefaultAllowances;
+                var deductions = PhilippinePayrollDeductions.ComputeAll(
+                    basicMonthlySalary: basicPay,
+                    employmentTypeName: compensation.EmploymentTypeName,
+                    allowances: allowances,
+                    overtimePay: 0m,
+                    otherEarnings: 0m);
 
-                await using (var defaultsCommand = new MySqlCommand(defaultsSql, connection))
-                {
-                    defaultsCommand.Parameters.AddWithValue("@employee_id", employeeId);
-                    await using var defaultsReader = await defaultsCommand.ExecuteReaderAsync();
-                    if (await defaultsReader.ReadAsync())
-                    {
-                        basicPay = ToDecimal(defaultsReader["basic_pay"]);
-                        allowances = ToDecimal(defaultsReader["allowances"]);
-                    }
-                }
-
-                var deductions = Math.Round((basicPay * 0.09m) + (basicPay * 0.04m) + 200m, 2, MidpointRounding.AwayFromZero);
                 return new PayrollRunEditorDefaultsDto(
                     BasicPay: basicPay,
                     Allowances: allowances,
                     OvertimePay: 0m,
                     OtherEarnings: 0m,
-                    DeductionsTotal: deductions,
+                    DeductionsTotal: deductions.TotalDeductions,
                     Status: "GENERATED",
-                    FromExistingRun: false);
+                    FromExistingRun: false,
+                    EmploymentTypeName: compensation.EmploymentTypeName,
+                    PositionName: compensation.PositionName);
             }
             catch (MySqlException ex) when (IsMissingObjectError(ex))
             {
-                return new PayrollRunEditorDefaultsDto(0m, 0m, 0m, 0m, 0m, "GENERATED", false);
+                return new PayrollRunEditorDefaultsDto(0m, 0m, 0m, 0m, 0m, "GENERATED", false, string.Empty, string.Empty);
             }
         }
 
@@ -1307,6 +1452,173 @@ FROM employees;";
             }
 
             return new string(buffer, 0, index).Trim();
+        }
+
+        private static async Task<PayrollEmployeeCompensationDto> GetEmployeeCompensationAsync(MySqlConnection connection, MySqlTransaction? transaction, int employeeId)
+        {
+            const string sql = @"
+SELECT
+    COALESCE(ss.monthly_rate, 0) AS monthly_rate,
+    CASE
+        WHEN COALESCE(d.dept_name, '') = 'General Services Office' THEN 1000.00
+        ELSE 1500.00
+    END AS default_allowances,
+    COALESCE(at.type_name, 'Permanent') AS employment_type,
+    COALESCE(p.position_name, '-') AS position_name
+FROM employees e
+LEFT JOIN departments d ON d.department_id = e.department_id
+LEFT JOIN appointment_types at ON at.appointment_type_id = e.appointment_type_id
+LEFT JOIN positions p ON p.position_id = e.position_id
+LEFT JOIN (
+    SELECT src.salary_grade, src.step_no, src.monthly_rate
+    FROM salary_steps src
+    INNER JOIN (
+        SELECT salary_grade, step_no, MAX(effectivity_date) AS effectivity_date
+        FROM salary_steps
+        WHERE effectivity_date <= CURDATE()
+        GROUP BY salary_grade, step_no
+    ) eff
+      ON eff.salary_grade = src.salary_grade
+     AND eff.step_no = src.step_no
+     AND eff.effectivity_date = src.effectivity_date
+) ss
+  ON ss.salary_grade = e.salary_grade
+ AND ss.step_no = e.step_no
+WHERE e.employee_id = @employee_id
+LIMIT 1;";
+
+            await using var command = transaction == null
+                ? new MySqlCommand(sql, connection)
+                : new MySqlCommand(sql, connection, transaction);
+            command.Parameters.AddWithValue("@employee_id", employeeId);
+            await using var reader = await command.ExecuteReaderAsync();
+            if (!await reader.ReadAsync())
+            {
+                throw new InvalidOperationException("Employee payroll profile was not found.");
+            }
+
+            return new PayrollEmployeeCompensationDto(
+                MonthlyRate: ToDecimal(reader["monthly_rate"]),
+                DefaultAllowances: ToDecimal(reader["default_allowances"]),
+                EmploymentTypeName: reader["employment_type"]?.ToString() ?? "Permanent",
+                PositionName: reader["position_name"]?.ToString() ?? "-");
+        }
+
+        private static async Task ReplaceRunItemsAsync(
+            MySqlConnection connection,
+            MySqlTransaction transaction,
+            long payrollRunId,
+            decimal basicPay,
+            decimal allowances,
+            decimal overtimePay,
+            decimal otherEarnings,
+            string employmentTypeName,
+            PayrollDeductionResult deductions)
+        {
+            const string deleteSql = @"
+DELETE FROM payroll_run_items
+WHERE payroll_run_id = @payroll_run_id;";
+
+            await using (var deleteCommand = new MySqlCommand(deleteSql, connection, transaction))
+            {
+                deleteCommand.Parameters.AddWithValue("@payroll_run_id", payrollRunId);
+                await deleteCommand.ExecuteNonQueryAsync();
+            }
+
+            if (basicPay > 0m)
+            {
+                await InsertRunItemAsync(connection, transaction, payrollRunId, "EARNING", "BASIC", "Basic Pay", basicPay);
+            }
+
+            if (allowances > 0m)
+            {
+                await InsertRunItemAsync(connection, transaction, payrollRunId, "EARNING", "ALLOW", "Allowances", allowances);
+            }
+
+            if (overtimePay > 0m)
+            {
+                await InsertRunItemAsync(connection, transaction, payrollRunId, "EARNING", "OVERTIME", "Overtime Pay", overtimePay);
+            }
+
+            if (otherEarnings > 0m)
+            {
+                await InsertRunItemAsync(connection, transaction, payrollRunId, "EARNING", "OTHER", "Other Earnings", otherEarnings);
+            }
+
+            var retirementAmount = deductions.GsisContribution + deductions.SssContribution;
+            if (retirementAmount > 0m)
+            {
+                var normalizedType = employmentTypeName?.Trim().ToLowerInvariant() ?? string.Empty;
+                var isSss = normalizedType.Contains("job order", StringComparison.Ordinal) ||
+                            normalizedType.Contains("contractual", StringComparison.Ordinal) ||
+                            normalizedType.Contains("cos", StringComparison.Ordinal);
+
+                await InsertRunItemAsync(
+                    connection,
+                    transaction,
+                    payrollRunId,
+                    "DEDUCTION",
+                    isSss ? "SSS" : "GSIS",
+                    isSss ? "SSS Contribution" : "GSIS Contribution (9%)",
+                    retirementAmount);
+            }
+
+            if (deductions.PhilHealthContribution > 0m)
+            {
+                await InsertRunItemAsync(connection, transaction, payrollRunId, "DEDUCTION", "PHILHEALTH", "PhilHealth Contribution (2.5%)", deductions.PhilHealthContribution);
+            }
+
+            if (deductions.PagIBIGContribution > 0m)
+            {
+                await InsertRunItemAsync(connection, transaction, payrollRunId, "DEDUCTION", "PAGIBIG", "Pag-IBIG Contribution (2%)", deductions.PagIBIGContribution);
+            }
+
+            if (deductions.TaxWithheld > 0m)
+            {
+                await InsertRunItemAsync(connection, transaction, payrollRunId, "DEDUCTION", "TAX", "Withholding Tax (BIR/TRAIN)", deductions.TaxWithheld);
+            }
+
+            if (deductions.AbsenceDeduction > 0m)
+            {
+                await InsertRunItemAsync(connection, transaction, payrollRunId, "DEDUCTION", "ABSENCE", "Absence Deduction", deductions.AbsenceDeduction);
+            }
+
+            if (deductions.LateDeduction > 0m)
+            {
+                await InsertRunItemAsync(connection, transaction, payrollRunId, "DEDUCTION", "LATE", "Late Deduction", deductions.LateDeduction);
+            }
+
+            if (deductions.LoanDeduction > 0m)
+            {
+                await InsertRunItemAsync(connection, transaction, payrollRunId, "DEDUCTION", "LOAN", "Loan Deduction", deductions.LoanDeduction);
+            }
+
+            if (deductions.OtherDeductions > 0m)
+            {
+                await InsertRunItemAsync(connection, transaction, payrollRunId, "DEDUCTION", "OTHER_DEDUCTION", "Other Deductions", deductions.OtherDeductions);
+            }
+        }
+
+        private static async Task InsertRunItemAsync(
+            MySqlConnection connection,
+            MySqlTransaction transaction,
+            long payrollRunId,
+            string itemType,
+            string code,
+            string description,
+            decimal amount)
+        {
+            const string sql = @"
+INSERT INTO payroll_run_items (payroll_run_id, item_type, code, description, amount)
+VALUES (@payroll_run_id, @item_type, @code, @description, @amount);";
+
+            await using var command = new MySqlCommand(sql, connection, transaction);
+            command.Parameters.AddWithValue("@payroll_run_id", payrollRunId);
+            command.Parameters.AddWithValue("@item_type", itemType);
+            command.Parameters.AddWithValue("@code", code);
+            command.Parameters.AddWithValue("@description", description);
+            command.Parameters.AddWithValue("@amount", amount);
+            await command.ExecuteNonQueryAsync();
         }
 
         private async Task EnsureAdminOrHrAccessAsync(

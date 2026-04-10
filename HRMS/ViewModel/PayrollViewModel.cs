@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -27,7 +28,10 @@ namespace HRMS.ViewModel
         private readonly List<PayrollPeriodVm> _allPeriods = new();
         private readonly List<PayrollRunVm> _allRuns = new();
         private readonly List<PayrollReleaseLogVm> _allReleaseLogs = new();
-        private const int SulopOfficeId = 3;
+        private readonly List<PayrollGovernmentContributionSourceDto> _allGovernmentContributionSources = new();
+        private const long AllPeriodsOptionId = 0;
+        private const int GgmsOfficeId = 18;
+        private const string GgmsOfficeCode = "OFF-2026-0007";
 
         private int _currentUserId;
         private string _currentUsername = "-";
@@ -43,13 +47,13 @@ namespace HRMS.ViewModel
         private decimal _ytdDeductions;
         private decimal _ytdNetPay;
         private bool _isBusy;
-        private long _sulopAllocationId;
-        private string _sulopProgram = "-";
-        private decimal _sulopAllocatedAmount;
-        private decimal _sulopUsedAmount;
-        private decimal _sulopRemainingAmount;
-        private string _sulopSyncStatus = "Sulop allocation not synced yet.";
-        private Brush _sulopSyncStatusBrush = InfoBrush;
+        private long _ggmsAllocationId;
+        private string _ggmsProgram = "-";
+        private decimal _ggmsAllocatedAmount;
+        private decimal _ggmsUsedAmount;
+        private decimal _ggmsRemainingAmount;
+        private string _ggmsSyncStatus = "GGMS allocation not synced yet.";
+        private Brush _ggmsSyncStatusBrush = InfoBrush;
 
         private string _periodSearchText = string.Empty;
         private string _selectedPeriodStatusFilter = "All";
@@ -57,6 +61,8 @@ namespace HRMS.ViewModel
         private long _selectedRunPeriodFilterId;
         private string _selectedRunStatusFilter = "All";
         private string _releaseSearchText = string.Empty;
+        private long _selectedGovernmentPeriodId;
+        private string _selectedGovernmentContributionType = "SSS";
 
         private string _newPeriodCode = string.Empty;
         private DateTime _newPeriodDateFrom = new(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -71,13 +77,20 @@ namespace HRMS.ViewModel
         private decimal _runOvertimePay;
         private decimal _runOtherEarnings;
         private decimal _runDeductions;
+        private string _runEmploymentTypeName = string.Empty;
+        private string _runPositionName = string.Empty;
         private string _runStatus = "GENERATED";
         private int _runEditorLoadVersion;
+        private bool _isApplyingRunEditorValues;
+        private PayrollDeductionResult _runDeductionPreview = new();
 
         private PayrollRunVm? _selectedRun;
         private long? _selectedReleaseRunId;
         private string _releaseRemarks = string.Empty;
         private string _payrollConcernDetails = string.Empty;
+        private decimal _governmentReportEmployeeShareTotal;
+        private decimal _governmentReportEmployerShareTotal;
+        private decimal _governmentReportRemittanceTotal;
 
         private string _actionMessage = "Ready.";
         private Brush _actionMessageBrush = InfoBrush;
@@ -131,107 +144,107 @@ namespace HRMS.ViewModel
         public string YtdGrossPayText => $"PHP {YtdGrossPay:N2}";
         public string YtdDeductionsText => $"PHP {YtdDeductions:N2}";
         public string YtdNetPayText => $"PHP {YtdNetPay:N2}";
-        public long SulopAllocationId
+        public long GgmsAllocationId
         {
-            get => _sulopAllocationId;
+            get => _ggmsAllocationId;
             private set
             {
-                if (_sulopAllocationId == value)
+                if (_ggmsAllocationId == value)
                 {
                     return;
                 }
 
-                _sulopAllocationId = value;
+                _ggmsAllocationId = value;
                 OnPropertyChanged();
             }
         }
-        public string SulopProgram
+        public string GgmsProgram
         {
-            get => _sulopProgram;
+            get => _ggmsProgram;
             private set
             {
-                if (string.Equals(_sulopProgram, value, StringComparison.Ordinal))
+                if (string.Equals(_ggmsProgram, value, StringComparison.Ordinal))
                 {
                     return;
                 }
 
-                _sulopProgram = value;
+                _ggmsProgram = value;
                 OnPropertyChanged();
             }
         }
-        public decimal SulopAllocatedAmount
+        public decimal GgmsAllocatedAmount
         {
-            get => _sulopAllocatedAmount;
+            get => _ggmsAllocatedAmount;
             private set
             {
-                if (_sulopAllocatedAmount == value)
+                if (_ggmsAllocatedAmount == value)
                 {
                     return;
                 }
 
-                _sulopAllocatedAmount = value;
+                _ggmsAllocatedAmount = value;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(SulopAllocatedAmountText));
+                OnPropertyChanged(nameof(GgmsAllocatedAmountText));
             }
         }
-        public decimal SulopUsedAmount
+        public decimal GgmsUsedAmount
         {
-            get => _sulopUsedAmount;
+            get => _ggmsUsedAmount;
             private set
             {
-                if (_sulopUsedAmount == value)
+                if (_ggmsUsedAmount == value)
                 {
                     return;
                 }
 
-                _sulopUsedAmount = value;
+                _ggmsUsedAmount = value;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(SulopUsedAmountText));
+                OnPropertyChanged(nameof(GgmsUsedAmountText));
             }
         }
-        public decimal SulopRemainingAmount
+        public decimal GgmsRemainingAmount
         {
-            get => _sulopRemainingAmount;
+            get => _ggmsRemainingAmount;
             private set
             {
-                if (_sulopRemainingAmount == value)
+                if (_ggmsRemainingAmount == value)
                 {
                     return;
                 }
 
-                _sulopRemainingAmount = value;
+                _ggmsRemainingAmount = value;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(SulopRemainingAmountText));
+                OnPropertyChanged(nameof(GgmsRemainingAmountText));
             }
         }
-        public string SulopAllocatedAmountText => $"PHP {SulopAllocatedAmount:N2}";
-        public string SulopUsedAmountText => $"PHP {SulopUsedAmount:N2}";
-        public string SulopRemainingAmountText => $"PHP {SulopRemainingAmount:N2}";
-        public string SulopSyncStatus
+        public string GgmsAllocatedAmountText => $"PHP {GgmsAllocatedAmount:N2}";
+        public string GgmsUsedAmountText => $"PHP {GgmsUsedAmount:N2}";
+        public string GgmsRemainingAmountText => $"PHP {GgmsRemainingAmount:N2}";
+        public string GgmsSyncStatus
         {
-            get => _sulopSyncStatus;
+            get => _ggmsSyncStatus;
             private set
             {
-                if (string.Equals(_sulopSyncStatus, value, StringComparison.Ordinal))
+                if (string.Equals(_ggmsSyncStatus, value, StringComparison.Ordinal))
                 {
                     return;
                 }
 
-                _sulopSyncStatus = value;
+                _ggmsSyncStatus = value;
                 OnPropertyChanged();
             }
         }
-        public Brush SulopSyncStatusBrush
+        public Brush GgmsSyncStatusBrush
         {
-            get => _sulopSyncStatusBrush;
+            get => _ggmsSyncStatusBrush;
             private set
             {
-                if (Equals(_sulopSyncStatusBrush, value))
+                if (Equals(_ggmsSyncStatusBrush, value))
                 {
                     return;
                 }
 
-                _sulopSyncStatusBrush = value;
+                _ggmsSyncStatusBrush = value;
                 OnPropertyChanged();
             }
         }
@@ -298,6 +311,60 @@ namespace HRMS.ViewModel
         public string SelectedRunPeriodLabel => SelectedRun?.PeriodCode ?? "-";
         public string SelectedRunGeneratedLabel => SelectedRun?.GeneratedAtText ?? "-";
         public string SelectedRunStatusLabel => SelectedRun?.Status ?? "-";
+        public string GovernmentContributionTitle => $"{GetGovernmentContributionLabel(SelectedGovernmentContributionType)} Contribution Report";
+        public string GovernmentReportPeriodLabel =>
+            SelectedGovernmentPeriodId > 0
+                ? PeriodOptions.FirstOrDefault(x => x.Id == SelectedGovernmentPeriodId)?.Label ?? "Selected period"
+                : "All payroll periods";
+        public decimal GovernmentReportEmployeeShareTotal
+        {
+            get => _governmentReportEmployeeShareTotal;
+            private set
+            {
+                if (_governmentReportEmployeeShareTotal == value)
+                {
+                    return;
+                }
+
+                _governmentReportEmployeeShareTotal = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(GovernmentReportEmployeeShareTotalText));
+            }
+        }
+        public decimal GovernmentReportEmployerShareTotal
+        {
+            get => _governmentReportEmployerShareTotal;
+            private set
+            {
+                if (_governmentReportEmployerShareTotal == value)
+                {
+                    return;
+                }
+
+                _governmentReportEmployerShareTotal = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(GovernmentReportEmployerShareTotalText));
+            }
+        }
+        public decimal GovernmentReportRemittanceTotal
+        {
+            get => _governmentReportRemittanceTotal;
+            private set
+            {
+                if (_governmentReportRemittanceTotal == value)
+                {
+                    return;
+                }
+
+                _governmentReportRemittanceTotal = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(GovernmentReportRemittanceTotalText));
+            }
+        }
+        public string GovernmentReportEmployeeShareTotalText => $"PHP {GovernmentReportEmployeeShareTotal:N2}";
+        public string GovernmentReportEmployerShareTotalText => $"PHP {GovernmentReportEmployerShareTotal:N2}";
+        public string GovernmentReportRemittanceTotalText => $"PHP {GovernmentReportRemittanceTotal:N2}";
+        public bool HasGovernmentContributionRows => GovernmentContributionRows.Count > 0;
 
         public string PeriodSearchText
         {
@@ -371,6 +438,40 @@ namespace HRMS.ViewModel
             }
         }
 
+        public long SelectedGovernmentPeriodId
+        {
+            get => _selectedGovernmentPeriodId;
+            set
+            {
+                if (_selectedGovernmentPeriodId == value)
+                {
+                    return;
+                }
+
+                _selectedGovernmentPeriodId = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(GovernmentReportPeriodLabel));
+                ApplyGovernmentContributionRows();
+            }
+        }
+
+        public string SelectedGovernmentContributionType
+        {
+            get => _selectedGovernmentContributionType;
+            set
+            {
+                if (string.Equals(_selectedGovernmentContributionType, value, StringComparison.Ordinal) || string.IsNullOrWhiteSpace(value))
+                {
+                    return;
+                }
+
+                _selectedGovernmentContributionType = value.Trim().ToUpperInvariant();
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(GovernmentContributionTitle));
+                ApplyGovernmentContributionRows();
+            }
+        }
+
         public string NewPeriodCode { get => _newPeriodCode; set { if (_newPeriodCode != value) { _newPeriodCode = value ?? string.Empty; OnPropertyChanged(); } } }
         public DateTime NewPeriodDateFrom { get => _newPeriodDateFrom; set { if (_newPeriodDateFrom != value) { _newPeriodDateFrom = value; OnPropertyChanged(); } } }
         public DateTime NewPeriodDateTo { get => _newPeriodDateTo; set { if (_newPeriodDateTo != value) { _newPeriodDateTo = value; OnPropertyChanged(); } } }
@@ -408,14 +509,31 @@ namespace HRMS.ViewModel
                 QueueRunEditorDefaultsLoad();
             }
         }
-        public decimal RunBasicPay { get => _runBasicPay; set { if (_runBasicPay != value) { _runBasicPay = value; OnPropertyChanged(); OnPropertyChanged(nameof(RunGrossPreview)); OnPropertyChanged(nameof(RunNetPreview)); } } }
-        public decimal RunAllowances { get => _runAllowances; set { if (_runAllowances != value) { _runAllowances = value; OnPropertyChanged(); OnPropertyChanged(nameof(RunGrossPreview)); OnPropertyChanged(nameof(RunNetPreview)); } } }
-        public decimal RunOvertimePay { get => _runOvertimePay; set { if (_runOvertimePay != value) { _runOvertimePay = value; OnPropertyChanged(); OnPropertyChanged(nameof(RunGrossPreview)); OnPropertyChanged(nameof(RunNetPreview)); } } }
-        public decimal RunOtherEarnings { get => _runOtherEarnings; set { if (_runOtherEarnings != value) { _runOtherEarnings = value; OnPropertyChanged(); OnPropertyChanged(nameof(RunGrossPreview)); OnPropertyChanged(nameof(RunNetPreview)); } } }
+        public decimal RunBasicPay { get => _runBasicPay; set { if (_runBasicPay != value) { _runBasicPay = value; OnPropertyChanged(); OnPropertyChanged(nameof(RunGrossPreview)); OnPropertyChanged(nameof(RunNetPreview)); if (!_isApplyingRunEditorValues) RecalculateRunEditorDeductions(); } } }
+        public decimal RunAllowances { get => _runAllowances; set { if (_runAllowances != value) { _runAllowances = value; OnPropertyChanged(); OnPropertyChanged(nameof(RunGrossPreview)); OnPropertyChanged(nameof(RunNetPreview)); if (!_isApplyingRunEditorValues) RecalculateRunEditorDeductions(); } } }
+        public decimal RunOvertimePay { get => _runOvertimePay; set { if (_runOvertimePay != value) { _runOvertimePay = value; OnPropertyChanged(); OnPropertyChanged(nameof(RunGrossPreview)); OnPropertyChanged(nameof(RunNetPreview)); if (!_isApplyingRunEditorValues) RecalculateRunEditorDeductions(); } } }
+        public decimal RunOtherEarnings { get => _runOtherEarnings; set { if (_runOtherEarnings != value) { _runOtherEarnings = value; OnPropertyChanged(); OnPropertyChanged(nameof(RunGrossPreview)); OnPropertyChanged(nameof(RunNetPreview)); if (!_isApplyingRunEditorValues) RecalculateRunEditorDeductions(); } } }
         public decimal RunDeductions { get => _runDeductions; set { if (_runDeductions != value) { _runDeductions = value; OnPropertyChanged(); OnPropertyChanged(nameof(RunNetPreview)); } } }
         public string RunStatus { get => _runStatus; set { if (_runStatus != value && !string.IsNullOrWhiteSpace(value)) { _runStatus = value; OnPropertyChanged(); } } }
         public decimal RunGrossPreview => RunBasicPay + RunAllowances + RunOvertimePay + RunOtherEarnings;
         public decimal RunNetPreview => RunGrossPreview - RunDeductions;
+        public string RunEmployeeProfileText => string.IsNullOrWhiteSpace(_runEmploymentTypeName)
+            ? "Select an employee to compute deductions."
+            : $"{_runPositionName} | {_runEmploymentTypeName}";
+        public string RunDeductionBreakdownText
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(_runEmploymentTypeName))
+                {
+                    return "Deductions will be computed from the employee's appointment type and current run earnings.";
+                }
+
+                var retirementLabel = _runDeductionPreview.GsisContribution > 0m ? "GSIS" : "SSS";
+                var retirementAmount = _runDeductionPreview.GsisContribution + _runDeductionPreview.SssContribution;
+                return $"{retirementLabel}: PHP {retirementAmount:N2} | PhilHealth: PHP {_runDeductionPreview.PhilHealthContribution:N2} | Pag-IBIG: PHP {_runDeductionPreview.PagIBIGContribution:N2} | Tax: PHP {_runDeductionPreview.TaxWithheld:N2}";
+            }
+        }
 
         public PayrollRunVm? SelectedRun
         {
@@ -445,6 +563,7 @@ namespace HRMS.ViewModel
         public ObservableCollection<string> EditablePeriodStatuses { get; } = new() { "OPEN", "LOCKED", "POSTED", "CANCELLED" };
         public ObservableCollection<string> RunStatusFilters { get; } = new() { "All", "DRAFT", "GENERATED", "APPROVED", "RELEASED", "VOID" };
         public ObservableCollection<string> EditableRunStatuses { get; } = new() { "DRAFT", "GENERATED", "APPROVED", "RELEASED", "VOID" };
+        public ObservableCollection<string> GovernmentContributionTypeOptions { get; } = new() { "SSS", "GSIS", "PHILHEALTH", "PAGIBIG" };
 
         public ObservableCollection<PayrollLookupOptionVm> PeriodOptions { get; } = new();
         public ObservableCollection<PayrollLookupOptionVm> EmployeeOptions { get; } = new();
@@ -452,6 +571,7 @@ namespace HRMS.ViewModel
         public ObservableCollection<PayrollPeriodVm> PayrollPeriods { get; } = new();
         public ObservableCollection<PayrollRunVm> PayrollRuns { get; } = new();
         public ObservableCollection<PayrollReleaseLogVm> PayslipReleases { get; } = new();
+        public ObservableCollection<PayrollGovernmentContributionRowVm> GovernmentContributionRows { get; } = new();
 
         public ICommand RefreshCommand { get; }
         public ICommand AddPeriodCommand { get; }
@@ -464,6 +584,8 @@ namespace HRMS.ViewModel
         public ICommand DownloadPayslipCommand { get; }
         public ICommand PrintPayslipCommand { get; }
         public ICommand ReportPayrollConcernCommand { get; }
+        public ICommand ExportGovernmentReportCommand { get; }
+        public ICommand SaveGovernmentReportPdfCommand { get; }
 
         public PayrollViewModel()
         {
@@ -480,6 +602,8 @@ namespace HRMS.ViewModel
             DownloadPayslipCommand = new AsyncRelayCommand(DownloadPayslipAsync);
             PrintPayslipCommand = new AsyncRelayCommand(PrintPayslipAsync);
             ReportPayrollConcernCommand = new AsyncRelayCommand(ReportPayrollConcernAsync);
+            ExportGovernmentReportCommand = new AsyncRelayCommand(_ => ExportGovernmentReportAsync());
+            SaveGovernmentReportPdfCommand = new AsyncRelayCommand(_ => SaveGovernmentReportPdfAsync());
 
             QueueRefresh();
         }
@@ -525,14 +649,18 @@ namespace HRMS.ViewModel
                 var employeesTask = _dataService.GetEmployeesAsync(scopedEmployeeId);
                 var runsTask = _dataService.GetRunsAsync(limit: 700, employeeId: scopedEmployeeId);
                 var releasesTask = _dataService.GetReleaseLogsAsync(limit: 700, employeeId: scopedEmployeeId);
-                var sulopAllocationTask = LoadSulopAllocationAsync();
+                var ggmsAllocationTask = LoadGgmsAllocationAsync();
+                var governmentContributionTask = IsAdminOrHrMode
+                    ? _dataService.GetGovernmentContributionSourcesAsync(limit: 1500)
+                    : Task.FromResult<IReadOnlyList<PayrollGovernmentContributionSourceDto>>(Array.Empty<PayrollGovernmentContributionSourceDto>());
 
                 var stats = await statsTask;
                 var periods = await periodsTask;
                 var employees = await employeesTask;
                 var runs = await runsTask;
                 var releases = await releasesTask;
-                await sulopAllocationTask;
+                var governmentContributions = await governmentContributionTask;
+                await ggmsAllocationTask;
 
                 TotalPeriods = stats.TotalPeriods;
                 OpenPeriods = stats.OpenPeriods;
@@ -544,6 +672,7 @@ namespace HRMS.ViewModel
                 RebuildRunRows(runs);
                 RebuildReleaseRows(releases);
                 RebuildOptions(periods, employees, runs);
+                RebuildGovernmentContributionSources(governmentContributions);
                 RecalculateYtdTotals();
 
                 if (IsEmployeeMode && _currentEmployeeId.HasValue && _currentEmployeeId.Value > 0)
@@ -551,9 +680,9 @@ namespace HRMS.ViewModel
                     SelectedRunEmployeeId = _currentEmployeeId.Value;
                 }
 
-                if ((!SelectedRunPeriodId.HasValue || SelectedRunPeriodId.Value <= 0) && PeriodOptions.Count > 1)
+                if (!SelectedRunPeriodId.HasValue)
                 {
-                    SelectedRunPeriodId = PeriodOptions[1].Id;
+                    SelectedRunPeriodId = AllPeriodsOptionId;
                 }
 
                 if ((!SelectedRunEmployeeId.HasValue || SelectedRunEmployeeId.Value <= 0) && EmployeeOptions.Count > 0)
@@ -596,36 +725,36 @@ namespace HRMS.ViewModel
             }
         }
 
-        private async Task LoadSulopAllocationAsync()
+        private async Task LoadGgmsAllocationAsync()
         {
             try
             {
-                var sulopService = new SulopFundAllocationService(SulopConfig.ConnectionString, SulopOfficeId);
-                var allocation = await sulopService.GetActiveAllocationAsync();
+                var ggmsService = new GgmsFundAllocationService(GgmsConfig.ConnectionString, GgmsOfficeId, GgmsOfficeCode);
+                var allocation = await ggmsService.GetActiveAllocationAsync();
                 if (allocation == null)
                 {
-                    SulopAllocationId = 0;
-                    SulopProgram = "-";
-                    SulopAllocatedAmount = 0m;
-                    SulopUsedAmount = 0m;
-                    SulopRemainingAmount = 0m;
-                    SulopSyncStatus = "No active Sulop allocation found for Office ID 3.";
-                    SulopSyncStatusBrush = ErrorBrush;
+                    GgmsAllocationId = 0;
+                    GgmsProgram = "-";
+                    GgmsAllocatedAmount = 0m;
+                    GgmsUsedAmount = 0m;
+                    GgmsRemainingAmount = 0m;
+                    GgmsSyncStatus = "No active GGMS allocation found for Office ID 18 (OFF-2026-0007).";
+                    GgmsSyncStatusBrush = ErrorBrush;
                     return;
                 }
 
-                SulopAllocationId = allocation.AllocationId;
-                SulopProgram = allocation.Program;
-                SulopAllocatedAmount = allocation.AllocatedAmount;
-                SulopUsedAmount = allocation.UsedAmount;
-                SulopRemainingAmount = allocation.RemainingAmount;
-                SulopSyncStatus = $"Sulop allocation synced (ID #{allocation.AllocationId}, Program: {allocation.Program}).";
-                SulopSyncStatusBrush = SuccessBrush;
+                GgmsAllocationId = allocation.AllocationId;
+                GgmsProgram = allocation.Program;
+                GgmsAllocatedAmount = allocation.AllocatedAmount;
+                GgmsUsedAmount = allocation.UsedAmount;
+                GgmsRemainingAmount = allocation.RemainingAmount;
+                GgmsSyncStatus = $"GGMS allocation synced (ID #{allocation.AllocationId}, Office: {GgmsOfficeCode}).";
+                GgmsSyncStatusBrush = SuccessBrush;
             }
             catch (Exception ex)
             {
-                SulopSyncStatus = $"Sulop sync failed: {ex.Message}";
-                SulopSyncStatusBrush = ErrorBrush;
+                GgmsSyncStatus = $"GGMS sync failed: {ex.Message}";
+                GgmsSyncStatusBrush = ErrorBrush;
             }
         }
 
@@ -853,30 +982,30 @@ namespace HRMS.ViewModel
                 return;
             }
 
-            if (SulopAllocationId <= 0)
+            if (GgmsAllocationId <= 0)
             {
-                SetMessage("Sulop allocation is not available for Office ID 3. Refresh and verify connection first.", ErrorBrush);
+                SetMessage("GGMS allocation is not available for Office ID 18 (OFF-2026-0007). Refresh and verify connection first.", ErrorBrush);
                 return;
             }
 
-            if (disbursementAmount > SulopRemainingAmount)
+            if (disbursementAmount > GgmsRemainingAmount)
             {
                 SetMessage(
-                    $"Amount exceeds remaining allocation. Remaining: {SulopRemainingAmountText}, Requested: PHP {disbursementAmount:N2}.",
+                    $"Amount exceeds remaining allocation. Remaining: {GgmsRemainingAmountText}, Requested: PHP {disbursementAmount:N2}.",
                     ErrorBrush);
                 return;
             }
 
             try
             {
-                var sulopService = new SulopFundAllocationService(SulopConfig.ConnectionString, SulopOfficeId);
+                var ggmsService = new GgmsFundAllocationService(GgmsConfig.ConnectionString, GgmsOfficeId, GgmsOfficeCode);
                 var purpose = $"Payroll disbursement ({targetRun.PeriodCode})";
                 var description = string.IsNullOrWhiteSpace(ReleaseRemarks)
                     ? $"HRMS payroll release for {targetRun.EmployeeNo} - {targetRun.EmployeeName}."
                     : ReleaseRemarks.Trim();
 
-                var sulopResult = await sulopService.RecordPayrollDisbursementAsync(
-                    allocationId: SulopAllocationId,
+                var ggmsResult = await ggmsService.RecordPayrollDisbursementAsync(
+                    allocationId: GgmsAllocationId,
                     amount: disbursementAmount,
                     recipientName: targetRun.EmployeeName,
                     purpose: purpose,
@@ -887,7 +1016,7 @@ namespace HRMS.ViewModel
                 await RefreshAsync();
                 SelectedRun = PayrollRuns.FirstOrDefault(x => x.PayrollRunId == runId);
                 SetMessage(
-                    $"Payslip released and Sulop posted. Run #{runId}, Txn #{sulopResult.TransactionId}, Remaining: PHP {sulopResult.RemainingAfter:N2}.",
+                    $"Payslip released and GGMS posted. Run #{runId}, Txn #{ggmsResult.TransactionId}, Remaining: PHP {ggmsResult.RemainingAfter:N2}.",
                     SuccessBrush);
                 SystemRefreshBus.Raise("PayslipReleased");
             }
@@ -897,18 +1026,18 @@ namespace HRMS.ViewModel
             }
         }
 
-        private Task DownloadPayslipAsync(object? parameter)
+        private async Task DownloadPayslipAsync(object? parameter)
         {
             if (!TryResolvePayslipRow(parameter, out var row))
             {
                 SetMessage("Select a payroll run or release log first.", ErrorBrush);
-                return Task.CompletedTask;
+                return;
             }
 
             if (!row.CanOpenPayslip)
             {
                 SetMessage("Payslip is not yet released for this run.", ErrorBrush);
-                return Task.CompletedTask;
+                return;
             }
 
             try
@@ -925,32 +1054,31 @@ namespace HRMS.ViewModel
                 if (dialog.ShowDialog() != true)
                 {
                     SetMessage("Payslip download cancelled.", InfoBrush);
-                    return Task.CompletedTask;
+                    return;
                 }
 
-                BuildPayslipPdf(row).GeneratePdf(dialog.FileName);
+                var items = await _dataService.GetRunItemsAsync(row.PayrollRunId);
+                BuildPayslipPdf(row, items).GeneratePdf(dialog.FileName);
                 SetMessage($"Payslip downloaded: {Path.GetFileName(dialog.FileName)}", SuccessBrush);
             }
             catch (Exception ex)
             {
                 SetMessage($"Unable to download payslip: {ex.Message}", ErrorBrush);
             }
-
-            return Task.CompletedTask;
         }
 
-        private Task PrintPayslipAsync(object? parameter)
+        private async Task PrintPayslipAsync(object? parameter)
         {
             if (!TryResolvePayslipRow(parameter, out var row))
             {
                 SetMessage("Select a payroll run or release log first.", ErrorBrush);
-                return Task.CompletedTask;
+                return;
             }
 
             if (!row.CanOpenPayslip)
             {
                 SetMessage("Payslip is not yet released for this run.", ErrorBrush);
-                return Task.CompletedTask;
+                return;
             }
 
             try
@@ -961,7 +1089,8 @@ namespace HRMS.ViewModel
                     Path.GetTempPath(),
                     $"HRMS-Payslip-{safePeriod}-{safeEmpNo}-{DateTime.Now:yyyyMMddHHmmss}.pdf");
 
-                BuildPayslipPdf(row).GeneratePdf(tempPdf);
+                var items = await _dataService.GetRunItemsAsync(row.PayrollRunId);
+                BuildPayslipPdf(row, items).GeneratePdf(tempPdf);
 
                 var printStart = new ProcessStartInfo
                 {
@@ -990,8 +1119,6 @@ namespace HRMS.ViewModel
             {
                 SetMessage($"Unable to print payslip: {ex.Message}", ErrorBrush);
             }
-
-            return Task.CompletedTask;
         }
 
         private async Task ReportPayrollConcernAsync(object? parameter)
@@ -1052,12 +1179,28 @@ namespace HRMS.ViewModel
             }
         }
 
-        private static QuestPDF.Infrastructure.IDocument BuildPayslipPdf(PayrollRunVm row)
+        private static QuestPDF.Infrastructure.IDocument BuildPayslipPdf(PayrollRunVm row, IReadOnlyList<PayrollRunItemDto> items)
         {
             var generatedAt = DateTime.Now.ToString("MMM dd, yyyy hh:mm tt", CultureInfo.InvariantCulture);
             var releasedAt = string.IsNullOrWhiteSpace(row.LastReleasedAtText) || row.LastReleasedAtText == "-"
                 ? "Not released"
                 : row.LastReleasedAtText;
+            var earnings = items
+                .Where(x => string.Equals(x.ItemType, "EARNING", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            var deductions = items
+                .Where(x => string.Equals(x.ItemType, "DEDUCTION", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (earnings.Count == 0)
+            {
+                earnings = BuildFallbackEarnings(row);
+            }
+
+            if (deductions.Count == 0 && row.DeductionsTotal > 0m)
+            {
+                deductions.Add(new PayrollRunItemDto(0, row.PayrollRunId, "DEDUCTION", "DEDUCTIONS", "Deductions", row.DeductionsTotal));
+            }
 
             return Document.Create(container =>
             {
@@ -1085,40 +1228,90 @@ namespace HRMS.ViewModel
 
                         column.Item().PaddingTop(8).Element(e => e.LineHorizontal(1).LineColor(QColors.Grey.Lighten2));
 
-                        column.Item().Table(table =>
+                        column.Item().Row(layout =>
                         {
-                            table.ColumnsDefinition(columns =>
+                            layout.RelativeItem().Column(earningsColumn =>
                             {
-                                columns.RelativeColumn(2);
-                                columns.RelativeColumn(1);
+                                earningsColumn.Spacing(4);
+                                earningsColumn.Item().Text("EARNINGS").Bold().FontColor(QColors.Blue.Darken3);
+                                foreach (var item in earnings)
+                                {
+                                    earningsColumn.Item().Row(itemRow =>
+                                    {
+                                        itemRow.RelativeItem().Text(string.IsNullOrWhiteSpace(item.Description) ? item.Code : item.Description);
+                                        itemRow.ConstantItem(110).AlignRight().Text($"{item.Amount:N2}");
+                                    });
+                                }
+
+                                earningsColumn.Item().PaddingTop(6).Element(e => e.LineHorizontal(1).LineColor(QColors.Grey.Lighten2));
+                                earningsColumn.Item().Row(itemRow =>
+                                {
+                                    itemRow.RelativeItem().Text("Gross Pay").Bold();
+                                    itemRow.ConstantItem(110).AlignRight().Text($"{row.GrossPay:N2}").Bold();
+                                });
                             });
 
-                            table.Cell().PaddingVertical(4).Text("Basic Pay");
-                            table.Cell().PaddingVertical(4).AlignRight().Text($"{row.BasicPay:N2}");
+                            layout.ConstantItem(28);
 
-                            table.Cell().PaddingVertical(4).Text("Allowances");
-                            table.Cell().PaddingVertical(4).AlignRight().Text($"{row.Allowances:N2}");
+                            layout.RelativeItem().Column(deductionsColumn =>
+                            {
+                                deductionsColumn.Spacing(4);
+                                deductionsColumn.Item().Text("DEDUCTIONS").Bold().FontColor(QColors.Red.Darken2);
+                                foreach (var item in deductions)
+                                {
+                                    deductionsColumn.Item().Row(itemRow =>
+                                    {
+                                        itemRow.RelativeItem().Text(string.IsNullOrWhiteSpace(item.Description) ? item.Code : item.Description);
+                                        itemRow.ConstantItem(110).AlignRight().Text($"{item.Amount:N2}");
+                                    });
+                                }
 
-                            table.Cell().PaddingVertical(4).Text("Overtime Pay");
-                            table.Cell().PaddingVertical(4).AlignRight().Text($"{row.OvertimePay:N2}");
+                                deductionsColumn.Item().PaddingTop(6).Element(e => e.LineHorizontal(1).LineColor(QColors.Grey.Lighten2));
+                                deductionsColumn.Item().Row(itemRow =>
+                                {
+                                    itemRow.RelativeItem().Text("Total Deductions").Bold();
+                                    itemRow.ConstantItem(110).AlignRight().Text($"{row.DeductionsTotal:N2}").Bold();
+                                });
+                            });
+                        });
 
-                            table.Cell().PaddingVertical(4).Text("Other Earnings");
-                            table.Cell().PaddingVertical(4).AlignRight().Text($"{row.OtherEarnings:N2}");
-
-                            table.Cell().PaddingVertical(4).Text("Gross Pay").Bold();
-                            table.Cell().PaddingVertical(4).AlignRight().Text($"{row.GrossPay:N2}").Bold();
-
-                            table.Cell().PaddingVertical(4).Text("Deductions");
-                            table.Cell().PaddingVertical(4).AlignRight().Text($"{row.DeductionsTotal:N2}");
-
-                            table.Cell().PaddingTop(8).Text("Net Pay").Bold().FontColor(QColors.Green.Darken2);
-                            table.Cell().PaddingTop(8).AlignRight().Text($"{row.NetPay:N2}").Bold().FontColor(QColors.Green.Darken2);
+                        column.Item().PaddingTop(12).Element(e => e.LineHorizontal(1).LineColor(QColors.Grey.Lighten2));
+                        column.Item().PaddingTop(8).Row(netRow =>
+                        {
+                            netRow.RelativeItem().Text("NET PAY").FontSize(14).Bold().FontColor(QColors.Green.Darken2);
+                            netRow.ConstantItem(140).AlignRight().Text($"{row.NetPay:N2}").FontSize(14).Bold().FontColor(QColors.Green.Darken2);
                         });
                     });
 
                     page.Footer().AlignCenter().Text("This payslip was generated by HRMS.");
                 });
             });
+        }
+
+        private static List<PayrollRunItemDto> BuildFallbackEarnings(PayrollRunVm row)
+        {
+            var items = new List<PayrollRunItemDto>();
+            if (row.BasicPay > 0m)
+            {
+                items.Add(new PayrollRunItemDto(0, row.PayrollRunId, "EARNING", "BASIC", "Basic Pay", row.BasicPay));
+            }
+
+            if (row.Allowances > 0m)
+            {
+                items.Add(new PayrollRunItemDto(0, row.PayrollRunId, "EARNING", "ALLOW", "Allowances", row.Allowances));
+            }
+
+            if (row.OvertimePay > 0m)
+            {
+                items.Add(new PayrollRunItemDto(0, row.PayrollRunId, "EARNING", "OVERTIME", "Overtime Pay", row.OvertimePay));
+            }
+
+            if (row.OtherEarnings > 0m)
+            {
+                items.Add(new PayrollRunItemDto(0, row.PayrollRunId, "EARNING", "OTHER", "Other Earnings", row.OtherEarnings));
+            }
+
+            return items;
         }
 
         private bool TryResolvePayslipRow(object? parameter, out PayrollRunVm row)
@@ -1177,29 +1370,16 @@ namespace HRMS.ViewModel
                     return;
                 }
 
-                ApplyRunEditorValues(0m, 0m, 0m, 0m, 0m, "GENERATED");
+                ApplyRunEditorValues(0m, 0m, 0m, 0m, 0m, "GENERATED", false, string.Empty, string.Empty);
                 return;
             }
 
             var periodId = SelectedRunPeriodId.Value;
             var employeeId = (int)SelectedRunEmployeeId.Value;
 
-            var existingRun = _allRuns.FirstOrDefault(x =>
-                x.PayrollPeriodId == periodId &&
-                x.EmployeeId == employeeId);
-
             try
             {
-                var defaults = existingRun == null
-                    ? await _dataService.GetRunEditorDefaultsAsync(periodId, employeeId)
-                    : new PayrollRunEditorDefaultsDto(
-                        existingRun.BasicPay,
-                        existingRun.Allowances,
-                        existingRun.OvertimePay,
-                        existingRun.OtherEarnings,
-                        existingRun.DeductionsTotal,
-                        existingRun.Status,
-                        true);
+                var defaults = await _dataService.GetRunEditorDefaultsAsync(periodId, employeeId);
 
                 if (version != _runEditorLoadVersion)
                 {
@@ -1212,7 +1392,10 @@ namespace HRMS.ViewModel
                     defaults.OvertimePay,
                     defaults.OtherEarnings,
                     defaults.DeductionsTotal,
-                    defaults.Status);
+                    defaults.Status,
+                    defaults.FromExistingRun,
+                    defaults.EmploymentTypeName,
+                    defaults.PositionName);
             }
             catch (Exception ex)
             {
@@ -1231,14 +1414,64 @@ namespace HRMS.ViewModel
             decimal overtimePay,
             decimal otherEarnings,
             decimal deductions,
-            string? status)
+            string? status,
+            bool fromExistingRun,
+            string employmentTypeName,
+            string positionName)
         {
-            RunBasicPay = basicPay;
-            RunAllowances = allowances;
-            RunOvertimePay = overtimePay;
-            RunOtherEarnings = otherEarnings;
-            RunDeductions = deductions;
-            RunStatus = NormalizeEditableRunStatus(status);
+            _isApplyingRunEditorValues = true;
+            try
+            {
+                _runEmploymentTypeName = employmentTypeName ?? string.Empty;
+                _runPositionName = positionName ?? string.Empty;
+                RunBasicPay = basicPay;
+                RunAllowances = allowances;
+                RunOvertimePay = overtimePay;
+                RunOtherEarnings = otherEarnings;
+                RunDeductions = deductions;
+                RunStatus = NormalizeEditableRunStatus(status);
+                if (!fromExistingRun)
+                {
+                    RecalculateRunEditorDeductions();
+                }
+                else
+                {
+                    _runDeductionPreview = PhilippinePayrollDeductions.ComputeAll(
+                        basicMonthlySalary: RunBasicPay,
+                        employmentTypeName: _runEmploymentTypeName,
+                        allowances: RunAllowances,
+                        overtimePay: RunOvertimePay,
+                        otherEarnings: RunOtherEarnings);
+                    RunDeductions = deductions;
+                }
+            }
+            finally
+            {
+                _isApplyingRunEditorValues = false;
+            }
+
+            OnPropertyChanged(nameof(RunEmployeeProfileText));
+            OnPropertyChanged(nameof(RunDeductionBreakdownText));
+        }
+
+        private void RecalculateRunEditorDeductions()
+        {
+            if (string.IsNullOrWhiteSpace(_runEmploymentTypeName))
+            {
+                _runDeductionPreview = new PayrollDeductionResult();
+                RunDeductions = 0m;
+                OnPropertyChanged(nameof(RunDeductionBreakdownText));
+                return;
+            }
+
+            _runDeductionPreview = PhilippinePayrollDeductions.ComputeAll(
+                basicMonthlySalary: RunBasicPay,
+                employmentTypeName: _runEmploymentTypeName,
+                allowances: RunAllowances,
+                overtimePay: RunOvertimePay,
+                otherEarnings: RunOtherEarnings);
+            RunDeductions = _runDeductionPreview.TotalDeductions;
+            OnPropertyChanged(nameof(RunDeductionBreakdownText));
         }
 
         private void RebuildPeriodRows(IReadOnlyList<PayrollPeriodDto> periods)
@@ -1328,9 +1561,10 @@ namespace HRMS.ViewModel
             var selectedRunPeriod = SelectedRunPeriodId;
             var selectedEmployee = SelectedRunEmployeeId;
             var selectedReleaseRun = SelectedReleaseRunId;
+            var selectedGovernmentPeriod = SelectedGovernmentPeriodId;
 
             PeriodOptions.Clear();
-            PeriodOptions.Add(new PayrollLookupOptionVm(0, "All periods"));
+            PeriodOptions.Add(new PayrollLookupOptionVm(AllPeriodsOptionId, "All periods"));
             foreach (var period in periods)
             {
                 PeriodOptions.Add(new PayrollLookupOptionVm(period.PayrollPeriodId, period.PeriodCode));
@@ -1338,12 +1572,17 @@ namespace HRMS.ViewModel
 
             if (!PeriodOptions.Any(x => x.Id == selectedFilter))
             {
-                SelectedRunPeriodFilterId = 0;
+                SelectedRunPeriodFilterId = AllPeriodsOptionId;
             }
 
             if (!PeriodOptions.Any(x => x.Id == selectedRunPeriod))
             {
-                SelectedRunPeriodId = PeriodOptions.Count > 1 ? PeriodOptions[1].Id : null;
+                SelectedRunPeriodId = AllPeriodsOptionId;
+            }
+
+            if (!PeriodOptions.Any(x => x.Id == selectedGovernmentPeriod))
+            {
+                SelectedGovernmentPeriodId = AllPeriodsOptionId;
             }
 
             EmployeeOptions.Clear();
@@ -1367,6 +1606,344 @@ namespace HRMS.ViewModel
             {
                 SelectedReleaseRunId = RunOptions.Count > 0 ? RunOptions[0].Id : null;
             }
+        }
+
+        private void RebuildGovernmentContributionSources(IReadOnlyList<PayrollGovernmentContributionSourceDto> sources)
+        {
+            _allGovernmentContributionSources.Clear();
+            _allGovernmentContributionSources.AddRange(sources);
+            EnsureGovernmentContributionSelection();
+            ApplyGovernmentContributionRows();
+        }
+
+        private void ApplyGovernmentContributionRows()
+        {
+            GovernmentContributionRows.Clear();
+
+            IEnumerable<PayrollGovernmentContributionSourceDto> query = _allGovernmentContributionSources;
+            if (SelectedGovernmentPeriodId > 0)
+            {
+                query = query.Where(x => x.PayrollPeriodId == SelectedGovernmentPeriodId);
+            }
+
+            decimal employeeShareTotal = 0m;
+            decimal employerShareTotal = 0m;
+            decimal remittanceTotal = 0m;
+
+            foreach (var source in query
+                .OrderByDescending(x => x.PayDate)
+                .ThenBy(x => x.EmployeeNo, StringComparer.OrdinalIgnoreCase))
+            {
+                var deductions = PhilippinePayrollDeductions.ComputeAll(source.BasicPay, source.EmploymentTypeName);
+                var (employeeShare, employerShare) = GetGovernmentContributionAmounts(deductions, SelectedGovernmentContributionType);
+                var totalRemittance = employeeShare + employerShare;
+                if (totalRemittance <= 0m)
+                {
+                    continue;
+                }
+
+                GovernmentContributionRows.Add(new PayrollGovernmentContributionRowVm(
+                    source.PayrollRunId,
+                    source.PayrollPeriodId,
+                    source.PeriodCode,
+                    source.PayDate,
+                    source.EmployeeNo,
+                    source.EmployeeName,
+                    source.EmploymentTypeName,
+                    source.BasicPay,
+                    employeeShare,
+                    employerShare,
+                    totalRemittance,
+                    source.RunStatus));
+
+                employeeShareTotal += employeeShare;
+                employerShareTotal += employerShare;
+                remittanceTotal += totalRemittance;
+            }
+
+            GovernmentReportEmployeeShareTotal = employeeShareTotal;
+            GovernmentReportEmployerShareTotal = employerShareTotal;
+            GovernmentReportRemittanceTotal = remittanceTotal;
+            OnPropertyChanged(nameof(HasGovernmentContributionRows));
+        }
+
+        private void EnsureGovernmentContributionSelection()
+        {
+            if (HasGovernmentContributionRowsForType(SelectedGovernmentContributionType))
+            {
+                return;
+            }
+
+            var preferredType = GovernmentContributionTypeOptions
+                .FirstOrDefault(HasGovernmentContributionRowsForType);
+
+            if (string.IsNullOrWhiteSpace(preferredType) ||
+                string.Equals(preferredType, SelectedGovernmentContributionType, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            _selectedGovernmentContributionType = preferredType.Trim().ToUpperInvariant();
+            OnPropertyChanged(nameof(SelectedGovernmentContributionType));
+            OnPropertyChanged(nameof(GovernmentContributionTitle));
+        }
+
+        private bool HasGovernmentContributionRowsForType(string contributionType)
+        {
+            if (string.IsNullOrWhiteSpace(contributionType))
+            {
+                return false;
+            }
+
+            IEnumerable<PayrollGovernmentContributionSourceDto> query = _allGovernmentContributionSources;
+            if (SelectedGovernmentPeriodId > 0)
+            {
+                query = query.Where(x => x.PayrollPeriodId == SelectedGovernmentPeriodId);
+            }
+
+            foreach (var source in query)
+            {
+                var deductions = PhilippinePayrollDeductions.ComputeAll(source.BasicPay, source.EmploymentTypeName);
+                var (employeeShare, employerShare) = GetGovernmentContributionAmounts(deductions, contributionType.Trim().ToUpperInvariant());
+                if ((employeeShare + employerShare) > 0m)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private async Task ExportGovernmentReportAsync()
+        {
+            if (!EnsureAdminOrHrAction("export government contribution reports"))
+            {
+                return;
+            }
+
+            if (GovernmentContributionRows.Count == 0)
+            {
+                SetMessage("There are no government contribution rows to export for the selected period and agency.", ErrorBrush);
+                return;
+            }
+
+            try
+            {
+                var dialog = new SaveFileDialog
+                {
+                    Title = "Export Government Contribution Report",
+                    Filter = "CSV File (*.csv)|*.csv",
+                    DefaultExt = ".csv",
+                    AddExtension = true,
+                    FileName = BuildGovernmentReportFileName("csv")
+                };
+
+                if (dialog.ShowDialog() != true)
+                {
+                    SetMessage("Government contribution export cancelled.", InfoBrush);
+                    return;
+                }
+
+                await File.WriteAllTextAsync(dialog.FileName, BuildGovernmentReportCsv(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+                SetMessage($"Government contribution CSV saved to {Path.GetFileName(dialog.FileName)}.", SuccessBrush);
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Unable to export government contribution report: {ex.Message}", ErrorBrush);
+            }
+        }
+
+        private async Task SaveGovernmentReportPdfAsync()
+        {
+            if (!EnsureAdminOrHrAction("save government contribution reports"))
+            {
+                return;
+            }
+
+            if (GovernmentContributionRows.Count == 0)
+            {
+                SetMessage("There are no government contribution rows to save for the selected period and agency.", ErrorBrush);
+                return;
+            }
+
+            try
+            {
+                var dialog = new SaveFileDialog
+                {
+                    Title = "Save Government Contribution PDF",
+                    Filter = "PDF File (*.pdf)|*.pdf",
+                    DefaultExt = ".pdf",
+                    AddExtension = true,
+                    FileName = BuildGovernmentReportFileName("pdf")
+                };
+
+                if (dialog.ShowDialog() != true)
+                {
+                    SetMessage("Government contribution PDF save cancelled.", InfoBrush);
+                    return;
+                }
+
+                BuildGovernmentContributionPdf().GeneratePdf(dialog.FileName);
+                SetMessage($"Government contribution PDF saved to {Path.GetFileName(dialog.FileName)}.", SuccessBrush);
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Unable to save government contribution PDF: {ex.Message}", ErrorBrush);
+            }
+        }
+
+        private (decimal EmployeeShare, decimal EmployerShare) GetGovernmentContributionAmounts(
+            PayrollDeductionResult deductions,
+            string contributionType)
+        {
+            return contributionType switch
+            {
+                "SSS" => (deductions.SssContribution, deductions.SssEmployerShare),
+                "GSIS" => (deductions.GsisContribution, deductions.GsisEmployerShare),
+                "PHILHEALTH" => (deductions.PhilHealthContribution, deductions.PhilHealthEmployerShare),
+                "PAGIBIG" => (deductions.PagIBIGContribution, deductions.PagIBIGEmployerShare),
+                _ => (0m, 0m)
+            };
+        }
+
+        private string BuildGovernmentReportCsv()
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine("Payroll Run ID,Period,Pay Date,Employee No,Employee Name,Appointment Type,Basic Pay,Employee Share,Employer Share,Total Remittance,Run Status");
+
+            foreach (var row in GovernmentContributionRows)
+            {
+                builder.AppendLine(string.Join(",",
+                    EscapeCsv(row.PayrollRunId.ToString(CultureInfo.InvariantCulture)),
+                    EscapeCsv(row.PeriodCode),
+                    EscapeCsv(row.PayDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
+                    EscapeCsv(row.EmployeeNo),
+                    EscapeCsv(row.EmployeeName),
+                    EscapeCsv(row.EmploymentTypeName),
+                    EscapeCsv(row.BasicPay.ToString("0.00", CultureInfo.InvariantCulture)),
+                    EscapeCsv(row.EmployeeShare.ToString("0.00", CultureInfo.InvariantCulture)),
+                    EscapeCsv(row.EmployerShare.ToString("0.00", CultureInfo.InvariantCulture)),
+                    EscapeCsv(row.TotalRemittance.ToString("0.00", CultureInfo.InvariantCulture)),
+                    EscapeCsv(row.RunStatus)));
+            }
+
+            return builder.ToString();
+        }
+
+        private QuestPDF.Infrastructure.IDocument BuildGovernmentContributionPdf()
+        {
+            var reportTitle = GovernmentContributionTitle;
+            var periodLabel = GovernmentReportPeriodLabel;
+            var generatedAt = DateTime.Now.ToString("MMM dd, yyyy hh:mm tt", CultureInfo.InvariantCulture);
+
+            return Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(QuestPDF.Helpers.PageSizes.A4);
+                    page.Margin(24);
+                    page.DefaultTextStyle(x => x.FontSize(9));
+
+                    page.Header().Column(column =>
+                    {
+                        column.Spacing(4);
+                        column.Item().Text("HRMS GOVERNMENT CONTRIBUTION REPORT").FontSize(16).Bold().FontColor(QColors.Blue.Darken3);
+                        column.Item().Text(reportTitle).FontSize(12).SemiBold().FontColor(QColors.Blue.Darken2);
+                        column.Item().Text($"Payroll Period: {periodLabel}");
+                        column.Item().Text($"Generated: {generatedAt}").FontColor(QColors.Grey.Darken1);
+                    });
+
+                    page.Content().PaddingTop(10).Column(column =>
+                    {
+                        column.Spacing(8);
+
+                        column.Item().Row(summary =>
+                        {
+                            summary.RelativeItem().Text($"Employee Share: {GovernmentReportEmployeeShareTotal:N2}").SemiBold();
+                            summary.RelativeItem().Text($"Employer Share: {GovernmentReportEmployerShareTotal:N2}").SemiBold();
+                            summary.RelativeItem().AlignRight().Text($"Total Remittance: {GovernmentReportRemittanceTotal:N2}").SemiBold().FontColor(QColors.Green.Darken2);
+                        });
+
+                        column.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.ConstantColumn(60);
+                                columns.ConstantColumn(80);
+                                columns.RelativeColumn(1.3f);
+                                columns.RelativeColumn(1.9f);
+                                columns.RelativeColumn(1.3f);
+                                columns.ConstantColumn(75);
+                                columns.ConstantColumn(70);
+                                columns.ConstantColumn(70);
+                                columns.ConstantColumn(78);
+                            });
+
+                            table.Header(header =>
+                            {
+                                header.Cell().BorderBottom(1).BorderColor(QColors.Grey.Lighten2).PaddingBottom(4).Text("Run").SemiBold();
+                                header.Cell().BorderBottom(1).BorderColor(QColors.Grey.Lighten2).PaddingBottom(4).Text("Period").SemiBold();
+                                header.Cell().BorderBottom(1).BorderColor(QColors.Grey.Lighten2).PaddingBottom(4).Text("Emp No").SemiBold();
+                                header.Cell().BorderBottom(1).BorderColor(QColors.Grey.Lighten2).PaddingBottom(4).Text("Employee").SemiBold();
+                                header.Cell().BorderBottom(1).BorderColor(QColors.Grey.Lighten2).PaddingBottom(4).Text("Type").SemiBold();
+                                header.Cell().BorderBottom(1).BorderColor(QColors.Grey.Lighten2).PaddingBottom(4).AlignRight().Text("Basic").SemiBold();
+                                header.Cell().BorderBottom(1).BorderColor(QColors.Grey.Lighten2).PaddingBottom(4).AlignRight().Text("Emp").SemiBold();
+                                header.Cell().BorderBottom(1).BorderColor(QColors.Grey.Lighten2).PaddingBottom(4).AlignRight().Text("Employer").SemiBold();
+                                header.Cell().BorderBottom(1).BorderColor(QColors.Grey.Lighten2).PaddingBottom(4).AlignRight().Text("Total").SemiBold();
+                            });
+
+                            foreach (var row in GovernmentContributionRows)
+                            {
+                                table.Cell().PaddingVertical(4).Text(row.PayrollRunId.ToString(CultureInfo.InvariantCulture));
+                                table.Cell().PaddingVertical(4).Text(row.PeriodCode);
+                                table.Cell().PaddingVertical(4).Text(row.EmployeeNo);
+                                table.Cell().PaddingVertical(4).Text(row.EmployeeName);
+                                table.Cell().PaddingVertical(4).Text(row.EmploymentTypeName);
+                                table.Cell().PaddingVertical(4).AlignRight().Text($"{row.BasicPay:N2}");
+                                table.Cell().PaddingVertical(4).AlignRight().Text($"{row.EmployeeShare:N2}");
+                                table.Cell().PaddingVertical(4).AlignRight().Text($"{row.EmployerShare:N2}");
+                                table.Cell().PaddingVertical(4).AlignRight().Text($"{row.TotalRemittance:N2}");
+                            }
+                        });
+                    });
+
+                    page.Footer().AlignCenter().Text("Generated by HRMS payroll reporting.");
+                });
+            });
+        }
+
+        private string BuildGovernmentReportFileName(string extension)
+        {
+            var contributionCode = SelectedGovernmentContributionType.Trim().ToUpperInvariant();
+            var periodLabel = SelectedGovernmentPeriodId > 0
+                ? PeriodOptions.FirstOrDefault(x => x.Id == SelectedGovernmentPeriodId)?.Label ?? "Period"
+                : "AllPeriods";
+            var safePeriodLabel = periodLabel.Replace("/", "-").Replace(" ", string.Empty);
+            return $"{contributionCode}-Report-{safePeriodLabel}-{DateTime.Now:yyyyMMdd-HHmm}.{extension}";
+        }
+
+        private static string GetGovernmentContributionLabel(string contributionType)
+        {
+            return contributionType switch
+            {
+                "PHILHEALTH" => "PhilHealth",
+                "PAGIBIG" => "Pag-IBIG",
+                "GSIS" => "GSIS",
+                _ => "SSS"
+            };
+        }
+
+        private static string EscapeCsv(string? value)
+        {
+            var sanitized = value ?? string.Empty;
+            if (sanitized.Contains('"'))
+            {
+                sanitized = sanitized.Replace("\"", "\"\"");
+            }
+
+            return sanitized.IndexOfAny([',', '"', '\r', '\n']) >= 0
+                ? $"\"{sanitized}\""
+                : sanitized;
         }
 
         private void ApplyPeriodFilters()
@@ -1507,17 +2084,24 @@ namespace HRMS.ViewModel
             _allPeriods.Clear();
             _allRuns.Clear();
             _allReleaseLogs.Clear();
+            _allGovernmentContributionSources.Clear();
             PayrollPeriods.Clear();
             PayrollRuns.Clear();
             PayslipReleases.Clear();
+            GovernmentContributionRows.Clear();
+            OnPropertyChanged(nameof(HasGovernmentContributionRows));
 
             PeriodOptions.Clear();
-            PeriodOptions.Add(new PayrollLookupOptionVm(0, "All periods"));
+            PeriodOptions.Add(new PayrollLookupOptionVm(AllPeriodsOptionId, "All periods"));
             EmployeeOptions.Clear();
             RunOptions.Clear();
+            GovernmentReportEmployeeShareTotal = 0m;
+            GovernmentReportEmployerShareTotal = 0m;
+            GovernmentReportRemittanceTotal = 0m;
+            SelectedGovernmentPeriodId = AllPeriodsOptionId;
 
             SelectedRun = null;
-            SelectedRunPeriodId = null;
+            SelectedRunPeriodId = AllPeriodsOptionId;
             SelectedRunEmployeeId = null;
             SelectedReleaseRunId = null;
             PayrollConcernDetails = string.Empty;
@@ -1673,6 +2257,51 @@ namespace HRMS.ViewModel
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
+    public class PayrollGovernmentContributionRowVm
+    {
+        public PayrollGovernmentContributionRowVm(
+            long payrollRunId,
+            long payrollPeriodId,
+            string periodCode,
+            DateTime payDate,
+            string employeeNo,
+            string employeeName,
+            string employmentTypeName,
+            decimal basicPay,
+            decimal employeeShare,
+            decimal employerShare,
+            decimal totalRemittance,
+            string runStatus)
+        {
+            PayrollRunId = payrollRunId;
+            PayrollPeriodId = payrollPeriodId;
+            PeriodCode = periodCode;
+            PayDate = payDate;
+            EmployeeNo = employeeNo;
+            EmployeeName = employeeName;
+            EmploymentTypeName = employmentTypeName;
+            BasicPay = basicPay;
+            EmployeeShare = employeeShare;
+            EmployerShare = employerShare;
+            TotalRemittance = totalRemittance;
+            RunStatus = string.IsNullOrWhiteSpace(runStatus) ? "GENERATED" : runStatus.Trim().ToUpperInvariant();
+        }
+
+        public long PayrollRunId { get; }
+        public long PayrollPeriodId { get; }
+        public string PeriodCode { get; }
+        public DateTime PayDate { get; }
+        public string EmployeeNo { get; }
+        public string EmployeeName { get; }
+        public string EmploymentTypeName { get; }
+        public decimal BasicPay { get; }
+        public decimal EmployeeShare { get; }
+        public decimal EmployerShare { get; }
+        public decimal TotalRemittance { get; }
+        public string RunStatus { get; }
+        public string PayDateText => PayDate.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture);
+    }
+
     public class PayrollReleaseLogVm
     {
         public PayrollReleaseLogVm(
@@ -1709,3 +2338,4 @@ namespace HRMS.ViewModel
         public string ReleasedAtText => ReleasedAt.ToString("MMM dd, yyyy hh:mm tt", CultureInfo.InvariantCulture);
     }
 }
+

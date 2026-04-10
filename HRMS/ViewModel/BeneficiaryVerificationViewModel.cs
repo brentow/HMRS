@@ -26,6 +26,11 @@ namespace HRMS.ViewModel
         private int _pendingCount;
         private int _approvedCount;
         private int _rejectedCount;
+        private string _searchText = string.Empty;
+        private int _currentPage = 1;
+        private int _totalRecords;
+        private bool _hasAttemptedInitialCrsSync;
+        private const int PageSize = 50;
 
         private BeneficiaryStagingDto? _selectedBeneficiary;
         private string _remarksInput = string.Empty;
@@ -36,6 +41,8 @@ namespace HRMS.ViewModel
         public ICommand RefreshCommand { get; }
         public ICommand ApproveBeneficiaryCommand { get; }
         public ICommand RejectBeneficiaryCommand { get; }
+        public ICommand NextPageCommand { get; }
+        public ICommand PreviousPageCommand { get; }
 
         public bool IsBusy
         {
@@ -56,6 +63,7 @@ namespace HRMS.ViewModel
                 if (_selectedStatusFilter == value) return;
                 _selectedStatusFilter = value;
                 OnPropertyChanged();
+                CurrentPage = 1;
                 _ = LoadAsync();
             }
         }
@@ -85,6 +93,64 @@ namespace HRMS.ViewModel
         public int PendingCount { get => _pendingCount; private set { _pendingCount = value; OnPropertyChanged(); } }
         public int ApprovedCount { get => _approvedCount; private set { _approvedCount = value; OnPropertyChanged(); } }
         public int RejectedCount { get => _rejectedCount; private set { _rejectedCount = value; OnPropertyChanged(); } }
+        public int CurrentPage
+        {
+            get => _currentPage;
+            private set
+            {
+                if (_currentPage == value) return;
+                _currentPage = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(PageInfo));
+                OnPropertyChanged(nameof(CanGoPreviousPage));
+                OnPropertyChanged(nameof(CanGoNextPage));
+            }
+        }
+
+        public int TotalRecords
+        {
+            get => _totalRecords;
+            private set
+            {
+                if (_totalRecords == value) return;
+                _totalRecords = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(PageInfo));
+                OnPropertyChanged(nameof(CanGoNextPage));
+            }
+        }
+
+        public string SearchText
+        {
+            get => _searchText;
+            set
+            {
+                if (_searchText == value) return;
+                _searchText = value;
+                OnPropertyChanged();
+                CurrentPage = 1;
+                _ = LoadAsync();
+            }
+        }
+
+        public bool CanGoPreviousPage => CurrentPage > 1;
+        public bool CanGoNextPage => CurrentPage * PageSize < TotalRecords;
+        public string PageInfo
+        {
+            get
+            {
+                if (TotalRecords <= 0)
+                {
+                    return "Page 1 of 1";
+                }
+
+                var totalPages = (int)Math.Ceiling(TotalRecords / (double)PageSize);
+                return $"Page {CurrentPage} of {Math.Max(1, totalPages)}";
+            }
+        }
+
+        public bool CanProcessSelected =>
+            !IsBusy && SelectedBeneficiary != null && SelectedBeneficiary.VerificationStatus == BeneficiaryVerificationStatus.Pending;
 
         public BeneficiaryStagingDto? SelectedBeneficiary
         {
@@ -94,6 +160,7 @@ namespace HRMS.ViewModel
                 if (_selectedBeneficiary == value) return;
                 _selectedBeneficiary = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(CanProcessSelected));
                 RemarksInput = string.Empty;
             }
         }
@@ -114,6 +181,8 @@ namespace HRMS.ViewModel
             RefreshCommand = new AsyncRelayCommand(_ => LoadAsync());
             ApproveBeneficiaryCommand = new AsyncRelayCommand(_ => ApproveBeneficiaryAsync());
             RejectBeneficiaryCommand = new AsyncRelayCommand(_ => RejectBeneficiaryAsync());
+            NextPageCommand = new AsyncRelayCommand(_ => NextPageAsync());
+            PreviousPageCommand = new AsyncRelayCommand(_ => PreviousPageAsync());
 
             _ = LoadAsync();
         }
@@ -126,12 +195,19 @@ namespace HRMS.ViewModel
             }
 
             IsBusy = true;
+            OnPropertyChanged(nameof(CanProcessSelected));
             SetMessage("Loading beneficiary staging data...", InfoBrush);
 
             try
             {
-                // Load status counts
                 var counts = await _dataService.GetStatusCountsAsync();
+                if (!_hasAttemptedInitialCrsSync && counts.Pending == 0 && counts.Approved == 0 && counts.Rejected == 0)
+                {
+                    _hasAttemptedInitialCrsSync = true;
+                    await SyncFromCrsIfEmptyAsync();
+                    counts = await _dataService.GetStatusCountsAsync();
+                }
+
                 PendingCount = counts.Pending;
                 ApprovedCount = counts.Approved;
                 RejectedCount = counts.Rejected;
@@ -146,7 +222,12 @@ namespace HRMS.ViewModel
                     statusFilter = BeneficiaryVerificationStatus.Rejected;
                 // null if "All" is selected
 
-                var beneficiaries = await _dataService.GetStagingBeneficiariesAsync(statusFilter, limit: 1000);
+                var (beneficiaries, totalCount) = await _dataService.GetStagingBeneficiariesAsync(
+                    verificationStatus: statusFilter,
+                    searchText: SearchText,
+                    page: CurrentPage,
+                    pageSize: PageSize);
+                TotalRecords = totalCount;
 
                 Beneficiaries.Clear();
                 foreach (var benef in beneficiaries)
@@ -154,7 +235,7 @@ namespace HRMS.ViewModel
                     Beneficiaries.Add(benef);
                 }
 
-                SetMessage($"Loaded {beneficiaries.Count} beneficiaries", SuccessBrush);
+                SetMessage($"Loaded {beneficiaries.Count} beneficiary records (total: {TotalRecords}).", SuccessBrush);
             }
             catch (Exception ex)
             {
@@ -163,7 +244,48 @@ namespace HRMS.ViewModel
             finally
             {
                 IsBusy = false;
+                OnPropertyChanged(nameof(CanProcessSelected));
             }
+        }
+
+        private async Task SyncFromCrsIfEmptyAsync()
+        {
+            SetMessage("No staged beneficiaries found. Syncing from CRS val_beneficiaries...", InfoBrush);
+
+            var importService = new BeneficiaryImportService(DbConfig.ConnectionString, CrsConfig.ConnectionString);
+            var result = await importService.ImportFromCrsAsync();
+
+            if (result.Imported > 0 || result.Skipped > 0)
+            {
+                SetMessage(
+                    $"CRS sync completed. Imported {result.Imported}, skipped {result.Skipped}, invalid {result.Invalid}.",
+                    SuccessBrush);
+                return;
+            }
+
+            SetMessage("CRS sync completed, but no beneficiary rows were available to stage.", WarningBrush);
+        }
+
+        private async Task NextPageAsync()
+        {
+            if (!CanGoNextPage || IsBusy)
+            {
+                return;
+            }
+
+            CurrentPage++;
+            await LoadAsync();
+        }
+
+        private async Task PreviousPageAsync()
+        {
+            if (!CanGoPreviousPage || IsBusy)
+            {
+                return;
+            }
+
+            CurrentPage--;
+            await LoadAsync();
         }
 
         private async Task ApproveBeneficiaryAsync()
@@ -171,6 +293,12 @@ namespace HRMS.ViewModel
             if (SelectedBeneficiary == null)
             {
                 SetMessage("Please select a beneficiary first.", WarningBrush);
+                return;
+            }
+
+            if (SelectedBeneficiary.VerificationStatus != BeneficiaryVerificationStatus.Pending)
+            {
+                SetMessage("Only pending records can be approved.", WarningBrush);
                 return;
             }
 
@@ -191,12 +319,14 @@ namespace HRMS.ViewModel
                     RemarksInput);
 
                 // Step 2: Create user account
+                string createdUsername;
                 string temporaryPassword;
                 try
                 {
-                    var (userId, tempPassword) = await _dataService.CreateBeneficiaryAccountAsync(
+                    var (userId, username, tempPassword) = await _dataService.CreateBeneficiaryAccountAsync(
                         SelectedBeneficiary.StagingID,
                         SelectedBeneficiary);
+                    createdUsername = username;
                     temporaryPassword = tempPassword;
                 }
                 catch (Exception accountEx)
@@ -214,7 +344,8 @@ namespace HRMS.ViewModel
                 // Success: show password and notification
                 SetMessage(
                     $"✓ Approved {SelectedBeneficiary.FirstName} {SelectedBeneficiary.LastName}\n" +
-                    $"✓ Account created. Temporary password: {temporaryPassword}\n" +
+                    $"✓ Username: {createdUsername}\n" +
+                    $"✓ Temporary password: {temporaryPassword}\n" +
                     $"(Password expires on first login)",
                     SuccessBrush);
 
@@ -239,6 +370,12 @@ namespace HRMS.ViewModel
             if (SelectedBeneficiary == null)
             {
                 SetMessage("Please select a beneficiary first.", WarningBrush);
+                return;
+            }
+
+            if (SelectedBeneficiary.VerificationStatus != BeneficiaryVerificationStatus.Pending)
+            {
+                SetMessage("Only pending records can be rejected.", WarningBrush);
                 return;
             }
 

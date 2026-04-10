@@ -83,15 +83,16 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Background="White" Margin="4">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+        <Grid Background="White" Margin="4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
         <Grid Grid.Row="0" Margin="0,0,0,12">
             <Grid.ColumnDefinitions>
@@ -233,8 +234,17 @@
                     <Button Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0" MinWidth="140" Command="{Binding AddManualLogCommand}">
                         <TextBlock Text="Add Manual Log" />
                     </Button>
+                    <Button Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0" MinWidth="140" Command="{Binding UpdateSelectedLogCommand}">
+                        <TextBlock Text="Update Selected" />
+                    </Button>
+                    <Button Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0" MinWidth="120" Command="{Binding ClearLogEditorCommand}">
+                        <TextBlock Text="Clear Editor" />
+                    </Button>
                     <Button Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0" MinWidth="130" Command="{Binding ImportLogsCsvCommand}">
                         <TextBlock Text="Import CSV" />
+                    </Button>
+                    <Button Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0" MinWidth="120" Command="{Binding PrintLogsReportCommand}">
+                        <TextBlock Text="Print Report" />
                     </Button>
                     <Button Style="{StaticResource SecondaryActionButtonStyle}" MinWidth="130" Command="{Binding ExportLogsCsvCommand}">
                         <TextBlock Text="Export CSV" />
@@ -243,7 +253,20 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="3" Margin="6,0,6,12" Padding="12" BorderBrush="#E5EDF7" BorderThickness="1" Background="White" CornerRadius="12">
+        <Border Grid.Row="3"
+                Margin="6,0,6,12"
+                Padding="10,8"
+                BorderBrush="#E5EDF7"
+                BorderThickness="1"
+                Background="#F9FBFF"
+                CornerRadius="10">
+            <TextBlock Text="{Binding SelectedLogLabel}"
+                       Foreground="#4A5B6C"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap" />
+        </Border>
+
+        <Border Grid.Row="4" Margin="6,0,6,12" Padding="12" BorderBrush="#E5EDF7" BorderThickness="1" Background="White" CornerRadius="12">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="2.2*" />
@@ -289,8 +312,9 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="4" Margin="6,0,6,6" Padding="14" CornerRadius="14" BorderBrush="#E5EDF7" BorderThickness="1" Background="White">
+        <Border Grid.Row="5" Margin="6,0,6,6" Padding="14" CornerRadius="14" BorderBrush="#E5EDF7" BorderThickness="1" Background="White">
             <DataGrid ItemsSource="{Binding Logs}"
+                      SelectedItem="{Binding SelectedLog, Mode=TwoWay}"
                       AutoGenerateColumns="False"
                       IsReadOnly="True"
                       CanUserAddRows="False"
@@ -361,7 +385,7 @@
             </DataGrid>
         </Border>
 
-        <Border Grid.Row="5" Margin="6,0,6,0" Padding="10,8" BorderBrush="#E5EDF7" BorderThickness="1" Background="#F9FBFF" CornerRadius="10">
+        <Border Grid.Row="6" Margin="6,0,6,0" Padding="10,8" BorderBrush="#E5EDF7" BorderThickness="1" Background="#F9FBFF" CornerRadius="10">
             <TextBlock Text="{Binding ActionMessage}" Foreground="{Binding ActionMessageBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
         </Border>
     </Grid>

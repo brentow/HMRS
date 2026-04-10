@@ -12,10 +12,19 @@ namespace HRMS.ViewModel
     {
         private string _username = string.Empty;
         private string _password = string.Empty;
+        private readonly CompanyProfileDataService _companyProfileDataService;
+
+        private string _companyName = CompanyProfile.Default.CompanyName;
+        private string _companyAddress = CompanyProfile.Default.Address;
+        private string _companyOwner = CompanyProfile.Default.OwnerName;
+        private string _serialNumber = CompanyProfile.Default.SerialNumber;
+        private string _companyLogoPath = CompanyProfile.Default.LogoPath;
 
         public LoginViewModel()
         {
             LoginCommand = new AsyncRelayCommand(_ => LoginAsync(), _ => CanLogin);
+            _companyProfileDataService = new CompanyProfileDataService(DbConfig.ConnectionString);
+            _ = LoadCompanyProfileAsync();
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -24,6 +33,71 @@ namespace HRMS.ViewModel
         public event EventHandler<string>? LoginError;
 
         public ICommand LoginCommand { get; }
+
+        public string CompanyName
+        {
+            get => _companyName;
+            private set
+            {
+                if (_companyName != value)
+                {
+                    _companyName = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string CompanyAddress
+        {
+            get => _companyAddress;
+            private set
+            {
+                if (_companyAddress != value)
+                {
+                    _companyAddress = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string CompanyOwner
+        {
+            get => _companyOwner;
+            private set
+            {
+                if (_companyOwner != value)
+                {
+                    _companyOwner = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string SerialNumber
+        {
+            get => _serialNumber;
+            private set
+            {
+                if (_serialNumber != value)
+                {
+                    _serialNumber = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string CompanyLogoPath
+        {
+            get => _companyLogoPath;
+            private set
+            {
+                if (_companyLogoPath != value)
+                {
+                    _companyLogoPath = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         public string Username
         {
@@ -54,6 +128,42 @@ namespace HRMS.ViewModel
         }
 
         private bool CanLogin => !string.IsNullOrWhiteSpace(Username) && !string.IsNullOrWhiteSpace(Password);
+
+        private async Task LoadCompanyProfileAsync()
+        {
+            var profile = await _companyProfileDataService.GetCompanyProfileAsync();
+            CompanyName = profile.CompanyName;
+            CompanyAddress = profile.Address;
+            CompanyOwner = profile.OwnerName;
+            SerialNumber = profile.SerialNumber;
+            CompanyLogoPath = NormalizeLogoPath(profile.LogoPath);
+        }
+
+        private static string NormalizeLogoPath(string? rawPath)
+        {
+            const string packagedLogoPath = "/Images/ePRIME_logo.png";
+
+            if (string.IsNullOrWhiteSpace(rawPath))
+            {
+                return packagedLogoPath;
+            }
+
+            var path = rawPath.Trim().Replace('\\', '/');
+            if (path.Equals("HRMS/Images/ePRIME_logo.png", StringComparison.OrdinalIgnoreCase) ||
+                path.Equals("HRMS/Images/ERPMS_logo.png", StringComparison.OrdinalIgnoreCase) ||
+                path.Equals("HRMS/Images/HRMS_logo_cropped.png", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith("/Images/ePRIME_logo.png", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith("Images/ePRIME_logo.png", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith("/Images/ERPMS_logo.png", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith("Images/ERPMS_logo.png", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith("/Images/HRMS_logo_cropped.png", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith("Images/HRMS_logo_cropped.png", StringComparison.OrdinalIgnoreCase))
+            {
+                return packagedLogoPath;
+            }
+
+            return path;
+        }
 
         private async Task LoginAsync()
         {

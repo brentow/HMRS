@@ -82,8 +82,8 @@
         {
             "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_270C1E7B1A194703BA47C7A3B904D833"
             {
-            "SourcePath" = "8:..\\..\\..\\..\\..\\Downloads\\logo-v1-removebg-preview.ico"
-            "TargetName" = "8:logo-v1-removebg-preview.ico"
+            "SourcePath" = "8:ePRIME_logo.ico"
+            "TargetName" = "8:ePRIME_logo.ico"
             "Tag" = "8:"
             "Folder" = "8:_479D2FF5006F48C98D8DDAF3A61D961B"
             "Condition" = "8:"
@@ -174,7 +174,7 @@
         "Keywords" = "8:"
         "ARPCOMMENTS" = "8:"
         "ARPURLINFOABOUT" = "8:"
-        "ARPPRODUCTICON" = "8:"
+        "ARPPRODUCTICON" = "8:_270C1E7B1A194703BA47C7A3B904D833"
         "ARPIconIndex" = "3:0"
         "SearchPath" = "8:"
         "UseSystemSearchPath" = "11:TRUE"

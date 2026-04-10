@@ -216,7 +216,10 @@
                 </Border>
             </UniformGrid>
 
-            <Border Margin="6,0,6,0" Style="{StaticResource CardStyle}" Background="#F7FBFF">
+            <Border Margin="6,0,6,0"
+                    Style="{StaticResource CardStyle}"
+                    Background="#F7FBFF"
+                    Visibility="{Binding IsAdminOrHrMode, Converter={StaticResource BoolToVis}}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1.2*" />
@@ -227,30 +230,30 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="ILGIS Allocation (Office ID 3)" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
-                        <TextBlock Text="{Binding SulopProgram, StringFormat=Program: {0}}" Foreground="#5B6A7A" FontSize="12" />
+                        <TextBlock Text="GGMS Allocation (Office ID 18 / OFF-2026-0007)" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
+                        <TextBlock Text="{Binding GgmsProgram, StringFormat=Program: {0}}" Foreground="#5B6A7A" FontSize="12" />
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" HorizontalAlignment="Center">
                         <TextBlock Text="Allocated" Foreground="#6A7684" HorizontalAlignment="Center" />
-                        <TextBlock Text="{Binding SulopAllocatedAmountText}" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding GgmsAllocatedAmountText}" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold" HorizontalAlignment="Center" />
                     </StackPanel>
 
                     <StackPanel Grid.Column="2" HorizontalAlignment="Center">
                         <TextBlock Text="Used" Foreground="#6A7684" HorizontalAlignment="Center" />
-                        <TextBlock Text="{Binding SulopUsedAmountText}" Foreground="#B9831A" FontWeight="Bold" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding GgmsUsedAmountText}" Foreground="#B9831A" FontWeight="Bold" HorizontalAlignment="Center" />
                     </StackPanel>
 
                     <StackPanel Grid.Column="3" HorizontalAlignment="Center">
                         <TextBlock Text="Remaining" Foreground="#6A7684" HorizontalAlignment="Center" />
-                        <TextBlock Text="{Binding SulopRemainingAmountText}" Foreground="#2E9D5B" FontWeight="Bold" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding GgmsRemainingAmountText}" Foreground="#2E9D5B" FontWeight="Bold" HorizontalAlignment="Center" />
                     </StackPanel>
 
                     <TextBlock Grid.Column="4"
                                Margin="12,0,0,0"
                                VerticalAlignment="Center"
-                               Text="{Binding SulopSyncStatus}"
-                               Foreground="{Binding SulopSyncStatusBrush}"
+                               Text="{Binding GgmsSyncStatus}"
+                               Foreground="{Binding GgmsSyncStatusBrush}"
                                FontWeight="SemiBold"
                                TextWrapping="Wrap" />
                 </Grid>
@@ -523,6 +526,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="1.6*" />
@@ -570,38 +574,55 @@
                             <TextBlock Grid.Row="2" Grid.Column="1" Text="Allowances" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,10,0,6" />
                             <TextBlock Grid.Row="2" Grid.Column="2" Text="Overtime Pay" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,10,0,6" />
                             <TextBlock Grid.Row="2" Grid.Column="3" Text="Other Earnings" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,10,0,6" />
-                            <TextBlock Grid.Row="2" Grid.Column="4" Text="Deductions" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,10,0,6" />
+                            <TextBlock Grid.Row="2" Grid.Column="4" Text="Computed Deductions" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,10,0,6" />
 
                             <TextBox Grid.Row="3" Grid.Column="0" Height="40" VerticalContentAlignment="Center" Text="{Binding RunBasicPay, UpdateSourceTrigger=PropertyChanged}" />
                             <TextBox Grid.Row="3" Grid.Column="1" Margin="10,0,0,0" Height="40" VerticalContentAlignment="Center" Text="{Binding RunAllowances, UpdateSourceTrigger=PropertyChanged}" />
                             <TextBox Grid.Row="3" Grid.Column="2" Margin="10,0,0,0" Height="40" VerticalContentAlignment="Center" Text="{Binding RunOvertimePay, UpdateSourceTrigger=PropertyChanged}" />
                             <TextBox Grid.Row="3" Grid.Column="3" Margin="10,0,0,0" Height="40" VerticalContentAlignment="Center" Text="{Binding RunOtherEarnings, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBox Grid.Row="3" Grid.Column="4" Margin="10,0,0,0" Height="40" Width="170" VerticalContentAlignment="Center" Text="{Binding RunDeductions, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBox Grid.Row="3" Grid.Column="4"
+                                     Margin="10,0,0,0"
+                                     Height="40"
+                                     Width="170"
+                                     VerticalContentAlignment="Center"
+                                     IsReadOnly="True"
+                                     Background="#EEF4FB"
+                                     Text="{Binding RunDeductions, StringFormat='PHP {0:N2}'}" />
 
-                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Summary" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,10,0,6" />
-                            <TextBlock Grid.Row="4" Grid.Column="2" Text="Release Run" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,10,0,6" />
-                            <TextBlock Grid.Row="4" Grid.Column="3" Text="Release Remarks" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,10,0,6" />
+                            <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="5" Margin="0,10,0,0">
+                                <TextBlock Text="{Binding RunEmployeeProfileText}"
+                                           Foreground="{StaticResource PrimaryBrush}"
+                                           FontWeight="SemiBold" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Text="{Binding RunDeductionBreakdownText}"
+                                           Foreground="#5B6A7A"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
 
-                            <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Summary" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,10,0,6" />
+                            <TextBlock Grid.Row="5" Grid.Column="2" Text="Release Run" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,10,0,6" />
+                            <TextBlock Grid.Row="5" Grid.Column="3" Text="Release Remarks" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,10,0,6" />
+
+                            <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
                                 <TextBlock Text="Gross:" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,6,0" />
                                 <TextBlock Text="{Binding RunGrossPreview, StringFormat='PHP {0:N2}'}" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold" Margin="0,0,18,0" />
                                 <TextBlock Text="Net:" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,6,0" />
                                 <TextBlock Text="{Binding RunNetPreview, StringFormat='PHP {0:N2}'}" Foreground="#2E9D5B" FontWeight="Bold" />
                             </StackPanel>
 
-                            <ComboBox Grid.Row="5" Grid.Column="2"
+                            <ComboBox Grid.Row="6" Grid.Column="2"
                                       Margin="10,0,0,0"
                                       Height="40"
                                       ItemsSource="{Binding RunOptions}"
                                       DisplayMemberPath="Label"
                                       SelectedValuePath="Id"
                                       SelectedValue="{Binding SelectedReleaseRunId}" />
-                            <TextBox Grid.Row="5" Grid.Column="3"
+                            <TextBox Grid.Row="6" Grid.Column="3"
                                      Margin="10,0,0,0"
                                      Height="40"
                                      VerticalContentAlignment="Center"
                                      Text="{Binding ReleaseRemarks, UpdateSourceTrigger=PropertyChanged}" />
-                            <Button Grid.Row="5" Grid.Column="4"
+                            <Button Grid.Row="6" Grid.Column="4"
                                     Margin="10,0,0,0"
                                     Height="40"
                                     Width="170"
@@ -956,6 +977,157 @@
                     </Border>
                 </Grid>
             </TabItem>
+            <TabItem Header="Government Reports"
+                     Visibility="{Binding IsAdminOrHrMode, Converter={StaticResource BoolToVis}}">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="240" />
+                            <ColumnDefinition Width="220" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <ComboBox Grid.Column="0"
+                                  Height="40"
+                                  ItemsSource="{Binding PeriodOptions}"
+                                  DisplayMemberPath="Label"
+                                  SelectedValuePath="Id"
+                                  SelectedValue="{Binding SelectedGovernmentPeriodId}" />
+
+                        <ComboBox Grid.Column="1"
+                                  Margin="10,0,0,0"
+                                  Height="40"
+                                  ItemsSource="{Binding GovernmentContributionTypeOptions}"
+                                  SelectedItem="{Binding SelectedGovernmentContributionType}" />
+
+                        <TextBlock Grid.Column="2"
+                                   Margin="14,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="#5B6A7A"
+                                   Text="{Binding GovernmentContributionTitle}" />
+
+                        <Button Grid.Column="3"
+                                Margin="10,0,0,0"
+                                Height="40"
+                                MinWidth="128"
+                                Style="{StaticResource SoftButtonStyle}"
+                                IsEnabled="{Binding HasGovernmentContributionRows}"
+                                Command="{Binding ExportGovernmentReportCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FileExportOutline" Width="15" Height="15" Margin="0,0,6,0" />
+                                <TextBlock Text="Export CSV" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Grid.Column="4"
+                                Margin="8,0,0,0"
+                                Height="40"
+                                MinWidth="128"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                IsEnabled="{Binding HasGovernmentContributionRows}"
+                                Command="{Binding SaveGovernmentReportPdfCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FilePdfBox" Width="15" Height="15" Margin="0,0,6,0" />
+                                <TextBlock Text="Save PDF" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <Grid Grid.Row="1" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.1*" />
+                            <ColumnDefinition Width="1.1*" />
+                            <ColumnDefinition Width="1.1*" />
+                            <ColumnDefinition Width="1.7*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Margin="0,0,10,0" Style="{StaticResource CardStyle}" Background="#F5FBFF">
+                            <StackPanel>
+                                <TextBlock Text="Employee Share Total" Foreground="#6A7684" />
+                                <TextBlock Text="{Binding GovernmentReportEmployeeShareTotalText}"
+                                           FontWeight="Bold"
+                                           FontSize="22"
+                                           Foreground="{StaticResource PrimaryBrush}" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="1" Margin="0,0,10,0" Style="{StaticResource CardStyle}" Background="#FFF8EC">
+                            <StackPanel>
+                                <TextBlock Text="Employer Share Total" Foreground="#6A7684" />
+                                <TextBlock Text="{Binding GovernmentReportEmployerShareTotalText}"
+                                           FontWeight="Bold"
+                                           FontSize="22"
+                                           Foreground="#B9831A" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="2" Margin="0,0,10,0" Style="{StaticResource CardStyle}" Background="#F2FBF5">
+                            <StackPanel>
+                                <TextBlock Text="Total Remittance" Foreground="#6A7684" />
+                                <TextBlock Text="{Binding GovernmentReportRemittanceTotalText}"
+                                           FontWeight="Bold"
+                                           FontSize="22"
+                                           Foreground="#2E9D5B" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="3" Style="{StaticResource CardStyle}" Background="#F9FBFF">
+                            <StackPanel>
+                                <TextBlock Text="Report Context" Foreground="#6A7684" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Text="{Binding GovernmentReportPeriodLabel, StringFormat=Period: {0}}"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryBrush}" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Text="{Binding GovernmentContributionRows.Count, StringFormat=Rows: {0}}"
+                                           Foreground="#5B6A7A" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0">
+                        <DataGrid ItemsSource="{Binding GovernmentContributionRows}"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  IsReadOnly="True"
+                                  CanUserResizeRows="False"
+                                  HeadersVisibility="Column"
+                                  GridLinesVisibility="Horizontal"
+                                  RowHeaderWidth="0"
+                                  RowBackground="White"
+                                  AlternatingRowBackground="#F8FBFF"
+                                  HorizontalGridLinesBrush="#E9F0FA"
+                                  VerticalGridLinesBrush="#E9F0FA"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                  ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
+                                  CellStyle="{StaticResource GridCellStyle}"
+                                  RowStyle="{StaticResource GridRowStyle}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Run ID" Binding="{Binding PayrollRunId}" Width="80" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn Header="Period" Binding="{Binding PeriodCode}" Width="130" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn Header="Pay Date" Binding="{Binding PayDateText}" Width="120" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn Header="Emp No" Binding="{Binding EmployeeNo}" Width="100" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName}" Width="220" />
+                                <DataGridTextColumn Header="Appointment Type" Binding="{Binding EmploymentTypeName}" Width="150" />
+                                <DataGridTextColumn Header="Basic Pay" Binding="{Binding BasicPay, StringFormat={}{0:N2}}" Width="110" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn Header="Employee Share" Binding="{Binding EmployeeShare, StringFormat={}{0:N2}}" Width="118" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn Header="Employer Share" Binding="{Binding EmployerShare, StringFormat={}{0:N2}}" Width="118" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn Header="Total Remittance" Binding="{Binding TotalRemittance, StringFormat={}{0:N2}}" Width="132" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn Header="Run Status" Binding="{Binding RunStatus}" Width="110" CellStyle="{StaticResource GridCellCenterStyle}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </TabItem>
         </TabControl>
 
         <Border Grid.Row="3"
@@ -972,3 +1144,4 @@
         </Border>
     </Grid>
 </UserControl>
+

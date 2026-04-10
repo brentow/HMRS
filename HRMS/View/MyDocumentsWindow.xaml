@@ -11,6 +11,7 @@
     <UserControl.Resources>
         <Color x:Key="PrimaryColor">#1E4368</Color>
         <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
         <Style x:Key="CardStyle" TargetType="Border">
             <Setter Property="CornerRadius" Value="14" />
@@ -77,6 +78,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -87,7 +89,14 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel>
-                <TextBlock Text="{Binding DocumentsTitle}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="FolderMultipleOutline"
+                                             Width="32"
+                                             Height="30"
+                                             Margin="0,0,10,0"
+                                             Foreground="{StaticResource PrimaryBrush}" />
+                    <TextBlock Text="{Binding DocumentsTitle}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
+                </StackPanel>
                 <TextBlock Text="{Binding DocumentsSubtitle}" Foreground="#5B6A7A" />
             </StackPanel>
             <Button Grid.Column="1"
@@ -117,7 +126,110 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+        <Border Grid.Row="2"
+                Style="{StaticResource CardStyle}"
+                Margin="0,0,0,10"
+                Visibility="{Binding ShowChecklistSubmission, Converter={StaticResource BoolToVis}}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="250" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                    <TextBlock Text="{Binding ChecklistTitle}"
+                               FontSize="18"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource PrimaryBrush}" />
+                    <TextBlock Text="{Binding ChecklistSubtitle}"
+                               Foreground="#5B6A7A"
+                               TextWrapping="Wrap"
+                               Margin="0,2,0,0" />
+                </StackPanel>
+
+                <DataGrid Grid.Row="1"
+                          ItemsSource="{Binding ChecklistDocuments}"
+                          SelectedItem="{Binding SelectedChecklistDocument, Mode=TwoWay}"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          IsReadOnly="True"
+                          RowHeaderWidth="0"
+                          ColumnHeaderHeight="38"
+                          RowHeight="44"
+                          GridLinesVisibility="Horizontal"
+                          HorizontalGridLinesBrush="#E9F0FA"
+                          VerticalGridLinesBrush="#E9F0FA"
+                          AlternatingRowBackground="#F8FBFF"
+                          ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                    <DataGrid.ColumnHeaderStyle>
+                        <Style BasedOn="{StaticResource HeaderStyle}" TargetType="DataGridColumnHeader" />
+                    </DataGrid.ColumnHeaderStyle>
+                    <DataGrid.CellStyle>
+                        <Style BasedOn="{StaticResource GridCellStyle}" TargetType="DataGridCell" />
+                    </DataGrid.CellStyle>
+                    <DataGrid.RowStyle>
+                        <Style BasedOn="{StaticResource GridRowStyle}" TargetType="DataGridRow" />
+                    </DataGrid.RowStyle>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Tier" Binding="{Binding TierLabel}" Width="90" />
+                        <DataGridTextColumn Header="Code" Binding="{Binding DocumentCode}" Width="90" />
+                        <DataGridTextColumn Header="Document" Binding="{Binding DocumentName}" Width="2.2*" />
+                        <DataGridTextColumn Header="Status" Binding="{Binding StatusLabel}" Width="120" />
+                        <DataGridTextColumn Header="Submitted" Binding="{Binding SubmittedDateText}" Width="120" />
+                        <DataGridTextColumn Header="Upload" Binding="{Binding AttachmentText}" Width="110" />
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <Grid Grid.Row="2" Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="{Binding SelectedChecklistDocumentTitle}"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource PrimaryBrush}" />
+
+                    <Grid Grid.Row="1" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox Grid.Column="0"
+                                 Height="38"
+                                 Margin="0,0,8,0"
+                                 IsReadOnly="True"
+                                 Text="{Binding SelectedChecklistFilePath}"
+                                 materialDesign:HintAssist.Hint="Select the file to submit for the chosen requirement" />
+
+                        <Button Grid.Column="1"
+                                Style="{StaticResource ButtonStyle}"
+                                Margin="0,0,8,0"
+                                Command="{Binding BrowseChecklistFileCommand}"
+                                Content="Browse" />
+
+                        <Button Grid.Column="2"
+                                Style="{StaticResource ButtonStyle}"
+                                Margin="0,0,8,0"
+                                Command="{Binding UploadChecklistFileCommand}"
+                                IsEnabled="{Binding CanUploadChecklist}"
+                                Content="Submit" />
+
+                        <Button Grid.Column="3"
+                                Style="{StaticResource ButtonStyle}"
+                                Command="{Binding OpenChecklistAttachmentCommand}"
+                                IsEnabled="{Binding CanOpenChecklistAttachment}"
+                                Content="Open Current" />
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="3" Style="{StaticResource CardStyle}">
             <DataGrid ItemsSource="{Binding Documents}"
                       AutoGenerateColumns="False"
                       CanUserAddRows="False"
@@ -165,7 +277,7 @@
             </DataGrid>
         </Border>
 
-        <Border Grid.Row="3"
+        <Border Grid.Row="4"
                 Style="{StaticResource CardStyle}"
                 Margin="0,10,0,0"
                 Padding="10,8">

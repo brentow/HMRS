@@ -42,7 +42,10 @@ namespace HRMS.View
             Adjustments,
             Leave,
             Payroll,
+            Transactions,
+            Reports,
             Documents,
+            DocumentVerification,
             Recruitment,
             Development,
             Users,
@@ -67,12 +70,17 @@ namespace HRMS.View
             InitializeComponent();
             _authenticatedUser = authenticatedUser;
             UsersRolesModule?.SetCurrentUser(_authenticatedUser);
+            EmployeesModule?.SetCurrentUser(_authenticatedUser);
             AttendanceModule?.SetCurrentUser(_authenticatedUser);
+            AttendanceLogsModule?.SetCurrentUser(_authenticatedUser);
             AdjustmentsModule?.SetCurrentUser(_authenticatedUser);
             LeaveModule?.SetCurrentUser(_authenticatedUser);
             PayrollModule?.SetCurrentUser(_authenticatedUser);
+            TransactionsModule?.SetCurrentUser(_authenticatedUser);
+            ReportsModule?.SetCurrentUser(_authenticatedUser);
             DevelopmentModule?.SetCurrentUser(_authenticatedUser);
             DocumentsModule?.SetCurrentUser(_authenticatedUser);
+            DocumentVerificationModule?.SetCurrentUser(_authenticatedUser);
             if (DocumentsModule != null)
             {
                 DocumentsModule.OpenModuleRequested += EmployeeModule_OpenModuleRequested;
@@ -187,9 +195,21 @@ namespace HRMS.View
                     {
                         await PayrollModule.RefreshAsync();
                     }
+                    else if (vm.IsTransactionsVisible && TransactionsModule != null)
+                    {
+                        await TransactionsModule.RefreshAsync();
+                    }
+                    else if (vm.IsReportsVisible && ReportsModule != null)
+                    {
+                        await ReportsModule.RefreshAsync();
+                    }
                     else if (vm.IsDocumentsVisible && DocumentsModule != null)
                     {
                         await DocumentsModule.RefreshAsync();
+                    }
+                    else if (vm.IsDocumentVerificationVisible && DocumentVerificationModule != null)
+                    {
+                        await DocumentVerificationModule.RefreshAsync();
                     }
                     else if (vm.IsRecruitmentVisible && RecruitmentModule != null)
                     {
@@ -334,26 +354,136 @@ namespace HRMS.View
 
         private void ApplyRoleBasedNavigation()
         {
+            var isEmployeeAccess = IsEmployeeAccess;
+            var canEmployees = CanAccessModule(ModuleKey.Employees);
+            var canDepartments = CanAccessModule(ModuleKey.Departments);
+            var canAttendance = CanAccessModule(ModuleKey.Attendance);
+            var canAttendanceLogs = CanAccessModule(ModuleKey.AttendanceLogs);
+            var canAdjustments = CanAccessModule(ModuleKey.Adjustments);
+            var canTransactions = CanAccessModule(ModuleKey.Transactions);
+            var canReports = CanAccessModule(ModuleKey.Reports);
+            var canDocuments = CanAccessModule(ModuleKey.Documents);
+
             DashboardNavButton.Visibility = Visibility.Visible;
-            EmployeesNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Employees));
-            DepartmentsNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Departments));
-            AttendanceNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Attendance));
-            AttendanceLogsNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.AttendanceLogs));
-            AdjustmentsNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Adjustments));
+            EmployeeProfileNavButton.Visibility = Visibility.Collapsed;
+            EmployeeDepartmentPositionNavButton.Visibility = ToVisibility(isEmployeeAccess && canEmployees);
+            EmployeesNavButton.Visibility = ToVisibility(!isEmployeeAccess && (canEmployees || canDepartments));
+            if (EmployeesSubNavButton != null)
+            {
+                EmployeesSubNavButton.Visibility = ToVisibility(!isEmployeeAccess && canEmployees);
+            }
+
+            DepartmentsNavButton.Visibility = ToVisibility(!isEmployeeAccess && canDepartments);
+            AttendanceNavButton.Visibility = ToVisibility(isEmployeeAccess ? canAttendance : canAttendance || canAttendanceLogs || canAdjustments);
+            if (AttendanceSubNavButton != null)
+            {
+                AttendanceSubNavButton.Visibility = ToVisibility(!isEmployeeAccess && canAttendance);
+            }
+
+            AttendanceLogsNavButton.Visibility = ToVisibility(!isEmployeeAccess && canAttendanceLogs);
+            AdjustmentsNavButton.Visibility = ToVisibility(!isEmployeeAccess && canAdjustments);
+            EmployeeAttendanceLogsNavButton.Visibility = ToVisibility(isEmployeeAccess && canAttendanceLogs);
+            EmployeeAdjustmentsNavButton.Visibility = ToVisibility(isEmployeeAccess && canAdjustments);
             LeaveNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Leave));
             PayrollNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Payroll));
-            DocumentsNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Documents));
+            RecordsReportsNavButton.Visibility = ToVisibility(canTransactions || canReports || canDocuments);
+            TransactionsNavButton.Visibility = ToVisibility(canTransactions);
+            ReportsNavButton.Visibility = ToVisibility(canReports);
+            DocumentsNavButton.Visibility = ToVisibility(canDocuments);
+            DocumentVerificationNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.DocumentVerification));
+            BeneficiariesNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Beneficiaries));
             RecruitmentNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Recruitment));
             DevelopmentNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Development));
 
+            if (AttendanceNavLabelText != null)
+            {
+                AttendanceNavLabelText.Text = isEmployeeAccess ? "My Attendance / DTR" : "Attendance / DTR";
+            }
+
+            if (LeaveNavLabelText != null)
+            {
+                LeaveNavLabelText.Text = isEmployeeAccess ? "My Leave" : "Leave";
+            }
+
+            if (PayrollNavLabelText != null)
+            {
+                PayrollNavLabelText.Text = isEmployeeAccess ? "My Payroll" : "Payroll";
+            }
+
+            if (DevelopmentNavLabelText != null)
+            {
+                DevelopmentNavLabelText.Text = isEmployeeAccess ? "My Development" : "Development";
+            }
+
+            if (AttendanceNavChevronIcon != null)
+            {
+                AttendanceNavChevronIcon.Visibility = isEmployeeAccess ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            if (EmployeesNavButton.Visibility != Visibility.Visible)
+            {
+                SetSidebarGroupExpanded(EmployeeManagementSubmenuPanel, EmployeesNavChevronIcon, false);
+            }
+
+            if (AttendanceNavButton.Visibility != Visibility.Visible || isEmployeeAccess)
+            {
+                SetSidebarGroupExpanded(AttendanceSubmenuPanel, AttendanceNavChevronIcon, false);
+            }
+
+            if (RecordsReportsNavButton.Visibility != Visibility.Visible)
+            {
+                SetSidebarGroupExpanded(RecordsReportsSubmenuPanel, RecordsReportsNavChevronIcon, false);
+            }
+
+            if (EmployeeManagementEmployeesMenuItem != null)
+            {
+                EmployeeManagementEmployeesMenuItem.Visibility = ToVisibility(!isEmployeeAccess && canEmployees);
+            }
+
+            if (EmployeeManagementDepartmentsMenuItem != null)
+            {
+                EmployeeManagementDepartmentsMenuItem.Visibility = ToVisibility(!isEmployeeAccess && canDepartments);
+            }
+
+            if (AttendanceMenuItem != null)
+            {
+                AttendanceMenuItem.Visibility = ToVisibility(!isEmployeeAccess && canAttendance);
+            }
+
+            if (AttendanceLogsMenuItem != null)
+            {
+                AttendanceLogsMenuItem.Visibility = ToVisibility(!isEmployeeAccess && canAttendanceLogs);
+            }
+
+            if (AdjustmentsMenuItem != null)
+            {
+                AdjustmentsMenuItem.Visibility = ToVisibility(!isEmployeeAccess && canAdjustments);
+            }
+
+            if (RecordsReportsTransactionsMenuItem != null)
+            {
+                RecordsReportsTransactionsMenuItem.Visibility = ToVisibility(canTransactions);
+            }
+
+            if (RecordsReportsReportsMenuItem != null)
+            {
+                RecordsReportsReportsMenuItem.Visibility = ToVisibility(canReports);
+            }
+
+            if (RecordsReportsDocumentsMenuItem != null)
+            {
+                RecordsReportsDocumentsMenuItem.Visibility = ToVisibility(canDocuments);
+                RecordsReportsDocumentsMenuItem.Header = isEmployeeAccess ? "My Documents" : "Documents";
+            }
+
             if (QuickEmployeesButton != null)
             {
-                QuickEmployeesButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Employees));
+                QuickEmployeesButton.Visibility = ToVisibility(!isEmployeeAccess && canEmployees);
             }
 
             if (QuickAttendanceButton != null)
             {
-                QuickAttendanceButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Attendance));
+                QuickAttendanceButton.Visibility = ToVisibility(canAttendance);
             }
 
             if (QuickLeaveButton != null)
@@ -412,7 +542,10 @@ namespace HRMS.View
                     ModuleKey.Adjustments => true,
                     ModuleKey.Leave => true,
                     ModuleKey.Payroll => true,
+                    ModuleKey.Transactions => true,
+                    ModuleKey.Reports => true,
                     ModuleKey.Documents => true,
+                    ModuleKey.DocumentVerification => true,
                     ModuleKey.Recruitment => true,
                     ModuleKey.Development => true,
                     ModuleKey.Users => true, // profile tab only is enforced in UsersRolesWindow
@@ -426,10 +559,14 @@ namespace HRMS.View
                 return module switch
                 {
                     ModuleKey.Dashboard => true,
+                    ModuleKey.Employees => true,
                     ModuleKey.Attendance => true,
+                    ModuleKey.AttendanceLogs => true,
                     ModuleKey.Adjustments => true,
                     ModuleKey.Leave => true,
                     ModuleKey.Payroll => true,
+                    ModuleKey.Transactions => true,
+                    ModuleKey.Reports => true,
                     ModuleKey.Documents => true,
                     ModuleKey.Development => true,
                     ModuleKey.Users => true, // profile tab only
@@ -464,6 +601,126 @@ namespace HRMS.View
         private static Visibility ToVisibility(bool isVisible) =>
             isVisible ? Visibility.Visible : Visibility.Collapsed;
 
+        private static void OpenAttachedMenu(Button? button)
+        {
+            if (button?.ContextMenu == null)
+            {
+                return;
+            }
+
+            button.ContextMenu.PlacementTarget = button;
+            button.ContextMenu.IsOpen = true;
+        }
+
+        private static void SetSidebarGroupExpanded(
+            FrameworkElement? panel,
+            MaterialDesignThemes.Wpf.PackIcon? chevronIcon,
+            bool isExpanded)
+        {
+            if (panel != null)
+            {
+                panel.Visibility = isExpanded ? Visibility.Visible : Visibility.Collapsed;
+            }
+
+            if (chevronIcon != null)
+            {
+                chevronIcon.Kind = isExpanded
+                    ? MaterialDesignThemes.Wpf.PackIconKind.ChevronUp
+                    : MaterialDesignThemes.Wpf.PackIconKind.ChevronDown;
+            }
+        }
+
+        private void ToggleSidebarGroup(
+            FrameworkElement? targetPanel,
+            MaterialDesignThemes.Wpf.PackIcon? targetChevron)
+        {
+            var nextExpanded = targetPanel?.Visibility != Visibility.Visible;
+            CollapseSidebarGroups();
+            SetSidebarGroupExpanded(targetPanel, targetChevron, nextExpanded);
+        }
+
+        private void CollapseSidebarGroups()
+        {
+            SetSidebarGroupExpanded(EmployeeManagementSubmenuPanel, EmployeesNavChevronIcon, false);
+            SetSidebarGroupExpanded(AttendanceSubmenuPanel, AttendanceNavChevronIcon, false);
+            SetSidebarGroupExpanded(RecordsReportsSubmenuPanel, RecordsReportsNavChevronIcon, false);
+        }
+
+        private void OpenEmployeesModule()
+        {
+            OpenEmployeesModule(false);
+        }
+
+        private void OpenEmployeesModule(bool openProfileTab)
+        {
+            if (!EnsureModuleAccess(ModuleKey.Employees, "Employees"))
+            {
+                return;
+            }
+
+            if (DataContext is DashboardViewModel vm)
+            {
+                vm.ShowEmployees();
+            }
+
+            if (openProfileTab)
+            {
+                EmployeesModule?.OpenProfileTab();
+            }
+        }
+
+        private void OpenDepartmentsModule()
+        {
+            if (!EnsureModuleAccess(ModuleKey.Departments, "Departments & Positions"))
+            {
+                return;
+            }
+
+            if (DataContext is DashboardViewModel vm)
+            {
+                vm.ShowDepartments();
+            }
+        }
+
+        private void OpenAttendanceModule()
+        {
+            if (!EnsureModuleAccess(ModuleKey.Attendance, "Attendance"))
+            {
+                return;
+            }
+
+            if (DataContext is DashboardViewModel vm)
+            {
+                vm.ShowAttendance();
+            }
+        }
+
+        private void OpenAttendanceLogsModule()
+        {
+            if (!EnsureModuleAccess(ModuleKey.AttendanceLogs, "Attendance Logs"))
+            {
+                return;
+            }
+
+            if (DataContext is DashboardViewModel vm)
+            {
+                vm.ShowAttendanceLogs();
+            }
+        }
+
+        private void OpenAdjustmentsModule()
+        {
+            if (!EnsureModuleAccess(ModuleKey.Adjustments, "Adjustments"))
+            {
+                return;
+            }
+
+            if (DataContext is DashboardViewModel vm)
+            {
+                vm.ShowAdjustments();
+            }
+        }
+
         public Rect GetMainContentBoundsOnScreen()
         {
             if (!IsLoaded || MainContentHost == null)
@@ -493,6 +750,11 @@ namespace HRMS.View
 
             // Adjust icon stack margin for balanced spacing when collapsed
             NavStack.Margin = _navCollapsed ? _collapsedNavMargin : _expandedNavMargin;
+
+            if (_navCollapsed)
+            {
+                CollapseSidebarGroups();
+            }
         }
 
         private void SetNavLabelsVisibility(Visibility visibility)
@@ -616,6 +878,26 @@ namespace HRMS.View
             OpenUsersModule(preferProfileTab: !IsAdminAccess);
         }
 
+        private void EmployeeProfileNavButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (!EnsureModuleAccess(ModuleKey.Users, "My Profile"))
+            {
+                return;
+            }
+
+            OpenUsersModule(preferProfileTab: true);
+        }
+
+        private void EmployeeDepartmentPositionNavButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (!EnsureModuleAccess(ModuleKey.Employees, "My Department / Position"))
+            {
+                return;
+            }
+
+            OpenEmployeesModule(openProfileTab: true);
+        }
+
         private void BeneficiariesNavButton_OnClick(object sender, RoutedEventArgs e)
         {
             if (!EnsureModuleAccess(ModuleKey.Beneficiaries, "Beneficiary Verification"))
@@ -665,67 +947,68 @@ namespace HRMS.View
 
         private void EmployeesNavButton_OnClick(object sender, RoutedEventArgs e)
         {
-            if (!EnsureModuleAccess(ModuleKey.Employees, "Employees"))
+            if (ReferenceEquals(sender, QuickEmployeesButton))
             {
+                OpenEmployeesModule();
                 return;
             }
 
-            if (DataContext is DashboardViewModel vm)
+            if (_navCollapsed)
             {
-                vm.ShowEmployees();
+                OpenAttachedMenu(EmployeesNavButton);
+                return;
             }
+
+            ToggleSidebarGroup(EmployeeManagementSubmenuPanel, EmployeesNavChevronIcon);
         }
 
         private void DepartmentsNavButton_OnClick(object sender, RoutedEventArgs e)
         {
-            if (!EnsureModuleAccess(ModuleKey.Departments, "Departments & Positions"))
-            {
-                return;
-            }
-
-            if (DataContext is DashboardViewModel vm)
-            {
-                vm.ShowDepartments();
-            }
+            OpenDepartmentsModule();
         }
 
         private void AttendanceNavButton_OnClick(object sender, RoutedEventArgs e)
         {
-            if (!EnsureModuleAccess(ModuleKey.Attendance, "Attendance"))
+            if (ReferenceEquals(sender, QuickAttendanceButton))
             {
+                OpenAttendanceModule();
                 return;
             }
 
-            if (DataContext is DashboardViewModel vm)
+            if (IsEmployeeAccess)
             {
-                vm.ShowAttendance();
+                OpenAttendanceModule();
+                return;
             }
+
+            if (_navCollapsed)
+            {
+                OpenAttachedMenu(AttendanceNavButton);
+                return;
+            }
+
+            ToggleSidebarGroup(AttendanceSubmenuPanel, AttendanceNavChevronIcon);
+        }
+
+        private void RecordsReportsNavButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (_navCollapsed)
+            {
+                OpenAttachedMenu(RecordsReportsNavButton);
+                return;
+            }
+
+            ToggleSidebarGroup(RecordsReportsSubmenuPanel, RecordsReportsNavChevronIcon);
         }
 
         private void AttendanceLogsNavButton_OnClick(object sender, RoutedEventArgs e)
         {
-            if (!EnsureModuleAccess(ModuleKey.AttendanceLogs, "Attendance Logs"))
-            {
-                return;
-            }
-
-            if (DataContext is DashboardViewModel vm)
-            {
-                vm.ShowAttendanceLogs();
-            }
+            OpenAttendanceLogsModule();
         }
 
         private void AdjustmentsNavButton_OnClick(object sender, RoutedEventArgs e)
         {
-            if (!EnsureModuleAccess(ModuleKey.Adjustments, "Adjustments"))
-            {
-                return;
-            }
-
-            if (DataContext is DashboardViewModel vm)
-            {
-                vm.ShowAdjustments();
-            }
+            OpenAdjustmentsModule();
         }
 
         private void LeaveNavButton_OnClick(object sender, RoutedEventArgs e)
@@ -754,6 +1037,32 @@ namespace HRMS.View
             }
         }
 
+        private void TransactionsNavButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (!EnsureModuleAccess(ModuleKey.Transactions, "Transactions"))
+            {
+                return;
+            }
+
+            if (DataContext is DashboardViewModel vm)
+            {
+                vm.ShowTransactions();
+            }
+        }
+
+        private void ReportsNavButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (!EnsureModuleAccess(ModuleKey.Reports, "Reports"))
+            {
+                return;
+            }
+
+            if (DataContext is DashboardViewModel vm)
+            {
+                vm.ShowReports();
+            }
+        }
+
         private void DocumentsNavButton_OnClick(object sender, RoutedEventArgs e)
         {
             if (!CanOpenDocumentsModule())
@@ -774,11 +1083,26 @@ namespace HRMS.View
             _ = DocumentsModule?.RefreshAsync();
         }
 
+        private void DocumentVerificationNavButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (!EnsureModuleAccess(ModuleKey.DocumentVerification, "System Verifier"))
+            {
+                return;
+            }
+
+            if (DataContext is DashboardViewModel vm)
+            {
+                vm.ShowDocumentVerification();
+            }
+
+            _ = DocumentVerificationModule?.RefreshAsync();
+        }
+
         private void DashboardOpenAttendanceButton_OnClick(object sender, RoutedEventArgs e) =>
-            AttendanceNavButton_OnClick(sender, e);
+            OpenAttendanceModule();
 
         private void DashboardOpenAdjustmentsButton_OnClick(object sender, RoutedEventArgs e) =>
-            AdjustmentsNavButton_OnClick(sender, e);
+            OpenAdjustmentsModule();
 
         private void DashboardOpenLeaveButton_OnClick(object sender, RoutedEventArgs e) =>
             LeaveNavButton_OnClick(sender, e);
@@ -887,6 +1211,12 @@ namespace HRMS.View
 
             if (q.Contains("department") || q.Contains("position"))
             {
+                if (IsEmployeeAccess && EnsureModuleAccess(ModuleKey.Employees, "My Department / Position"))
+                {
+                    OpenEmployeesModule(openProfileTab: true);
+                    return;
+                }
+
                 if (EnsureModuleAccess(ModuleKey.Departments, "Departments & Positions"))
                 {
                     vm.ShowDepartments();
@@ -939,11 +1269,38 @@ namespace HRMS.View
                 return;
             }
 
+            if (q.Contains("transaction") || q.Contains("payment") || q.Contains("receipt"))
+            {
+                if (EnsureModuleAccess(ModuleKey.Transactions, "Transactions"))
+                {
+                    vm.ShowTransactions();
+                }
+                return;
+            }
+
+            if (q.Contains("report") || q.Contains("export") || q.Contains("analytics"))
+            {
+                if (EnsureModuleAccess(ModuleKey.Reports, "Reports"))
+                {
+                    vm.ShowReports();
+                }
+                return;
+            }
+
             if (q.Contains("document") || q.Contains("certificate") || q.Contains("attachment"))
             {
                 if (EnsureModuleAccess(ModuleKey.Documents, IsEmployeeAccess ? "My Documents" : "Documents"))
                 {
                     vm.ShowDocuments();
+                }
+                return;
+            }
+
+            if (q.Contains("verifier") || q.Contains("checklist") || q.Contains("compliance"))
+            {
+                if (EnsureModuleAccess(ModuleKey.DocumentVerification, "System Verifier"))
+                {
+                    vm.ShowDocumentVerification();
                 }
                 return;
             }
@@ -1004,15 +1361,30 @@ namespace HRMS.View
                     TrainingNavButton_OnClick(this, new RoutedEventArgs());
                     break;
                 case "ADJUSTMENTS":
-                    AdjustmentsNavButton_OnClick(this, new RoutedEventArgs());
+                    OpenAdjustmentsModule();
                     break;
                 case "ATTENDANCE":
-                    AttendanceNavButton_OnClick(this, new RoutedEventArgs());
+                    OpenAttendanceModule();
                     break;
                 default:
                     DashboardNavButton_OnClick(this, new RoutedEventArgs());
                     break;
             }
         }
+
+        private void EmployeeManagementEmployeesMenuItem_OnClick(object sender, RoutedEventArgs e) =>
+            OpenEmployeesModule();
+
+        private void EmployeeManagementDepartmentsMenuItem_OnClick(object sender, RoutedEventArgs e) =>
+            OpenDepartmentsModule();
+
+        private void AttendanceMenuItem_OnClick(object sender, RoutedEventArgs e) =>
+            OpenAttendanceModule();
+
+        private void AttendanceLogsMenuItem_OnClick(object sender, RoutedEventArgs e) =>
+            OpenAttendanceLogsModule();
+
+        private void AdjustmentsMenuItem_OnClick(object sender, RoutedEventArgs e) =>
+            OpenAdjustmentsModule();
     }
 }

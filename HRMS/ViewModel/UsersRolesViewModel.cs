@@ -1,4 +1,5 @@
 using HRMS.Model;
+using Microsoft.Win32;
 using MySqlConnector;
 using System;
 using System.Collections.Generic;
@@ -10,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Text.RegularExpressions;
@@ -67,7 +69,7 @@ namespace HRMS.ViewModel
         private const string LocalUserDefault = "hrms_app";
         private const string LocalPasswordDefault = "15248130";
 
-        private const string HostingerHostDefault = "srv1237.hstgr.io";
+        private const string HostingerHostDefault = "194.59.164.58";
         private const string HostingerPortDefault = "3306";
         private const string HostingerDbDefault = "u621755393_hrms3b";
         private const string HostingerUserDefault = "u621755393_hrms3b_user";
@@ -82,7 +84,16 @@ namespace HRMS.ViewModel
         private string _storageLocation = string.Empty;
         private string _tempFolderPath = string.Empty;
         private string _tempFilesSizeText = "0.00 MB";
+        private string _lastFullBackupText = "Never";
+        private string _lastDifferentialBackupText = "Never";
+        private string _lastIncrementalBackupText = "Never";
+        private BackupCatalogRow? _selectedBackup;
         private bool _confirmResetAndSeed;
+        private string _systemCompanyName = CompanyProfile.Default.CompanyName;
+        private string _systemCompanyAddress = CompanyProfile.Default.Address;
+        private string _systemCompanyOwner = CompanyProfile.Default.OwnerName;
+        private string _systemSerialNumber = CompanyProfile.Default.SerialNumber;
+        private string _systemLogoPath = CompanyProfile.Default.LogoPath;
 
         public ObservableCollection<UserAccessRow> Users { get; } = new();
         public ObservableCollection<string> Roles { get; } = new();
@@ -91,6 +102,7 @@ namespace HRMS.ViewModel
         public ObservableCollection<string> StatusOptions { get; } = new() { "ACTIVE", "INACTIVE", "LOCKED" };
         public ObservableCollection<RoleSummaryRow> RoleSummaries { get; } = new();
         public ObservableCollection<PermissionSummaryRow> PermissionSummaries { get; } = new();
+        public ObservableCollection<BackupCatalogRow> BackupCatalog { get; } = new();
 
         public ICommand RefreshCommand { get; }
         public ICommand AddUserCommand { get; }
@@ -101,13 +113,22 @@ namespace HRMS.ViewModel
         public ICommand TestDbConnectionCommand { get; }
         public ICommand CreateDatabaseCommand { get; }
         public ICommand SaveDbConnectionCommand { get; }
+        public ICommand SaveCompanyProfileCommand { get; }
+        public ICommand ChooseSystemLogoCommand { get; }
         public ICommand RefreshSystemInfoCommand { get; }
         public ICommand OpenStorageFolderCommand { get; }
+        public ICommand ChooseStorageFolderCommand { get; }
         public ICommand CreateBackupCommand { get; }
+        public ICommand CreateDifferentialBackupCommand { get; }
+        public ICommand CreateIncrementalBackupCommand { get; }
+        public ICommand RestoreBackupCommand { get; }
+        public ICommand DeleteBackupCommand { get; }
+        public ICommand ClearBackupSelectionCommand { get; }
         public ICommand ClearTempFilesCommand { get; }
         public ICommand SeedDatabaseCommand { get; }
         public ICommand ResetAndSeedCommand { get; }
         public ICommand ImportBeneficiariesCommand { get; }
+        public ICommand SyncLiveToLocalCommand { get; }
 
         public bool IsBusy
         {
@@ -450,6 +471,69 @@ namespace HRMS.ViewModel
             }
         }
 
+        public string LastFullBackupText
+        {
+            get => _lastFullBackupText;
+            private set
+            {
+                if (_lastFullBackupText == value)
+                {
+                    return;
+                }
+
+                _lastFullBackupText = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string LastDifferentialBackupText
+        {
+            get => _lastDifferentialBackupText;
+            private set
+            {
+                if (_lastDifferentialBackupText == value)
+                {
+                    return;
+                }
+
+                _lastDifferentialBackupText = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string LastIncrementalBackupText
+        {
+            get => _lastIncrementalBackupText;
+            private set
+            {
+                if (_lastIncrementalBackupText == value)
+                {
+                    return;
+                }
+
+                _lastIncrementalBackupText = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public BackupCatalogRow? SelectedBackup
+        {
+            get => _selectedBackup;
+            set
+            {
+                if (_selectedBackup == value)
+                {
+                    return;
+                }
+
+                _selectedBackup = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasSelectedBackup));
+            }
+        }
+
+        public bool HasSelectedBackup => SelectedBackup != null;
+
         public bool ConfirmResetAndSeed
         {
             get => _confirmResetAndSeed;
@@ -465,6 +549,86 @@ namespace HRMS.ViewModel
             }
         }
 
+        public string SystemCompanyName
+        {
+            get => _systemCompanyName;
+            set
+            {
+                var next = value ?? string.Empty;
+                if (_systemCompanyName == next)
+                {
+                    return;
+                }
+
+                _systemCompanyName = next;
+                OnPropertyChanged();
+            }
+        }
+
+        public string SystemCompanyAddress
+        {
+            get => _systemCompanyAddress;
+            set
+            {
+                var next = value ?? string.Empty;
+                if (_systemCompanyAddress == next)
+                {
+                    return;
+                }
+
+                _systemCompanyAddress = next;
+                OnPropertyChanged();
+            }
+        }
+
+        public string SystemCompanyOwner
+        {
+            get => _systemCompanyOwner;
+            set
+            {
+                var next = value ?? string.Empty;
+                if (_systemCompanyOwner == next)
+                {
+                    return;
+                }
+
+                _systemCompanyOwner = next;
+                OnPropertyChanged();
+            }
+        }
+
+        public string SystemSerialNumber
+        {
+            get => _systemSerialNumber;
+            set
+            {
+                var next = value ?? string.Empty;
+                if (_systemSerialNumber == next)
+                {
+                    return;
+                }
+
+                _systemSerialNumber = next;
+                OnPropertyChanged();
+            }
+        }
+
+        public string SystemLogoPath
+        {
+            get => _systemLogoPath;
+            set
+            {
+                var next = value ?? string.Empty;
+                if (_systemLogoPath == next)
+                {
+                    return;
+                }
+
+                _systemLogoPath = next;
+                OnPropertyChanged();
+            }
+        }
+
         public UsersRolesViewModel()
         {
             RefreshCommand = new AsyncRelayCommand(_ => LoadAsync());
@@ -476,16 +640,27 @@ namespace HRMS.ViewModel
             TestDbConnectionCommand = new AsyncRelayCommand(_ => TestDbConnectionAsync());
             CreateDatabaseCommand = new AsyncRelayCommand(_ => CreateDatabaseAsync());
             SaveDbConnectionCommand = new AsyncRelayCommand(_ => SaveDbConnectionAsync());
+            SaveCompanyProfileCommand = new AsyncRelayCommand(_ => SaveCompanyProfileAsync());
+            ChooseSystemLogoCommand = new AsyncRelayCommand(_ => ChooseSystemLogoAsync());
             RefreshSystemInfoCommand = new AsyncRelayCommand(_ => RefreshSystemInfoAsync());
             OpenStorageFolderCommand = new AsyncRelayCommand(_ => OpenStorageFolderAsync());
-            CreateBackupCommand = new AsyncRelayCommand(_ => CreateBackupAsync());
+            ChooseStorageFolderCommand = new AsyncRelayCommand(_ => ChooseStorageFolderAsync());
+            CreateBackupCommand = new AsyncRelayCommand(_ => CreateFullBackupAsync());
+            CreateDifferentialBackupCommand = new AsyncRelayCommand(_ => CreateDifferentialBackupAsync());
+            CreateIncrementalBackupCommand = new AsyncRelayCommand(_ => CreateIncrementalBackupAsync());
+            RestoreBackupCommand = new AsyncRelayCommand(RestoreBackupAsync);
+            DeleteBackupCommand = new AsyncRelayCommand(DeleteBackupAsync);
+            ClearBackupSelectionCommand = new AsyncRelayCommand(ClearBackupSelectionAsync);
             ClearTempFilesCommand = new AsyncRelayCommand(_ => ClearTempFilesAsync());
             SeedDatabaseCommand = new AsyncRelayCommand(_ => SeedDatabaseAsync());
             ResetAndSeedCommand = new AsyncRelayCommand(_ => ResetAndSeedAsync());
             ImportBeneficiariesCommand = new AsyncRelayCommand(_ => ImportBeneficiariesAsync());
+            SyncLiveToLocalCommand = new AsyncRelayCommand(_ => SyncLiveToLocalAsync());
 
             InitializeConnectionSettings();
             InitializeStoragePaths();
+            _ = RefreshBackupMetadataAsync();
+            _ = LoadCompanyProfileAsync();
 
             _ = LoadAsync();
         }
@@ -877,6 +1052,12 @@ namespace HRMS.ViewModel
 
         private static string ResolveStorageLocation()
         {
+            var overridePath = ReadStorageLocationOverride();
+            if (!string.IsNullOrWhiteSpace(overridePath))
+            {
+                return overridePath;
+            }
+
             var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             if (!string.IsNullOrWhiteSpace(localAppData))
             {
@@ -898,6 +1079,157 @@ namespace HRMS.ViewModel
             }
         }
 
+        private DatabaseBackupService CreateBackupService() =>
+            new(BuildCurrentConnectionString(), StorageLocation);
+
+        private async Task ChooseStorageFolderAsync()
+        {
+            try
+            {
+                var dialog = new OpenFolderDialog
+                {
+                    Title = "Select HRMS Storage Folder",
+                    InitialDirectory = Directory.Exists(StorageLocation)
+                        ? StorageLocation
+                        : Path.GetDirectoryName(StorageLocation)
+                };
+
+                if (dialog.ShowDialog() != true || string.IsNullOrWhiteSpace(dialog.FolderName))
+                {
+                    SetMessage("Storage folder selection canceled.", InfoBrush);
+                    return;
+                }
+
+                var selectedPath = Path.GetFullPath(dialog.FolderName.Trim());
+                EnsureDirectoryExists(selectedPath);
+                SaveStorageLocationOverride(selectedPath);
+                StorageLocation = selectedPath;
+                await RefreshBackupMetadataAsync();
+                SetMessage($"Storage folder updated to {selectedPath}.", SuccessBrush);
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Unable to update storage folder: {ex.Message}", ErrorBrush);
+            }
+        }
+
+        private async Task RefreshBackupMetadataAsync()
+        {
+            try
+            {
+                var metadata = await CreateBackupService().GetMetadataAsync();
+                LastFullBackupText = FormatBackupTimestamp(metadata.LastFull);
+                LastDifferentialBackupText = FormatBackupTimestamp(metadata.LastDifferential);
+                LastIncrementalBackupText = FormatBackupTimestamp(metadata.LastIncremental);
+                RebuildBackupCatalog(metadata);
+            }
+            catch
+            {
+                LastFullBackupText = "Unavailable";
+                LastDifferentialBackupText = "Unavailable";
+                LastIncrementalBackupText = "Unavailable";
+                BackupCatalog.Clear();
+                SelectedBackup = null;
+            }
+        }
+
+        private static string FormatBackupTimestamp(string? utcText)
+        {
+            if (string.IsNullOrWhiteSpace(utcText))
+            {
+                return "Never";
+            }
+
+            if (!DateTime.TryParse(
+                    utcText,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.RoundtripKind,
+                    out var timestamp))
+            {
+                return utcText;
+            }
+
+            return timestamp.ToLocalTime().ToString("MMM dd, yyyy hh:mm tt", CultureInfo.InvariantCulture);
+        }
+
+        private void RebuildBackupCatalog(DatabaseBackupMetadata metadata)
+        {
+            var selectedId = SelectedBackup?.BackupId;
+            var rows = (metadata.Backups ?? new List<DatabaseBackupCatalogEntry>())
+                .OrderByDescending(x => ParseBackupTimestamp(x.CreatedAtUtc))
+                .Select(entry =>
+                {
+                    var absolutePath = ResolveBackupAbsolutePath(entry.RelativePath);
+                    var parentShort = string.IsNullOrWhiteSpace(entry.ParentBackupId)
+                        ? "Root"
+                        : $"Parent: {ShortBackupId(entry.ParentBackupId)}";
+                    var baseShort = string.IsNullOrWhiteSpace(entry.BaseFullBackupId)
+                        ? "Base: Self"
+                        : $"Base: {ShortBackupId(entry.BaseFullBackupId)}";
+
+                    return new BackupCatalogRow(
+                        entry.BackupId,
+                        entry.BackupType,
+                        entry.DatabaseName,
+                        entry.CreatedAtUtc,
+                        entry.RelativePath,
+                        absolutePath,
+                        entry.ParentBackupId,
+                        entry.BaseFullBackupId,
+                        File.Exists(absolutePath),
+                        $"{parentShort} | {baseShort}");
+                })
+                .ToList();
+
+            BackupCatalog.Clear();
+            foreach (var row in rows)
+            {
+                BackupCatalog.Add(row);
+            }
+
+            SelectedBackup = !string.IsNullOrWhiteSpace(selectedId)
+                ? BackupCatalog.FirstOrDefault(x => string.Equals(x.BackupId, selectedId, StringComparison.OrdinalIgnoreCase))
+                : null;
+        }
+
+        private string ResolveBackupAbsolutePath(string relativePath)
+        {
+            if (Path.IsPathRooted(relativePath))
+            {
+                return relativePath;
+            }
+
+            return Path.Combine(StorageLocation, "Backups", relativePath ?? string.Empty);
+        }
+
+        private static DateTime ParseBackupTimestamp(string? utcText)
+        {
+            if (string.IsNullOrWhiteSpace(utcText))
+            {
+                return DateTime.MinValue;
+            }
+
+            return DateTime.TryParse(
+                    utcText,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.RoundtripKind,
+                    out var timestamp)
+                ? timestamp
+                : DateTime.MinValue;
+        }
+
+        private static string ShortBackupId(string? backupId)
+        {
+            if (string.IsNullOrWhiteSpace(backupId))
+            {
+                return "-";
+            }
+
+            return backupId.Length <= 8
+                ? backupId
+                : backupId[..8];
+        }
+
         private DbConnectionSettings GetCurrentConnectionSettings() =>
             new()
             {
@@ -910,6 +1242,9 @@ namespace HRMS.ViewModel
 
         private string BuildCurrentConnectionString() =>
             DbConfig.BuildConnectionString(GetCurrentConnectionSettings());
+
+        private CompanyProfileDataService CreateCompanyProfileService() =>
+            new(BuildCurrentConnectionString());
 
         private string BuildServerConnectionString()
         {
@@ -1033,10 +1368,139 @@ namespace HRMS.ViewModel
             }
         }
 
+        private async Task LoadCompanyProfileAsync()
+        {
+            try
+            {
+                var profile = await CreateCompanyProfileService().GetCompanyProfileAsync();
+                SystemCompanyName = profile.CompanyName;
+                SystemCompanyAddress = profile.Address;
+                SystemCompanyOwner = profile.OwnerName;
+                SystemSerialNumber = profile.SerialNumber;
+                SystemLogoPath = profile.LogoPath;
+            }
+            catch
+            {
+                SystemCompanyName = CompanyProfile.Default.CompanyName;
+                SystemCompanyAddress = CompanyProfile.Default.Address;
+                SystemCompanyOwner = CompanyProfile.Default.OwnerName;
+                SystemSerialNumber = CompanyProfile.Default.SerialNumber;
+                SystemLogoPath = CompanyProfile.Default.LogoPath;
+            }
+        }
+
+        private async Task SaveCompanyProfileAsync()
+        {
+            if (string.IsNullOrWhiteSpace(SystemCompanyName))
+            {
+                SetMessage("Company name is required.", ErrorBrush);
+                return;
+            }
+
+            try
+            {
+                var profile = new CompanyProfile
+                {
+                    CompanyName = SystemCompanyName,
+                    Address = SystemCompanyAddress,
+                    OwnerName = SystemCompanyOwner,
+                    SerialNumber = SystemSerialNumber,
+                    LogoPath = string.IsNullOrWhiteSpace(SystemLogoPath)
+                        ? CompanyProfile.Default.LogoPath
+                        : SystemLogoPath.Trim()
+                };
+
+                await CreateCompanyProfileService().SaveCompanyProfileAsync(profile);
+                await LoadCompanyProfileAsync();
+
+                SetMessage("System identity saved. Re-open Login/Dashboard to see updated branding.", SuccessBrush);
+                SystemRefreshBus.Raise("CompanyProfileUpdated");
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Saving system identity failed: {ex.Message}", ErrorBrush);
+            }
+        }
+
+        private Task ChooseSystemLogoAsync()
+        {
+            try
+            {
+                var dialog = new OpenFileDialog
+                {
+                    Title = "Choose Company Logo",
+                    Filter = "Image Files|*.png;*.jpg;*.jpeg;*.bmp;*.ico|PNG Files|*.png|JPEG Files|*.jpg;*.jpeg|Bitmap Files|*.bmp|Icon Files|*.ico",
+                    CheckFileExists = true,
+                    Multiselect = false
+                };
+
+                if (dialog.ShowDialog() != true || string.IsNullOrWhiteSpace(dialog.FileName))
+                {
+                    SetMessage("Logo selection canceled.", InfoBrush);
+                    return Task.CompletedTask;
+                }
+
+                var selectedPath = Path.GetFullPath(dialog.FileName.Trim());
+                var extension = Path.GetExtension(selectedPath);
+                if (string.IsNullOrWhiteSpace(extension))
+                {
+                    SetMessage("Selected file has no supported image extension.", ErrorBrush);
+                    return Task.CompletedTask;
+                }
+
+                var brandingDirectory = ResolveBrandingStorageLocation();
+                Directory.CreateDirectory(brandingDirectory);
+
+                foreach (var existingPath in Directory.GetFiles(brandingDirectory, "company-logo.*"))
+                {
+                    if (string.Equals(existingPath, selectedPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        File.Delete(existingPath);
+                    }
+                    catch
+                    {
+                        // Leave older branding files in place if cleanup fails.
+                    }
+                }
+
+                var destinationPath = Path.Combine(brandingDirectory, $"company-logo{extension.ToLowerInvariant()}");
+                if (!string.Equals(selectedPath, destinationPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    File.Copy(selectedPath, destinationPath, true);
+                }
+
+                SystemLogoPath = destinationPath;
+                SetMessage("Logo selected. Click Save Identity to apply it across Login and Dashboard.", SuccessBrush);
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Unable to choose logo: {ex.Message}", ErrorBrush);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private static string ResolveBrandingStorageLocation()
+        {
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (!string.IsNullOrWhiteSpace(localAppData))
+            {
+                return Path.Combine(localAppData, "HRMS", "Branding");
+            }
+
+            return Path.Combine(Path.GetTempPath(), "HRMS", "Branding");
+        }
+
         private async Task RefreshSystemInfoAsync()
         {
             UpdateTempFilesSize();
             await TestDbConnectionAsync();
+            await RefreshBackupMetadataAsync();
         }
 
         private async Task OpenStorageFolderAsync()
@@ -1057,56 +1521,202 @@ namespace HRMS.ViewModel
             }
         }
 
-        private async Task CreateBackupAsync()
+        private async Task CreateFullBackupAsync() =>
+            await RunBackupAsync(DatabaseBackupType.Full);
+
+        private async Task CreateDifferentialBackupAsync() =>
+            await RunBackupAsync(DatabaseBackupType.Differential);
+
+        private async Task CreateIncrementalBackupAsync() =>
+            await RunBackupAsync(DatabaseBackupType.Incremental);
+
+        private async Task RunBackupAsync(DatabaseBackupType backupType)
         {
             try
             {
-                var backupsFolder = Path.Combine(StorageLocation, "Backups");
-                Directory.CreateDirectory(backupsFolder);
+                SetMessage($"Creating {backupType.ToString().ToLowerInvariant()} backup...", InfoBrush);
+                var backupService = CreateBackupService();
 
-                var backupFile = Path.Combine(
-                    backupsFolder,
-                    $"{DbName}_{DateTime.Now:yyyyMMdd_HHmmss}.sql");
-
-                var args =
-                    $"--host=\"{DbHost}\" " +
-                    $"--port=\"{DbPort}\" " +
-                    $"--user=\"{DbUsername}\" " +
-                    $"--password=\"{DbPassword}\" " +
-                    $"--single-transaction --routines --events --databases \"{DbName}\" " +
-                    $"--result-file=\"{backupFile}\"";
-
-                var process = new Process
+                DatabaseBackupResult result = backupType switch
                 {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        FileName = "mysqldump",
-                        Arguments = args,
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        CreateNoWindow = true
-                    }
+                    DatabaseBackupType.Full => await backupService.CreateFullBackupAsync(),
+                    DatabaseBackupType.Differential => await backupService.CreateDifferentialBackupAsync(),
+                    _ => await backupService.CreateIncrementalBackupAsync()
                 };
 
-                process.Start();
-                var errorOutput = await process.StandardError.ReadToEndAsync();
-                await process.WaitForExitAsync();
+                await RefreshBackupMetadataAsync();
 
-                if (process.ExitCode != 0)
+                if (!result.Created)
                 {
-                    SetMessage(
-                        $"Backup failed. Ensure mysqldump is installed and in PATH. {errorOutput}".Trim(),
-                        ErrorBrush);
+                    SetMessage($"No changes detected. {backupType} backup was not created.", InfoBrush);
                     return;
                 }
 
-                SetMessage($"Backup created: {backupFile}", SuccessBrush);
+                SetMessage(
+                    $"{backupType} backup created: {result.FilePath} (tables: {result.TableCount}, rows: {result.RowCount}, changes: {result.ChangeCount}).",
+                    SuccessBrush);
             }
             catch (Exception ex)
             {
-                SetMessage($"Backup failed: {ex.Message}", ErrorBrush);
+                SetMessage($"{backupType} backup failed: {ex.Message}", ErrorBrush);
             }
+        }
+
+        private async Task RestoreBackupAsync(object? parameter)
+        {
+            try
+            {
+                var backupsRoot = Path.Combine(StorageLocation, "Backups");
+                Directory.CreateDirectory(backupsRoot);
+                var forceBrowse = parameter is string mode &&
+                                  string.Equals(mode, "browse", StringComparison.OrdinalIgnoreCase);
+                var selectedBackup = forceBrowse
+                    ? null
+                    : parameter as BackupCatalogRow ?? SelectedBackup;
+                string selectedFile;
+
+                if (selectedBackup != null)
+                {
+                    selectedFile = selectedBackup.AbsolutePath;
+                    if (!File.Exists(selectedFile))
+                    {
+                        SetMessage("Selected backup file is missing from storage.", ErrorBrush);
+                        await RefreshBackupMetadataAsync();
+                        return;
+                    }
+                }
+                else
+                {
+                    var dialog = new OpenFileDialog
+                    {
+                        Filter = "JSON Backup (*.json)|*.json",
+                        InitialDirectory = backupsRoot,
+                        Title = "Select Backup File to Restore",
+                        CheckFileExists = true,
+                        Multiselect = false
+                    };
+
+                    if (dialog.ShowDialog() != true)
+                    {
+                        return;
+                    }
+
+                    selectedFile = dialog.FileName;
+                }
+
+                var firstConfirm = MessageBox.Show(
+                    $"Restore backup '{Path.GetFileName(selectedFile)}' into database '{DbName}'?\n\nThis will replace current HRMS data.",
+                    "Confirm Restore",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (firstConfirm != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+
+                var secondConfirm = MessageBox.Show(
+                    "This cannot be undone from inside the app.\n\nContinue with restore?",
+                    "Final Restore Confirmation",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (secondConfirm != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+
+                SetMessage($"Restoring backup from {selectedFile}...", InfoBrush);
+                var result = await CreateBackupService().RestoreBackupAsync(selectedFile);
+                await RefreshBackupMetadataAsync();
+                await LoadAsync();
+
+                SetMessage(
+                    $"Restore completed from {Path.GetFileName(result.FilePath)} ({result.BackupType}, tables: {result.TableCount}, rows: {result.RowCount}).",
+                    SuccessBrush);
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Restore failed: {ex.Message}", ErrorBrush);
+            }
+        }
+
+        private Task ClearBackupSelectionAsync(object? parameter)
+        {
+            SelectedBackup = null;
+            return Task.CompletedTask;
+        }
+
+        private async Task DeleteBackupAsync(object? parameter)
+        {
+            try
+            {
+                var selectedBackup = parameter as BackupCatalogRow ?? SelectedBackup;
+                if (selectedBackup == null)
+                {
+                    SetMessage("Select a backup from the table first.", ErrorBrush);
+                    return;
+                }
+
+                var deleteCount = CountDependentBackups(selectedBackup.BackupId);
+                var prompt = deleteCount > 1
+                    ? $"Delete '{selectedBackup.FileName}' and its {deleteCount - 1} dependent backup(s)?\n\nThis removes the files from storage and the backup catalog."
+                    : $"Delete '{selectedBackup.FileName}' from storage and the backup catalog?";
+
+                var confirm = MessageBox.Show(
+                    prompt,
+                    "Confirm Delete Backup",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (confirm != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+
+                var result = await CreateBackupService().DeleteBackupAsync(selectedBackup.BackupId);
+                await RefreshBackupMetadataAsync();
+
+                SetMessage(
+                    result.MissingFiles > 0
+                        ? $"Backup deleted. Removed {result.DeletedEntries} catalog entr{(result.DeletedEntries == 1 ? "y" : "ies")} with {result.DeletedFiles} file(s) deleted and {result.MissingFiles} missing file(s) cleaned from metadata."
+                        : $"Backup deleted. Removed {result.DeletedEntries} catalog entr{(result.DeletedEntries == 1 ? "y" : "ies")} and deleted {result.DeletedFiles} file(s).",
+                    SuccessBrush);
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Delete backup failed: {ex.Message}", ErrorBrush);
+            }
+        }
+
+        private int CountDependentBackups(string backupId)
+        {
+            if (string.IsNullOrWhiteSpace(backupId))
+            {
+                return 0;
+            }
+
+            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var queue = new Queue<string>();
+            queue.Enqueue(backupId);
+
+            while (queue.Count > 0)
+            {
+                var current = queue.Dequeue();
+                if (!visited.Add(current))
+                {
+                    continue;
+                }
+
+                foreach (var child in BackupCatalog.Where(x =>
+                             !string.IsNullOrWhiteSpace(x.ParentBackupId) &&
+                             string.Equals(x.ParentBackupId, current, StringComparison.OrdinalIgnoreCase)))
+                {
+                    queue.Enqueue(child.BackupId);
+                }
+            }
+
+            return visited.Count;
         }
 
         private async Task ClearTempFilesAsync()
@@ -1152,6 +1762,45 @@ namespace HRMS.ViewModel
             }
         }
 
+        private async Task SyncLiveToLocalAsync()
+        {
+            var confirm = MessageBox.Show(
+                "Sync the current live Hostinger HRMS, GGMS, and CRS data into the localhost offline databases?\n\nThis overwrites the local offline snapshot only. The live online databases are not modified.",
+                "Sync Live to Local",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (confirm != MessageBoxResult.Yes)
+            {
+                SetMessage("Live-to-local sync canceled.", InfoBrush);
+                return;
+            }
+
+            try
+            {
+                IsBusy = true;
+                var progress = new Progress<string>(message => SetMessage(message, InfoBrush));
+                var syncService = new LiveToLocalSyncService(StorageLocation);
+                var result = await syncService.SyncAsync(progress);
+
+                await LoadCompanyProfileAsync();
+
+                SetMessage(
+                    $"Live-to-local sync complete. Local snapshot now has {result.EmployeeCount} employees, {result.PayrollRunCount} payroll runs, {result.CrsBeneficiaryCount} CRS beneficiaries, and GGMS remaining balance PHP {result.GgmsRemainingAmount:N2}. Switch to Local when you need offline access.",
+                    SuccessBrush);
+
+                SystemRefreshBus.Raise("LiveToLocalSynced");
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Live-to-local sync failed: {ex.Message}", ErrorBrush);
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
         private async Task SeedDatabaseAsync()
         {
             try
@@ -1192,11 +1841,11 @@ namespace HRMS.ViewModel
             try
             {
                 var hrmsConnectionString = BuildCurrentConnectionString();
-                var sulopConnectionString = SulopConfig.ConnectionString;
-                var importService = new BeneficiaryImportService(hrmsConnectionString, sulopConnectionString);
+                var crsConnectionString = CrsConfig.ConnectionString;
+                var importService = new BeneficiaryImportService(hrmsConnectionString, crsConnectionString);
 
-                SetMessage("Importing beneficiaries from Sulop...", InfoBrush);
-                var result = await importService.ImportFromSulopAsync();
+                SetMessage("Importing beneficiaries from CRS (batch mode)...", InfoBrush);
+                var result = await importService.ImportFromCrsAsync();
 
                 SetMessage(
                     $"Import complete. Imported: {result.Imported}, Skipped: {result.Skipped}, Invalid: {result.Invalid}.",
@@ -1343,6 +1992,48 @@ DELETE FROM schema_migrations;";
             }
 
             return $"{bytes:0} B";
+        }
+
+        private static string? ReadStorageLocationOverride()
+        {
+            try
+            {
+                var configPath = GetStorageLocationConfigPath();
+                if (!File.Exists(configPath))
+                {
+                    return null;
+                }
+
+                var value = File.ReadAllText(configPath).Trim();
+                return string.IsNullOrWhiteSpace(value) ? null : value;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static void SaveStorageLocationOverride(string storageLocation)
+        {
+            var configPath = GetStorageLocationConfigPath();
+            var folder = Path.GetDirectoryName(configPath);
+            if (!string.IsNullOrWhiteSpace(folder))
+            {
+                Directory.CreateDirectory(folder);
+            }
+
+            File.WriteAllText(configPath, storageLocation);
+        }
+
+        private static string GetStorageLocationConfigPath()
+        {
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (string.IsNullOrWhiteSpace(localAppData))
+            {
+                localAppData = Path.GetTempPath();
+            }
+
+            return Path.Combine(localAppData, "HRMS", "storage_location.txt");
         }
 
         private void SetDatabaseConnectionState(string status, Brush brush)
@@ -1622,6 +2313,68 @@ DELETE FROM schema_migrations;";
 
         private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    public sealed class BackupCatalogRow
+    {
+        public BackupCatalogRow(
+            string backupId,
+            string backupType,
+            string databaseName,
+            string createdAtUtc,
+            string relativePath,
+            string absolutePath,
+            string? parentBackupId,
+            string? baseFullBackupId,
+            bool exists,
+            string chainText)
+        {
+            BackupId = backupId ?? string.Empty;
+            BackupType = backupType ?? string.Empty;
+            BackupTypeLabel = string.IsNullOrWhiteSpace(backupType) ? "-" : backupType.Trim();
+            DatabaseName = string.IsNullOrWhiteSpace(databaseName) ? "-" : databaseName.Trim();
+            CreatedAtUtc = createdAtUtc ?? string.Empty;
+            CreatedAtText = TryFormatCreatedAt(createdAtUtc);
+            RelativePath = relativePath ?? string.Empty;
+            AbsolutePath = absolutePath ?? string.Empty;
+            FileName = string.IsNullOrWhiteSpace(AbsolutePath) ? "-" : Path.GetFileName(AbsolutePath);
+            ParentBackupId = parentBackupId ?? string.Empty;
+            BaseFullBackupId = baseFullBackupId;
+            Exists = exists;
+            StatusText = exists ? "Ready" : "Missing File";
+            ChainText = string.IsNullOrWhiteSpace(chainText) ? "-" : chainText;
+        }
+
+        public string BackupId { get; }
+        public string BackupType { get; }
+        public string BackupTypeLabel { get; }
+        public string DatabaseName { get; }
+        public string CreatedAtUtc { get; }
+        public string CreatedAtText { get; }
+        public string RelativePath { get; }
+        public string AbsolutePath { get; }
+        public string FileName { get; }
+        public string ParentBackupId { get; }
+        public string? BaseFullBackupId { get; }
+        public bool Exists { get; }
+        public string StatusText { get; }
+        public string ChainText { get; }
+
+        private static string TryFormatCreatedAt(string? createdAtUtc)
+        {
+            if (string.IsNullOrWhiteSpace(createdAtUtc))
+            {
+                return "-";
+            }
+
+            return DateTime.TryParse(
+                       createdAtUtc,
+                       CultureInfo.InvariantCulture,
+                       DateTimeStyles.RoundtripKind,
+                       out var timestamp)
+                ? timestamp.ToLocalTime().ToString("MMM dd, yyyy hh:mm tt", CultureInfo.InvariantCulture)
+                : createdAtUtc;
+        }
     }
 
     public class RoleSummaryRow

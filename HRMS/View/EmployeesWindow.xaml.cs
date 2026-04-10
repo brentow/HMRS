@@ -16,6 +16,11 @@ namespace HRMS.View
 {
     public partial class EmployeesWindow : UserControl
     {
+        private static readonly GridLength MasterlistExpandedWidth = new(0.62, GridUnitType.Star);
+        private static readonly GridLength DetailsExpandedWidth = new(1.38, GridUnitType.Star);
+        private static readonly GridLength MasterlistCollapsedWidth = new(0);
+        private static readonly GridLength DetailsCollapsedWidth = new(1, GridUnitType.Star);
+
         public static readonly DependencyProperty IsEditModeProperty =
             DependencyProperty.Register(
                 nameof(IsEditMode),
@@ -38,12 +43,14 @@ namespace HRMS.View
         private IReadOnlyList<int> _salaryGradeLookups = Array.Empty<int>();
         private static readonly IReadOnlyList<int> SalaryStepLookups = Enumerable.Range(1, 8).ToArray();
         private bool _suppressProfileLookupEvents;
+        private bool _isEmployeeSelfMode;
 
         public EmployeesWindow()
         {
             InitializeComponent();
             DataContext = new EmployeesViewModel();
             SetEditMode(false);
+            ApplyAccessScope(null);
         }
 
         public async Task RefreshAsync()
@@ -54,6 +61,24 @@ namespace HRMS.View
             }
 
             await AddEmployeeForm.RefreshReferenceDataAsync();
+        }
+
+        public void SetCurrentUser(AuthenticatedUser? user)
+        {
+            if (DataContext is EmployeesViewModel vm)
+            {
+                vm.SetCurrentUser(user);
+            }
+
+            ApplyAccessScope(user);
+        }
+
+        public void OpenProfileTab()
+        {
+            if (EmployeeDetailsTabs != null)
+            {
+                EmployeeDetailsTabs.SelectedIndex = 0;
+            }
         }
 
         private void DataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -191,6 +216,11 @@ namespace HRMS.View
 
         private void SetEditMode(bool enabled)
         {
+            if (_isEmployeeSelfMode)
+            {
+                enabled = false;
+            }
+
             _isEditMode = enabled;
             IsEditMode = enabled;
             SaveProfileButton.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
@@ -216,6 +246,63 @@ namespace HRMS.View
 
             ApplyEditModeToDetailsControls();
             Dispatcher.BeginInvoke(new Action(ApplyEditModeToDetailsControls), DispatcherPriority.Loaded);
+        }
+
+        private void ApplyAccessScope(AuthenticatedUser? user)
+        {
+            _isEmployeeSelfMode = string.Equals(user?.RoleName?.Trim(), "Employee", StringComparison.OrdinalIgnoreCase);
+
+            if (_isEmployeeSelfMode && _isEditMode)
+            {
+                SetEditMode(false);
+            }
+
+            if (AddEmployeeButton != null)
+            {
+                AddEmployeeButton.Visibility = _isEmployeeSelfMode ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            if (EditProfileButton != null)
+            {
+                EditProfileButton.Visibility = _isEmployeeSelfMode ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            if (SaveProfileButton != null)
+            {
+                SaveProfileButton.Visibility = _isEmployeeSelfMode ? Visibility.Collapsed : SaveProfileButton.Visibility;
+            }
+
+            if (EmployeeStatsPanel != null)
+            {
+                EmployeeStatsPanel.Visibility = _isEmployeeSelfMode ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            if (EmployeeMasterlistPanel != null)
+            {
+                EmployeeMasterlistPanel.Visibility = _isEmployeeSelfMode ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            if (MasterlistColumn != null)
+            {
+                MasterlistColumn.Width = _isEmployeeSelfMode ? MasterlistCollapsedWidth : MasterlistExpandedWidth;
+            }
+
+            if (DetailsColumn != null)
+            {
+                DetailsColumn.Width = _isEmployeeSelfMode ? DetailsCollapsedWidth : DetailsExpandedWidth;
+            }
+
+            if (PageTitleText != null)
+            {
+                PageTitleText.Text = _isEmployeeSelfMode ? "My Department / Position" : "Employees";
+            }
+
+            if (PageSubtitleText != null)
+            {
+                PageSubtitleText.Text = _isEmployeeSelfMode
+                    ? "Your assignment, employment profile, salary/appointment, and government IDs."
+                    : "Employee masterlist, profile details, salary/appointment, and government IDs";
+            }
         }
 
         private async Task LoadProfileLookupsAsync()

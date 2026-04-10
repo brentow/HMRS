@@ -222,7 +222,9 @@ namespace HRMS.ViewModel
                         row.TimeIn,
                         row.TimeOut,
                         row.WorkedMinutes,
-                        row.Remarks));
+                        row.Remarks,
+                        row.LateMinutes,
+                        row.EarlyOutMinutes));
                 }
 
                 DtrCertificationRows.Clear();
@@ -294,7 +296,7 @@ namespace HRMS.ViewModel
                 var path = dialog.FileName;
 
                 var builder = new StringBuilder();
-                builder.AppendLine("Employee No,Employee Name,Date,Day,AM Arrival,AM Departure,PM Arrival,PM Departure,Worked Minutes,Worked Hours,Remarks");
+                builder.AppendLine("Employee No,Employee Name,Date,Day,AM Arrival,AM Departure,PM Arrival,PM Departure,Worked Minutes,Worked Hours,Late Minutes,Early Out Minutes,Attendance Flag,Remarks");
 
                 foreach (var row in DtrDailyRows)
                 {
@@ -309,6 +311,9 @@ namespace HRMS.ViewModel
                         Csv(row.PmDeparture),
                         Csv(row.WorkedMinutes.ToString(CultureInfo.InvariantCulture)),
                         Csv(row.WorkedHoursText),
+                        Csv(row.LateMinutes.ToString(CultureInfo.InvariantCulture)),
+                        Csv(row.EarlyOutMinutes.ToString(CultureInfo.InvariantCulture)),
+                        Csv(row.AttendanceFlag),
                         Csv(row.Remarks)));
                 }
 
@@ -452,7 +457,9 @@ namespace HRMS.ViewModel
             DateTime? timeIn,
             DateTime? timeOut,
             int workedMinutes,
-            string remarks)
+            string remarks,
+            int lateMinutes,
+            int earlyOutMinutes)
         {
             EmployeeId = employeeId;
             EmployeeNo = string.IsNullOrWhiteSpace(employeeNo) ? "-" : employeeNo.Trim();
@@ -462,6 +469,8 @@ namespace HRMS.ViewModel
             TimeOut = timeOut;
             WorkedMinutes = workedMinutes;
             Remarks = string.IsNullOrWhiteSpace(remarks) ? "-" : remarks.Trim();
+            LateMinutes = lateMinutes;
+            EarlyOutMinutes = earlyOutMinutes;
         }
 
         public int EmployeeId { get; }
@@ -472,6 +481,8 @@ namespace HRMS.ViewModel
         public DateTime? TimeOut { get; }
         public int WorkedMinutes { get; }
         public string Remarks { get; }
+        public int LateMinutes { get; }
+        public int EarlyOutMinutes { get; }
 
         public string DateText => WorkDate == DateTime.MinValue ? "-" : WorkDate.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture);
         public string DayName => WorkDate == DateTime.MinValue ? "-" : WorkDate.ToString("ddd", CultureInfo.InvariantCulture);
@@ -480,6 +491,13 @@ namespace HRMS.ViewModel
         public string PmArrival => TimeIn.HasValue && TimeOut.HasValue ? "01:00 PM" : "--";
         public string PmDeparture => TimeOut.HasValue ? TimeOut.Value.ToString("hh:mm tt", CultureInfo.InvariantCulture) : "--";
         public string WorkedHoursText => FormatMinutes(WorkedMinutes);
+        public string AttendanceFlag => LateMinutes > 0 && EarlyOutMinutes > 0
+            ? $"Late {LateMinutes}m / Early {EarlyOutMinutes}m"
+            : LateMinutes > 0
+                ? $"Late {LateMinutes}m"
+                : EarlyOutMinutes > 0
+                    ? $"Early out {EarlyOutMinutes}m"
+                    : "On time";
 
         private static string FormatMinutes(int workedMinutes)
         {

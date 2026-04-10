@@ -21,22 +21,41 @@ namespace HRMS.Model
         }
 
         /// <summary>
-        /// Retrieves staging beneficiaries filtered by verification status.
+        /// Retrieves staging beneficiaries filtered by verification status and optional search text.
+        /// Returns paged results to keep UI responsive for large datasets.
         /// </summary>
-        /// <param name="verificationStatus">Optional: 0=Pending, 1=Approved, 2=Rejected. If null, returns all.</param>
-        /// <param name="limit">Maximum number of records to return (default 500).</param>
-        public async Task<IReadOnlyList<BeneficiaryStagingDto>> GetStagingBeneficiariesAsync(
+        public async Task<(IReadOnlyList<BeneficiaryStagingDto> Items, int TotalCount)> GetStagingBeneficiariesAsync(
             BeneficiaryVerificationStatus? verificationStatus = null,
-            int limit = 500)
+            string? searchText = null,
+            int page = 1,
+            int pageSize = 50)
         {
+            const string countSql = @"
+SELECT COUNT(*)
+FROM BeneficiaryStaging
+WHERE (@status IS NULL OR VerificationStatus = @status)
+  AND (
+      @search = ''
+      OR COALESCE(BeneficiaryId, '') LIKE CONCAT('%', @search, '%')
+      OR COALESCE(FullName, '') LIKE CONCAT('%', @search, '%')
+      OR COALESCE(FirstName, '') LIKE CONCAT('%', @search, '%')
+      OR COALESCE(LastName, '') LIKE CONCAT('%', @search, '%')
+  );";
+
             const string sql = @"
 SELECT
     StagingID,
-    CivilRegistryID,
+    COALESCE(BeneficiaryId, '') AS BeneficiaryID,
+    COALESCE(NULLIF(BeneficiaryId, ''), CivilRegistryID) AS CivilRegistryID,
     FirstName,
     LastName,
     COALESCE(MiddleName, '') AS MiddleName,
+    COALESCE(FullName, '') AS FullName,
     COALESCE(Address, '') AS Address,
+    COALESCE(Sex, '') AS Sex,
+    COALESCE(Age, '') AS Age,
+    COALESCE(IsPwd, 0) AS IsPwd,
+    COALESCE(IsSenior, 0) AS IsSenior,
     VerificationStatus,
     ImportedAt,
     COALESCE(Remarks, '') AS Remarks,
@@ -44,6 +63,13 @@ SELECT
     MasterID
 FROM BeneficiaryStaging
 WHERE (@status IS NULL OR VerificationStatus = @status)
+  AND (
+      @search = ''
+      OR COALESCE(BeneficiaryId, '') LIKE CONCAT('%', @search, '%')
+      OR COALESCE(FullName, '') LIKE CONCAT('%', @search, '%')
+      OR COALESCE(FirstName, '') LIKE CONCAT('%', @search, '%')
+      OR COALESCE(LastName, '') LIKE CONCAT('%', @search, '%')
+  )
 ORDER BY
     CASE VerificationStatus
         WHEN 0 THEN 1  -- Pending first
@@ -51,39 +77,63 @@ ORDER BY
         WHEN 2 THEN 3  -- Rejected last
     END,
     ImportedAt DESC
-LIMIT @limit;";
+LIMIT @limit OFFSET @offset;";
+
+            page = page <= 0 ? 1 : page;
+            pageSize = pageSize <= 0 ? 50 : pageSize;
+            var offset = (page - 1) * pageSize;
+            var normalizedSearch = (searchText ?? string.Empty).Trim();
 
             var results = new List<BeneficiaryStagingDto>();
             await using var connection = new MySqlConnection(_connectionString);
             await connection.OpenAsync();
+            await BeneficiaryStagingSchemaCompatibility.EnsureAsync(connection);
+
+            int totalCount;
+            await using (var countCommand = connection.CreateCommand())
+            {
+                countCommand.CommandText = countSql;
+                countCommand.Parameters.AddWithValue("@status", verificationStatus.HasValue ? (object)(int)verificationStatus.Value : null);
+                countCommand.Parameters.AddWithValue("@search", normalizedSearch);
+                var countObj = await countCommand.ExecuteScalarAsync();
+                totalCount = Convert.ToInt32(countObj ?? 0, CultureInfo.InvariantCulture);
+            }
 
             await using var command = connection.CreateCommand();
             command.CommandText = sql;
             command.Parameters.AddWithValue("@status", verificationStatus.HasValue ? (object)(int)verificationStatus.Value : null);
-            command.Parameters.AddWithValue("@limit", limit);
+            command.Parameters.AddWithValue("@search", normalizedSearch);
+            command.Parameters.AddWithValue("@limit", pageSize);
+            command.Parameters.AddWithValue("@offset", offset);
 
             await using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                var statusInt = reader.GetInt32(6);
+                var statusInt = reader.GetInt32(12);
                 var status = (BeneficiaryVerificationStatus)statusInt;
 
                 results.Add(new BeneficiaryStagingDto(
                     StagingID: reader.GetInt32(0),
-                    CivilRegistryID: reader.GetString(1),
-                    FirstName: reader.GetString(2),
-                    LastName: reader.GetString(3),
-                    MiddleName: string.IsNullOrWhiteSpace(reader.GetString(4)) ? null : reader.GetString(4),
-                    Address: string.IsNullOrWhiteSpace(reader.GetString(5)) ? null : reader.GetString(5),
+                    BeneficiaryID: reader.GetString(1),
+                    CivilRegistryID: reader.GetString(2),
+                    FirstName: reader.GetString(3),
+                    LastName: reader.GetString(4),
+                    MiddleName: string.IsNullOrWhiteSpace(reader.GetString(5)) ? null : reader.GetString(5),
+                    FullName: string.IsNullOrWhiteSpace(reader.GetString(6)) ? null : reader.GetString(6),
+                    Address: string.IsNullOrWhiteSpace(reader.GetString(7)) ? null : reader.GetString(7),
+                    Sex: string.IsNullOrWhiteSpace(reader.GetString(8)) ? null : reader.GetString(8),
+                    Age: string.IsNullOrWhiteSpace(reader.GetString(9)) ? null : reader.GetString(9),
+                    IsPwd: reader["IsPwd"] != DBNull.Value && Convert.ToBoolean(reader["IsPwd"], CultureInfo.InvariantCulture),
+                    IsSenior: reader["IsSenior"] != DBNull.Value && Convert.ToBoolean(reader["IsSenior"], CultureInfo.InvariantCulture),
                     VerificationStatus: status,
-                    ImportedAt: reader.GetDateTime(7),
-                    Remarks: string.IsNullOrWhiteSpace(reader.GetString(8)) ? null : reader.GetString(8),
-                    ApprovedRejectedAt: reader.IsDBNull(9) ? null : reader.GetDateTime(9),
-                    MasterID: reader.IsDBNull(10) ? null : reader.GetInt32(10)
+                    ImportedAt: reader.GetDateTime(13),
+                    Remarks: string.IsNullOrWhiteSpace(reader.GetString(14)) ? null : reader.GetString(14),
+                    ApprovedRejectedAt: reader.IsDBNull(15) ? null : reader.GetDateTime(15),
+                    MasterID: reader.IsDBNull(16) ? null : reader.GetInt32(16)
                 ));
             }
 
-            return new ReadOnlyCollection<BeneficiaryStagingDto>(results);
+            return (new ReadOnlyCollection<BeneficiaryStagingDto>(results), totalCount);
         }
 
         /// <summary>
@@ -119,6 +169,7 @@ WHERE StagingID = @staging_id;";
             {
                 await using var connection = new MySqlConnection(_connectionString);
                 await connection.OpenAsync();
+                await BeneficiaryStagingSchemaCompatibility.EnsureAsync(connection);
 
                 await using var command = connection.CreateCommand();
                 command.CommandText = sql;
@@ -156,6 +207,7 @@ FROM BeneficiaryStaging;";
 
             await using var connection = new MySqlConnection(_connectionString);
             await connection.OpenAsync();
+            await BeneficiaryStagingSchemaCompatibility.EnsureAsync(connection);
 
             await using var command = connection.CreateCommand();
             command.CommandText = sql;
@@ -175,8 +227,8 @@ FROM BeneficiaryStaging;";
         /// </summary>
         /// <param name="stagingId">The StagingID of the approved beneficiary.</param>
         /// <param name="beneficiary">The beneficiary staging DTO with name information.</param>
-        /// <returns>Tuple of (userId, temporaryPassword)</returns>
-        public async Task<(int UserId, string TemporaryPassword)> CreateBeneficiaryAccountAsync(
+        /// <returns>Tuple of (userId, username, temporaryPassword)</returns>
+        public async Task<(int UserId, string Username, string TemporaryPassword)> CreateBeneficiaryAccountAsync(
             int stagingId,
             BeneficiaryStagingDto beneficiary)
         {
@@ -199,8 +251,8 @@ FROM BeneficiaryStaging;";
             var baseUsername = username;
             var counter = 1;
 
-            // Generate temporary password
-            var temporaryPassword = PasswordSecurity.GenerateTemporaryPassword();
+            // Required by integration spec for newly approved beneficiary accounts.
+            var temporaryPassword = "Constituent@2026";
             var passwordHash = PasswordSecurity.HashPassword(temporaryPassword);
 
             // Full name for account
@@ -212,6 +264,7 @@ FROM BeneficiaryStaging;";
 
             await using var connection = new MySqlConnection(_connectionString);
             await connection.OpenAsync();
+            await BeneficiaryStagingSchemaCompatibility.EnsureAsync(connection);
 
             // Check if username exists and generate unique one if needed
             while (await UsernameExistsAsync(connection, username))
@@ -259,7 +312,8 @@ VALUES (
                 insertCommand.Parameters.AddWithValue("@username", username);
                 insertCommand.Parameters.AddWithValue("@password_hash", passwordHash);
                 insertCommand.Parameters.AddWithValue("@full_name", fullName);
-                insertCommand.Parameters.AddWithValue("@email", $"{beneficiary.CivilRegistryID}@beneficiary.local"); // Placeholder email
+                var identity = string.IsNullOrWhiteSpace(beneficiary.CivilRegistryID) ? $"beneficiary{stagingId}" : beneficiary.CivilRegistryID;
+                insertCommand.Parameters.AddWithValue("@email", $"{identity}@beneficiary.local"); // Placeholder email
 
                 var inserted = await insertCommand.ExecuteNonQueryAsync();
                 if (inserted <= 0 || insertCommand.LastInsertedId <= 0)
@@ -284,7 +338,7 @@ WHERE StagingID = @staging_id;";
 
                 await transaction.CommitAsync();
 
-                return (userId, temporaryPassword);
+                return (userId, username, temporaryPassword);
             }
             catch (Exception)
             {
@@ -322,7 +376,7 @@ WHERE StagingID = @staging_id;";
             // Create "Beneficiary" role if it doesn't exist
             const string insertSql = @"
 INSERT INTO roles (role_name, description)
-VALUES ('Beneficiary', 'Role for Municipality of Sulop beneficiaries');";
+VALUES ('Beneficiary', 'Role for CRS-imported beneficiaries');";
 
             await using var insertCommand = connection.CreateCommand();
             insertCommand.CommandText = insertSql;

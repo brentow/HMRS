@@ -185,26 +185,106 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="150" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="220" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <TextBlock Grid.Column="0" Text="Status Filter:" Foreground="{StaticResource PrimaryBrush}" 
                                FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0" />
                     <ComboBox Grid.Column="1" ItemsSource="{Binding StatusFilters}" SelectedItem="{Binding SelectedStatusFilter}"
                               Style="{StaticResource ComboBoxStyle}" />
+
+                    <TextBlock Grid.Column="3" Text="Search:" Foreground="{StaticResource PrimaryBrush}" 
+                               FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0" />
+                    <TextBox Grid.Column="4" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputStyle}"
+                             ToolTip="Search by full name, first/last name, or Beneficiary ID" />
+
+                    <TextBlock Grid.Column="6" Text="{Binding PageInfo}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#4A5B6C" Margin="12,0,8,0"/>
+                    <Button Grid.Column="7" Content="Prev" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding CanGoPreviousPage}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0"/>
+                    <Button Grid.Column="8" Content="Next" Command="{Binding NextPageCommand}" IsEnabled="{Binding CanGoNextPage}" Style="{StaticResource SecondaryButtonStyle}"/>
                 </Grid>
 
                 <!-- Beneficiary DataGrid -->
                 <DataGrid Grid.Row="1" ItemsSource="{Binding Beneficiaries}" SelectedItem="{Binding SelectedBeneficiary}"
                           AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                          IsReadOnly="True"
                           ColumnHeaderStyle="{StaticResource HeaderStyle}" CellStyle="{StaticResource GridCellStyle}"
                           RowStyle="{StaticResource GridRowStyle}" RowHeight="36">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Civil Registry ID" Binding="{Binding CivilRegistryID}" Width="140" />
-                        <DataGridTextColumn Header="First Name" Binding="{Binding FirstName}" Width="120" />
-                        <DataGridTextColumn Header="Last Name" Binding="{Binding LastName}" Width="120" />
+                        <DataGridTextColumn Header="Full Name" Binding="{Binding FullNameDisplay, Mode=OneWay}" Width="220" />
+                        <DataGridTextColumn Header="Beneficiary ID" Binding="{Binding BeneficiaryID}" Width="150" />
                         <DataGridTextColumn Header="Address" Binding="{Binding Address}" Width="*" />
-                        <DataGridTextColumn Header="Imported" Binding="{Binding ImportedAt, StringFormat='MMM dd, yyyy'}" Width="110" />
-                        <DataGridTextColumn Header="Status" Binding="{Binding VerificationStatus}" Width="100" />
+                        <DataGridTextColumn Header="Sex" Binding="{Binding Sex}" Width="90" />
+                        <DataGridTextColumn Header="Age" Binding="{Binding Age}" Width="70" />
+                        <DataGridTemplateColumn Header="PWD" Width="70">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value="No"/>
+                                                <Setter Property="Foreground" Value="#4A5B6C"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsPwd}" Value="True">
+                                                        <Setter Property="Text" Value="Yes"/>
+                                                        <Setter Property="Foreground" Value="#2E9D5B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Senior" Width="80">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value="No"/>
+                                                <Setter Property="Foreground" Value="#4A5B6C"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSenior}" Value="True">
+                                                        <Setter Property="Text" Value="Yes"/>
+                                                        <Setter Property="Foreground" Value="#2E9D5B"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Status" Width="120">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border Padding="8,3" CornerRadius="8" HorizontalAlignment="Center">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="#FFF3CD"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding VerificationStatus}" Value="Approved">
+                                                        <Setter Property="Background" Value="#D1F2DE"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding VerificationStatus}" Value="Rejected">
+                                                        <Setter Property="Background" Value="#FAD4D4"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Text="{Binding VerificationStatus}" FontWeight="SemiBold"/>
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="Imported" Binding="{Binding ImportedAt, StringFormat='MMM dd, yyyy hh:mm tt'}" Width="160" />
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>
@@ -235,8 +315,8 @@
                         <TextBlock Text="{Binding SelectedBeneficiary.LastName}" Foreground="#333" />
                     </StackPanel>
 
-                    <TextBlock Grid.Column="2" Text="Civil Registry ID:" Foreground="{StaticResource PrimaryBrush}" FontWeight="SemiBold" Margin="12,0,0,0" />
-                    <TextBlock Grid.Column="3" Text="{Binding SelectedBeneficiary.CivilRegistryID}" Foreground="#333" Margin="8,0" />
+                    <TextBlock Grid.Column="2" Text="Beneficiary ID:" Foreground="{StaticResource PrimaryBrush}" FontWeight="SemiBold" Margin="12,0,0,0" />
+                    <TextBlock Grid.Column="3" Text="{Binding SelectedBeneficiary.BeneficiaryID}" Foreground="#333" Margin="8,0" />
                 </Grid>
 
                 <!-- Remarks Input -->
@@ -262,10 +342,10 @@
                     </Grid.ColumnDefinitions>
 
                     <Button Grid.Column="0" Content="Approve" Command="{Binding ApproveBeneficiaryCommand}"
-                            IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}"
+                            IsEnabled="{Binding CanProcessSelected}"
                             Style="{StaticResource ApproveButtonStyle}" Margin="0,0,8,0" />
                     <Button Grid.Column="1" Content="Reject" Command="{Binding RejectBeneficiaryCommand}"
-                            IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}"
+                            IsEnabled="{Binding CanProcessSelected}"
                             Style="{StaticResource RejectButtonStyle}" />
                 </Grid>
             </Grid>

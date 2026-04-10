@@ -1,0 +1,1459 @@
+## HUMAN RESOURCES MANAGEMENT SYSTEM (HRMS) - FULL SYSTEM REFERENCE
+
+Generated from the current source tree on 2026-03-23.
+This file is based on the code inside the `HRMS/` source folder, not on the build output folders.
+
+### SOURCE OF TRUTH
+
+- Main source project: `HRMS/HRMS.csproj`
+- Source code root: `HRMS/`
+- Startup UI: `HRMS/App.xaml` -> `StartupUri="View/LoginPage.xaml"`
+- Main post-login shell: `HRMS/View/DashboardWindow.xaml`
+- Build/output folders that should not be treated as source: `_build_out/`, `HRMS/_build_out/`, `HRMS_Installer/Debug/`, `.vs/`
+
+### TECH STACK
+
+- Platform: WPF desktop app
+- Framework: `net10.0-windows10.0.19041`
+- Database: MySQL
+- Connector: `MySqlConnector 2.5.0`
+- UI library: `MaterialDesignThemes 5.3.0`
+- PDF generation: `QuestPDF 2026.2.3`
+- Charting: `ScottPlot.WPF 4.1.71`
+- Pattern: Views + ViewModels + Data Services
+
+### UI DESIGN LANGUAGE
+
+- UI framework style: WPF screens styled with Material Design controls, card surfaces, icon buttons, and elevated panels.
+- Main visual direction: white/light surfaces with blue-driven admin dashboard styling.
+- Dashboard resource colors defined in `DashboardWindow.xaml`:
+  - `PrimaryColor = #1E4368`
+  - `LightColor = #CBE9FE`
+  - `AccentColor = #FDBD55`
+- Common layout pattern across modules:
+  - top page header with title + subtitle
+  - summary/stat cards
+  - search/filter toolbar
+  - form/editor panel
+  - `DataGrid` for records
+  - tabbed workspaces for multi-part modules
+- UI behavior pattern:
+  - role-aware navigation and visibility
+  - popup panels for notifications/profile actions
+  - embedded module views hosted inside the dashboard shell
+  - modal dialogs for focused create/edit tasks
+
+### UI SHELL AND NAVIGATION
+
+#### Login shell
+
+- `LoginPage.xaml` is the startup UI.
+- Visual structure:
+  - centered card login form
+  - no standard window chrome
+  - branded heading: `Human Resources System`
+  - subtitle: `Login Your Credentials`
+  - credentials hint block
+  - `Request Access` action
+  - `Configure database` action
+- Database configuration dialog inside login supports:
+  - presets: `Local`, `Network (LAN)`, `Remote`
+  - three connection groups: HRMS database, GGMS shared database, CRS shared database
+  - actions: `Test All 3`, `Create DB`, `Save`
+
+#### Main application shell
+
+- `DashboardWindow.xaml` is the post-login shell and primary navigation container.
+- Main shell structure:
+  - collapsible left navigation rail
+  - top header with user/profile area
+  - notifications popup
+  - dashboard summary cards
+  - quick actions area
+  - content host that swaps or embeds major modules
+- Left navigation entries visible in the XAML:
+  - Dashboard
+  - Employees
+  - Departments & Positions
+  - Attendance
+  - Attendance Logs
+  - Adjustments
+  - Leave
+  - Payroll
+  - Documents
+  - Recruitment
+  - Development
+  - Beneficiaries
+- Embedded module host controls declared in the dashboard:
+  - `DevelopmentWindow`
+  - `EmployeesWindow`
+  - `DepartmentAndPositionsWindow`
+  - `AttendanceWindow`
+  - `AttendanceLogsWindow`
+  - `AdjustmentsWindow`
+  - `LeaveWindow`
+  - `PayrollWindow`
+  - `DocumentsWindow`
+  - `RecruitmentWindow`
+  - `UsersRolesWindow`
+  - `BeneficiaryVerificationWindow`
+- Dashboard-specific UI sections include:
+  - role-based dashboard cards for admin/HR users
+  - employee-focused dashboard cards
+  - `Work Queue` section
+  - `Today Focus` section
+  - ScottPlot attendance chart labeled `Daily Attendance Coverage`
+  - chart subtitle: `Last 14 days: Present, On Leave, and Missing`
+
+### UI SCREEN INVENTORY
+
+#### Dashboard
+
+- File: `HRMS/View/DashboardWindow.xaml`
+- Purpose: home screen, role-based overview, and module shell.
+- Notable UI parts:
+  - KPI cards and quick action buttons
+  - notifications popup
+  - profile/user summary card
+  - chart area
+  - embedded submodule regions
+
+#### Employees
+
+- File: `HRMS/View/EmployeesWindow.xaml`
+- Header: `Employees`
+- Subtitle: `Employee masterlist, profile details, salary/appointment, and government IDs`
+- Main actions: `Add Employee`, `Edit Profile`
+- Structure:
+  - employee stat cards
+  - `Employee Masterlist`
+  - detail tabs:
+    - `Profile`
+    - `Salary / Appt.`
+    - `Government IDs`
+
+#### Departments and Positions
+
+- File: `HRMS/View/DepartmentAndPositionsWindow.xaml`
+- Header: `Department & Position Administration`
+- Subtitle: `Monitor organizational structure health, staffing balance, and vacant slots.`
+- Main UI sections:
+  - `Department Management`
+  - `Position Management`
+  - `Department Coverage`
+  - `Position Allocation`
+  - `Admin Insight`
+  - `Priority Actions`
+
+#### Attendance
+
+- File: `HRMS/View/AttendanceWindow.xaml`
+- Header fields bound through:
+  - `AttendancePageTitle`
+  - `AttendancePageSubtitle`
+- Dashboard cards cover totals such as logs, present, incomplete, pending adjustments, and active devices.
+- Major tabs:
+  - `Biometric Devices`
+  - `Biometric Enrollments`
+  - `Shifts`
+  - `Shift Assignments`
+  - `DTR`
+- Notable UI areas:
+  - device management form and grid
+  - biometric enrollment workflow panel with profile/progress/quality/audit information
+  - shifts editor and grid
+  - shift assignment form and grid
+  - DTR filter and certification views
+
+#### Attendance Logs
+
+- File: `HRMS/View/AttendanceLogsWindow.xaml`
+- Header: `Attendance Logs`
+- Subtitle: `Audit attendance punches and remove invalid logs.`
+- Main UI parts:
+  - stat cards
+  - manual log entry form
+  - `Import CSV` and `Export CSV`
+  - logs `DataGrid`
+
+#### Adjustments
+
+- File: `HRMS/View/AdjustmentsWindow.xaml`
+- Header bindings:
+  - `AdjustmentsPageTitle`
+  - `AdjustmentsPageSubtitle`
+- Main UI parts:
+  - request status cards
+  - `File Adjustment Request` form
+  - selected request review panel
+  - approve/reject/cancel actions
+  - adjustments `DataGrid`
+
+#### Leave
+
+- File: `HRMS/View/LeaveWindow.xaml`
+- Header: `Leave Administration`
+- Subtitle: `File leave, review approvals, maintain balances, and manage leave attachments.`
+- Main tabs:
+  - `Leave Requests`
+  - `Leave Balances`
+  - `Attachments`
+
+#### Payroll
+
+- File: `HRMS/View/PayrollWindow.xaml`
+- Header fields bound through:
+  - `PageHeaderTitle`
+  - `PageHeaderSubtitle`
+- Main dashboard cards plus GGMS allocation card:
+  - `GGMS Allocation (Office ID 18 / OFF-2026-0007)`
+  - program, allocated, used, remaining, and sync status values
+- Main tabs:
+  - periods tab (`PeriodsTabLabel`)
+  - runs tab (`RunsTabLabel`)
+  - release tab (`ReleaseTabLabel`)
+- Major UI areas:
+  - payroll period editor form and grid
+  - payroll run editor
+  - selected run breakdown
+  - payroll concern reporting
+  - YTD summary
+  - release log grid
+  - report/download/print actions
+
+#### Recruitment
+
+- File: `HRMS/View/RecruitmentWindow.xaml`
+- Main tabs:
+  - `Job Postings`
+  - `Applicants`
+  - `Applications Pipeline`
+  - `Interviews`
+  - `Offers`
+- UI covers posting creation, applicant management, pipeline tracking, interview scheduling, and offer creation.
+
+#### Development
+
+- File: `HRMS/View/DevelopmentWindow.xaml`
+- Top-level tabs:
+  - `Training`
+  - `Performance`
+- Training workspace:
+  - header bindings: `TrainingHeaderTitle`, `TrainingHeaderSubtitle`
+  - actions: `Add Course`, `Enroll Employee`
+  - stat cards: total courses, active courses, enrollments, completions
+  - main sections: `Training Courses`, `Training Enrollments`
+- Performance workspace:
+  - header bindings: `PerformanceHeaderTitle`, `PerformanceHeaderSubtitle`
+  - stat cards: total cycles, open cycles, total reviews, average rating
+  - main sections: `Review Status Breakdown`, `Top Performers`
+
+#### Beneficiaries
+
+- File: `HRMS/View/BeneficiaryVerificationWindow.xaml`
+- Header: `Beneficiary Verification`
+- Main UI parts:
+  - summary cards for pending, approved, rejected
+  - search, status filter, pagination
+  - beneficiary grid columns for identity, demographics, flags, and import status
+  - selected beneficiary review panel with remarks and approve/reject actions
+
+#### Documents
+
+- File: `HRMS/View/MyDocumentsWindow.xaml`
+- Title binding: `DocumentsTitle`
+- Subtitle binding: `DocumentsSubtitle`
+- Main UI parts:
+  - search
+  - documents `DataGrid`
+  - columns: type, title, details, status, date, source, action
+
+#### Notifications
+
+- File: `HRMS/View/NotificationsWindow.xaml`
+- Header: `Notifications / Inbox`
+- Subtitle: `Recent updates for leave, attendance, payroll, and development.`
+- Main UI parts:
+  - search
+  - inbox `DataGrid`
+  - columns: date, unread, module, title, message, status, action
+
+#### Users, Roles, and System Settings
+
+- File: `HRMS/View/UsersRolesWindow.xaml`
+- Main tabs:
+  - `Profile`
+  - `Users & Roles Administration`
+  - `System Settings`
+- Profile tab includes:
+  - `Current Login Profile`
+  - `Access & Security`
+  - actions: `Save Profile`, `Reload`, `Log Out`
+- Users administration tab includes:
+  - user search
+  - stat cards for total, active, inactive, locked, admins, and roles/permissions
+  - add-user form
+  - user `DataGrid`
+- System settings tab includes:
+  - `Database Connection`
+  - import beneficiaries action/note
+  - `About`
+  - `System Information`
+  - `Database Backup`
+  - backup cards: `Full Backup`, `Incremental Backup`, `Differential Backup`
+  - `Restore Backup`
+  - `Clear Temporary Files`
+  - `Database Seeder`
+
+#### Supporting dialogs and focused views
+
+- `AddCourseWindow.xaml` -> `Add Course`
+- `CourseEditWindow.xaml` -> `Edit Course`
+- `EnrollEmployeeWindow.xaml` -> `Enroll Employee`
+- `AddEmployeeWindow.xaml` -> multi-section employee onboarding form
+- `BeneficiaryChangePasswordDialog.xaml` -> `Change Your Password`
+- `PerformanceAdminView.xaml` -> `Performance Admin Workspace`
+
+### HIGH-LEVEL APP FLOW
+
+1. `LoginPage.xaml` starts the app.
+2. `LoginViewModel` submits credentials to `LoginDataService`.
+3. `LoginDataService` reads `user_accounts`, joins `employees` and `roles`, validates password hash, updates `last_login_at`, and auto-creates missing employee user accounts when needed.
+4. Successful login opens `DashboardWindow` with an `AuthenticatedUser` object.
+5. `DashboardWindow` applies role-based navigation and hosts the major module views.
+6. `DashboardViewModel` loads dashboard snapshot data through `DashboardDataService`.
+7. `SystemRefreshBus` is used to notify the dashboard and visible modules when shared data changes.
+
+### CONFIGURATION AND CONNECTIONS
+
+#### Config files used by the app
+
+- `HRMS/DatabaseConfig.txt` -> HRMS database
+- `HRMS/GgmsConfig.txt` -> GGMS shared database
+- `HRMS/CrsConfig.txt` -> CRS shared database
+
+#### Local AppData files
+
+- `%LOCALAPPDATA%/HRMS/database.config.json`
+- `%LOCALAPPDATA%/HRMS/security.config.json`
+
+#### Environment variable support
+
+- HRMS DB: `HRMS_DB_HOST`, `HRMS_DB_PORT`, `HRMS_DB_NAME`, `HRMS_DB_USER`, `HRMS_DB_PASSWORD`
+- GGMS DB: `GGMS_DB_HOST`, `GGMS_DB_PORT`, `GGMS_DB_NAME`, `GGMS_DB_USER`, `GGMS_DB_PASSWORD`
+- CRS DB: `CRS_DB_HOST`, `CRS_DB_PORT`, `CRS_DB_NAME`, `CRS_DB_USER`, `CRS_DB_PASSWORD`
+- Sensitive data protection key: `HRMS_DATA_PROTECTION_KEY`
+
+#### Login-page database presets
+
+- Local preset:
+  - HRMS host `localhost`
+  - GGMS host `localhost`
+  - CRS host `localhost`
+- Network preset:
+  - default host `192.168.137.108`
+  - host fields remain editable
+- Remote preset:
+  - host `194.59.164.58` for HRMS, GGMS, and CRS
+
+#### Connection-string behavior
+
+All DB config helpers (`DbConfig`, `GgmsConfig`, `CrsConfig`) add these operational flags:
+
+- `SslMode`
+- `AllowZeroDateTime=True`
+- `ConvertZeroDateTime=True`
+- `AllowUserVariables=True`
+- `Pooling=True`
+- `MinimumPoolSize=1`
+- `MaximumPoolSize=12`
+- `ConnectionIdleTimeout=3600`
+- `ConnectionReset=True`
+- `DefaultCommandTimeout=180`
+- `Keepalive=30`
+
+### ROLES, ACCESS, AND AUTHENTICATION
+
+#### Seeded roles in migrations
+
+- Admin
+- HR Manager
+- Dept Head
+- Employee
+
+#### Runtime-created role
+
+- Beneficiary
+  - created on demand by `BeneficiaryDataService` if the role does not exist yet
+
+#### Login/account behavior
+
+- Password hashes use PBKDF2 SHA-256 via `PasswordSecurity`
+- Locked and inactive accounts are blocked by `LoginDataService`
+- Beneficiary accounts approved from staging are created as active accounts and forced to change password on first login
+- Reset passwords for other users also force a change on next login
+- Employee accounts can be auto-generated if an employee record exists without a linked `user_accounts` row
+
+#### Access control helpers
+
+- `AuthorizationGuard.GetRoleNameAsync`
+- `AuthorizationGuard.IsAdmin`
+- `AuthorizationGuard.IsAdminOrHr`
+- `AuthorizationGuard.DemandAdmin`
+- `AuthorizationGuard.DemandAdminOrHr`
+
+#### Dashboard role behavior
+
+- Admin: full module access
+- HR Manager: broad HR access, including beneficiary verification
+- Employee: dashboard, attendance, adjustments, leave, payroll, documents, development, profile
+- Guest/default fallback: dashboard + profile
+
+### SECURITY UTILITIES
+
+#### `PasswordSecurity`
+
+- `HashPassword`
+- `VerifyPassword`
+- `GenerateTemporaryPassword`
+
+#### `SensitiveIdProtector`
+
+- Encrypts protected government IDs with AES-GCM
+- Stores or resolves the key through `%LOCALAPPDATA%/HRMS/security.config.json` or `HRMS_DATA_PROTECTION_KEY`
+- Main functions:
+  - `IsProtected`
+  - `ProtectForStorage`
+  - `UnprotectToPlaintext`
+  - `Mask`
+  - `Normalize`
+
+#### `GovernmentIdMaskConverter`
+
+- UI converter used to display protected IDs safely in the interface
+
+#### `UserAccountIdentitySync`
+
+- Keeps linked employee and user-account identity fields aligned
+- Main functions:
+  - `EmployeeDisplayNameSql`
+  - `BuildEmployeeDisplayName`
+  - `ParseDisplayName`
+  - `ResolveLinkedEmployeeIdAsync`
+  - `SyncLinkedAccountAsync`
+
+### DATABASE MIGRATIONS
+
+Migration runner:
+
+- `DbMigrationService.ApplyPendingMigrationsAsync()`
+- Applied scripts are recorded in `schema_migrations`
+- Scripts are run in filename order from `HRMS/Database/Migrations/`
+
+Current migration files present in source:
+
+1. `20260225_0001__core_schema.sql`
+2. `20260225_0002__modules_schema.sql`
+3. `20260225_0003__seed_base_data.sql`
+4. `20260225_0004__seed_attendance_training_dtr.sql`
+5. `20260225_0005__seed_extended_operational_data.sql`
+6. `20260225_0006__ensure_attendance_adjustments_decision_remarks.sql`
+7. `20260225_0007__dedupe_shift_assignments_and_add_unique_key.sql`
+8. `20260228_0008__expand_training_enrollment_statuses.sql`
+9. `20260305_0009__auth_password_hashing.sql`
+10. `20260306_0010__audit_logs.sql`
+11. `20260306_0011__payroll_concerns.sql`
+12. `20260309_0012__drop_user_accounts_password_column.sql`
+13. `20260309_0013__employee_notification_reads.sql`
+14. `20260310_0014__account_integrity_and_business_rules.sql`
+15. `20260310_0015__attendance_dedupe_and_reporting_indexes.sql`
+16. `20260310_0016__expand_audit_log_context.sql`
+17. `20260310_0017__sync_linked_user_account_identity.sql`
+18. `20260310_0018__expand_employee_sensitive_id_columns.sql`
+19. `20260310_0019__leave_documents_blob_storage.sql`
+20. `20260310_0020__seed_default_admin_account.sql`
+21. `20260317_0021__beneficiary_staging.sql`
+22. `20260317_0022__add_remarks_to_beneficiary_staging.sql`
+23. `20260317_0023__beneficiary_masterid.sql`
+24. `20260320_0024__beneficiary_staging_crs_fields.sql`
+
+Note:
+
+- `HRMS/Database/Migrations/README.md` currently lists only through 0022, but the folder now contains 0023 and 0024 as well.
+
+### LIVE DATABASE SNAPSHOT
+
+- Snapshot source: active HRMS database configured in `HRMS/DatabaseConfig.txt`
+- Captured on: 2026-03-23 20:41:27
+- Database name: `u621755393_hrms3b`
+- Connection details: server/user/password intentionally redacted in this document
+- Base table count: 45
+- Applied migrations recorded in `schema_migrations`: 25
+- Latest recorded migration key: `20260320_0024__beneficiary_staging_crs_fields.sql`
+
+#### Live table inventory
+
+- `applicants` -> rows: 5, columns: 11
+  columns: applicant_id, applicant_no, last_name, first_name, middle_name, email, mobile_no, address, birth_date, created_at, updated_at
+- `appointment_types` -> rows: 5, columns: 3
+  columns: appointment_type_id, type_name, created_at
+- `attendance_adjustments` -> rows: 2, columns: 12
+  columns: adjustment_id, employee_id, work_date, requested_in, requested_out, reason, status, requested_by_user_id, approved_by_user_id, requested_at, decided_at, decision_remarks
+- `attendance_logs` -> rows: 110, columns: 8
+  columns: log_id, employee_id, device_id, log_time, log_type, source, raw_payload, created_at
+- `attendance_remarks` -> rows: 4, columns: 6
+  columns: remark_id, employee_id, work_date, remark_type, details, created_at
+- `audit_logs` -> rows: 0, columns: 13
+  columns: audit_log_id, acted_by_user_id, ip_address, client_name, session_id, action_code, target_type, target_id, result_status, details, old_values_json, new_values_json, created_at
+- `BeneficiaryStaging` -> rows: 51, columns: 24
+  columns: StagingID, CivilRegistryID, FirstName, LastName, MiddleName, Address, VerificationStatus, Remarks, ApprovedRejectedAt, ImportedAt, MasterID, ResidentsId, BeneficiaryId, FullName, Sex, DateOfBirth, Age, MaritalStatus, IsPwd, PwdIdNo, DisabilityType, CauseOfDisability, IsSenior, SeniorIdNo
+- `biometric_devices` -> rows: 1, columns: 8
+  columns: device_id, device_name, serial_no, location, ip_address, is_active, last_sync_at, created_at
+- `biometric_enrollments` -> rows: 11, columns: 6
+  columns: enrollment_id, employee_id, biometric_user_id, device_id, status, created_at
+- `departments` -> rows: 4, columns: 4
+  columns: department_id, dept_name, description, created_at
+- `dtr_monthly_certifications` -> rows: 11, columns: 9
+  columns: cert_id, employee_id, yr, mo, certified_by_user_id, verified_by_user_id, certified_at, verified_at, remarks
+- `employees` -> rows: 11, columns: 26
+  columns: employee_id, employee_no, last_name, first_name, middle_name, sex, birth_date, civil_status, email, contact_number, address, department_id, position_id, appointment_type_id, salary_grade, step_no, hire_date, status, tin_no, gsis_bp_no, philhealth_no, pagibig_mid_no, emergency_contact, emergency_phone, created_at, updated_at
+- `employee_notification_reads` -> rows: 2, columns: 6
+  columns: notification_read_id, employee_id, module_key, source_id, event_at, read_at
+- `interview_schedules` -> rows: 3, columns: 8
+  columns: interview_schedule_id, job_application_id, interview_datetime, interview_type, location, interviewer_employee_id, status, remarks
+- `job_applications` -> rows: 5, columns: 6
+  columns: job_application_id, applicant_id, job_posting_id, applied_at, status, notes
+- `job_offers` -> rows: 2, columns: 7
+  columns: job_offer_id, job_application_id, offered_at, offer_status, salary_offer, start_date, remarks
+- `job_postings` -> rows: 3, columns: 18
+  columns: job_posting_id, posting_code, title, department_id, position_id, employment_type, vacancies, salary_grade, salary_range_min, salary_range_max, description, requirements, status, open_date, close_date, created_by_employee_id, created_at, updated_at
+- `leave_applications` -> rows: 4, columns: 16
+  columns: leave_application_id, employee_id, leave_type_id, date_from, date_to, days_requested, reason, status, filed_at, decision_at, recommended_by_employee_id, approved_by_employee_id, hr_certified_by_employee_id, decision_remarks, created_at, updated_at
+- `leave_application_days` -> rows: 13, columns: 5
+  columns: leave_application_day_id, leave_application_id, leave_date, day_fraction, half_day_part
+- `leave_balances` -> rows: 33, columns: 11
+  columns: leave_balance_id, employee_id, leave_type_id, year, opening_credits, earned, used, adjustments, as_of_date, created_at, updated_at
+- `leave_documents` -> rows: 1, columns: 8
+  columns: leave_document_id, leave_application_id, file_name, file_path, file_blob, file_size, uploaded_at, uploaded_by_employee_id
+- `leave_types` -> rows: 7, columns: 9
+  columns: leave_type_id, code, name, is_paid, default_credits_per_year, remarks, is_active, created_at, updated_at
+- `payroll_concerns` -> rows: 0, columns: 11
+  columns: payroll_concern_id, payroll_run_id, employee_id, reported_by_user_id, concern_details, status, created_at, updated_at, resolved_at, resolved_by_user_id, resolution_notes
+- `payroll_periods` -> rows: 1, columns: 8
+  columns: payroll_period_id, period_code, date_from, date_to, pay_date, status, created_at, updated_at
+- `payroll_runs` -> rows: 11, columns: 12
+  columns: payroll_run_id, payroll_period_id, employee_id, basic_pay, allowances, overtime_pay, other_earnings, gross_pay, deductions_total, net_pay, status, generated_at
+- `payroll_run_items` -> rows: 44, columns: 6
+  columns: payroll_run_item_id, payroll_run_id, item_type, code, description, amount
+- `payslip_releases` -> rows: 6, columns: 5
+  columns: payslip_release_id, payroll_run_id, released_at, released_by_employee_id, remarks
+- `performance_cycles` -> rows: 1, columns: 9
+  columns: performance_cycle_id, cycle_code, name, start_date, end_date, status, created_by_employee_id, created_at, updated_at
+- `performance_goals` -> rows: 11, columns: 9
+  columns: performance_goal_id, performance_cycle_id, employee_id, title, description, weight, target_metric, created_at, updated_at
+- `performance_reviews` -> rows: 5, columns: 11
+  columns: performance_review_id, performance_cycle_id, employee_id, reviewer_employee_id, overall_rating, status, remarks, submitted_at, decided_at, created_at, updated_at
+- `performance_review_items` -> rows: 10, columns: 6
+  columns: performance_review_item_id, performance_review_id, criteria, weight, score, comments
+- `permissions` -> rows: 6, columns: 4
+  columns: permission_id, perm_code, description, created_at
+- `positions` -> rows: 5, columns: 5
+  columns: position_id, department_id, position_name, description, created_at
+- `roles` -> rows: 5, columns: 4
+  columns: role_id, role_name, description, created_at
+- `role_permissions` -> rows: 6, columns: 2
+  columns: role_id, permission_id
+- `salary_grades` -> rows: 33, columns: 2
+  columns: salary_grade, created_at
+- `salary_steps` -> rows: 12, columns: 6
+  columns: salary_step_id, salary_grade, step_no, monthly_rate, effectivity_date, reference_note
+- `schema_migrations` -> rows: 25, columns: 3
+  columns: migration_id, migration_key, applied_at
+- `shifts` -> rows: 1, columns: 8
+  columns: shift_id, shift_name, start_time, end_time, break_minutes, grace_minutes, is_overnight, created_at
+- `shift_assignments` -> rows: 11, columns: 8
+  columns: assignment_id, employee_id, shift_id, start_date, end_date, assigned_by_user_id, status, created_at
+- `training_courses` -> rows: 6, columns: 4
+  columns: course_id, course_name, description, created_at
+- `training_course_settings` -> rows: 5, columns: 6
+  columns: course_id, provider, default_hours, manual_status, created_at, updated_at
+- `training_enrollments` -> rows: 12, columns: 5
+  columns: enrollment_id, session_id, employee_id, status, created_at
+- `training_sessions` -> rows: 5, columns: 6
+  columns: session_id, course_id, session_date, trainer_user_id, location, created_at
+- `user_accounts` -> rows: 14, columns: 13
+  columns: user_id, role_id, employee_id, username, password_hash, full_name, email, status, must_change_password, last_login_at, password_changed_at, created_at, updated_at
+
+### MAIN TABLE INVENTORY
+
+#### Core access and organization tables
+
+- `roles`
+- `permissions`
+- `role_permissions`
+- `departments`
+- `positions`
+- `appointment_types`
+- `salary_grades`
+- `salary_steps`
+- `employees`
+- `user_accounts`
+
+#### Attendance and DTR tables
+
+- `shifts`
+- `shift_assignments`
+- `biometric_devices`
+- `biometric_enrollments`
+- `attendance_logs`
+- `attendance_remarks`
+- `attendance_adjustments`
+- `dtr_monthly_certifications`
+
+#### Training and development tables
+
+- `training_courses`
+- `training_sessions`
+- `training_enrollments`
+
+#### Leave tables
+
+- `leave_types`
+- `leave_balances`
+- `leave_applications`
+- `leave_application_days`
+- `leave_documents`
+
+#### Recruitment tables
+
+- `job_postings`
+- `applicants`
+- `job_applications`
+- `interview_schedules`
+- `job_offers`
+
+#### Payroll tables
+
+- `payroll_periods`
+- `payroll_runs`
+- `payroll_run_items`
+- `payslip_releases`
+- `payroll_concerns`
+
+#### Performance tables
+
+- `performance_cycles`
+- `performance_goals`
+- `performance_reviews`
+- `performance_review_items`
+
+#### Audit, notifications, and system tables
+
+- `audit_logs`
+- `employee_notification_reads`
+- `schema_migrations`
+
+#### Beneficiary integration table
+
+- `BeneficiaryStaging`
+
+### MODULE MAP
+
+## 1. DASHBOARD
+
+Views:
+
+- `HRMS/View/DashboardWindow.xaml`
+
+ViewModel:
+
+- `DashboardViewModel`
+
+Services:
+
+- `DashboardDataService`
+- `DashboardStats`
+- `SystemRefreshBus`
+
+Main service functions:
+
+- `GetDashboardStatsAsync`
+- `GetEmployeeDashboardStatsAsync`
+- `GetAttendanceTrendAsync`
+- `GetAttendanceCoverageAsync`
+- `GetPayrollVolumeAsync`
+- `GetLeaveMixAsync`
+- `GetDevelopmentTrendAsync`
+
+Main UI/workflow functions:
+
+- `ShowDashboard`
+- `ShowTraining`
+- `ShowRecruitment`
+- `ShowPerformance`
+- `ShowUsers`
+- `ShowEmployees`
+- `ShowDepartments`
+- `ShowAttendance`
+- `ShowAttendanceLogs`
+- `ShowAdjustments`
+- `ShowLeave`
+- `ShowPayroll`
+- `ShowDocuments`
+- `ShowBeneficiaries`
+- `RenderDashboardChartsAsync`
+- `RefreshVisibleModulesAsync`
+- `ExecuteDashboardSearch`
+
+Notes:
+
+- `DashboardWindow` is the main module host after login.
+- Uses ScottPlot to render attendance coverage.
+- Integrates notifications popup and module-to-module navigation.
+- Uses debounced refresh through `SystemRefreshBus`.
+
+## 2. EMPLOYEES
+
+Views:
+
+- `HRMS/View/EmployeesWindow.xaml`
+- `HRMS/View/AddEmployeeWindow.xaml`
+
+ViewModel:
+
+- `EmployeesViewModel`
+
+Service:
+
+- `EmployeeDataService`
+
+Main service functions:
+
+- `GetStatsAsync`
+- `GetRecentEmployeesAsync`
+- `GetDepartmentsLookupAsync`
+- `GetPositionsLookupAsync`
+- `GetAppointmentTypesLookupAsync`
+- `GetSalaryGradesAsync`
+- `GetNextEmployeeNoAsync`
+- `AddEmployeeAsync`
+- `CreateDefaultUserAccountForEmployeeAsync`
+- `UpdateEmployeeProfileAsync`
+
+Main view/viewmodel functions:
+
+- `RefreshAsync`
+- `SelectEmployeeByNumber`
+- `PrepareForCreateAsync`
+- `ResetFormAsync`
+- `RefreshReferenceDataAsync`
+- `AddEmployee_Click`
+- `SaveProfileButton_OnClick`
+
+Notes:
+
+- Handles employee creation, editing, and profile details.
+- Government ID values are protected through `SensitiveIdProtector`.
+- Can create default user accounts linked to employees.
+
+## 3. DEPARTMENTS AND POSITIONS
+
+Views:
+
+- `HRMS/View/DepartmentAndPositionsWindow.xaml`
+
+ViewModel:
+
+- `DepartmentsViewModel`
+
+Service:
+
+- `DepartmentsDataService`
+
+Main service functions:
+
+- `GetStatsAsync`
+- `GetDepartmentsAsync`
+- `GetPositionsAsync`
+- `AddDepartmentAsync`
+- `DeleteDepartmentAsync`
+- `AddPositionAsync`
+- `DeletePositionAsync`
+
+Main viewmodel functions:
+
+- `RefreshAsync`
+- `AddDepartmentAsync`
+- `DeleteDepartmentAsync`
+- `AddPositionAsync`
+- `DeletePositionAsync`
+
+Notes:
+
+- Manages department and position master data.
+- Provides department/position utilization stats for the UI.
+
+## 4. ATTENDANCE, LOGS, ADJUSTMENTS, BIOMETRICS, SHIFTS, AND DTR
+
+Views:
+
+- `HRMS/View/AttendanceWindow.xaml`
+- `HRMS/View/AttendanceLogsWindow.xaml`
+- `HRMS/View/AdjustmentsWindow.xaml`
+
+ViewModel:
+
+- `AttendanceViewModel`
+- `AttendanceViewModel.LogAdmin`
+- `AttendanceViewModel.AdjustmentsAdmin`
+- `AttendanceViewModel.Dtr`
+
+Service:
+
+- `AttendanceDataService`
+- `AttendanceDataService.LogAdmin`
+- `AttendanceDataService.Dtr`
+
+Main service functions:
+
+- `GetStatsAsync`
+- `GetRecentLogsAsync`
+- `GetPendingAdjustmentsAsync`
+- `GetAdjustmentStatusCountsAsync`
+- `DeleteLogAsync`
+- `UpdateAdjustmentStatusAsync`
+- `CreateAdjustmentAsync`
+- `DeleteOwnPendingAdjustmentAsync`
+- `GetBiometricDevicesAsync`
+- `AddDeviceAsync`
+- `ToggleDeviceActiveAsync`
+- `MarkDeviceSyncedNowAsync`
+- `GetEmployeesLookupAsync`
+- `GetEnrollmentEmployeeProfileAsync`
+- `GetEmployeeIdByUserIdAsync`
+- `GetBiometricEnrollmentsAsync`
+- `AddBiometricEnrollmentAsync`
+- `UpdateBiometricEnrollmentStatusAsync`
+- `DeleteBiometricEnrollmentAsync`
+- `GetShiftsAsync`
+- `AddShiftAsync`
+- `DeleteShiftAsync`
+- `GetShiftAssignmentsAsync`
+- `AddShiftAssignmentAsync`
+- `UpdateShiftAssignmentStatusAsync`
+- `DeleteShiftAssignmentAsync`
+- `AddAttendanceLogAsync`
+- `AddAttendanceLogsBulkAsync`
+- `GetDtrDailyRowsAsync`
+- `GetDtrMonthlyCertificationsAsync`
+- `UpsertDtrCertificationAsync`
+- `UpsertDtrVerificationAsync`
+- `ClearDtrCertificationAsync`
+
+Main viewmodel/workflow functions:
+
+- `ApplyCurrentUserScopeAsync`
+- `RefreshAsync`
+- `DeleteLogAsync`
+- `ApproveAdjustmentAsync`
+- `RejectAdjustmentAsync`
+- `SubmitAdjustmentRequestAsync`
+- `CancelMyAdjustmentAsync`
+- `AddDeviceAsync`
+- `ToggleDeviceActiveAsync`
+- `SyncDeviceAsync`
+- `OpenEnrollmentFlowAsync`
+- `CaptureEnrollmentAsync`
+- `AddEnrollmentAsync`
+- `LoadEnrollmentEmployeeProfileAsync`
+- `ToggleEnrollmentStatusAsync`
+- `DeleteEnrollmentAsync`
+- `AddShiftAsync`
+- `DeleteShiftAsync`
+- `AddAssignmentAsync`
+- `ToggleAssignmentStatusAsync`
+- `DeleteAssignmentAsync`
+- `AddManualLogAsync`
+- `ImportLogsCsvAsync`
+- `ExportLogsCsvAsync`
+- `LoadDtrAsync`
+- `ExportDtrCsvAsync`
+- `CertifySelectedDtrAsync`
+- `VerifySelectedDtrAsync`
+- `ClearSelectedDtrCertificationAsync`
+
+Notes:
+
+- Attendance module combines multiple subdomains under one VM.
+- Supports employee mode and admin/HR mode.
+- Includes biometric device registry, enrollment flow, manual log entry, CSV import/export, shift management, adjustment approval, and DTR certification/verification.
+- Shift assignment overlap protection exists in the data service.
+
+## 5. LEAVE
+
+Views:
+
+- `HRMS/View/LeaveWindow.xaml`
+
+ViewModel:
+
+- `LeaveViewModel`
+
+Service:
+
+- `LeaveDataService`
+
+Main service functions:
+
+- `GetStatsAsync`
+- `GetLeaveTypesAsync`
+- `GetEmployeesAsync`
+- `GetLeaveRequestsAsync`
+- `AddLeaveRequestAsync`
+- `UpdateLeaveRequestStatusAsync`
+- `CancelOwnPendingLeaveRequestAsync`
+- `GetLeaveBalancesAsync`
+- `UpsertLeaveBalanceAsync`
+- `GetLeaveAttachmentsAsync`
+- `AddLeaveAttachmentAsync`
+- `DeleteLeaveAttachmentAsync`
+- `GetEmployeeIdByUserIdAsync`
+
+Main viewmodel/workflow functions:
+
+- `SetCurrentUser`
+- `RefreshAsync`
+- `FileLeaveAsync`
+- `ApproveRequestAsync`
+- `RejectRequestAsync`
+- `RecommendRequestAsync`
+- `CancelMyRequestAsync`
+- `SaveBalanceAsync`
+- `BrowseAttachmentAsync`
+- `UploadAttachmentAsync`
+- `DeleteAttachmentAsync`
+
+Notes:
+
+- Handles both employee self-service requests and admin/HR approval.
+- Tracks decision remarks.
+- Supports leave balances and attachment uploads.
+- Leave document blob storage was expanded by migration `0019`.
+
+## 6. PAYROLL
+
+Views:
+
+- `HRMS/View/PayrollWindow.xaml`
+
+ViewModel:
+
+- `PayrollViewModel`
+
+Services:
+
+- `PayrollDataService`
+- `GgmsFundAllocationService`
+
+Main service functions:
+
+- `GetStatsAsync`
+- `GetEmployeesAsync`
+- `GetPeriodsAsync`
+- `AddPeriodAsync`
+- `UpdatePeriodStatusAsync`
+- `DeletePeriodAsync`
+- `GetRunsAsync`
+- `UpsertRunAsync`
+- `GetRunEditorDefaultsAsync`
+- `UpdateRunStatusAsync`
+- `DeleteRunAsync`
+- `ReleasePayslipAsync`
+- `ReportPayrollConcernAsync`
+- `GetReleaseLogsAsync`
+- `GetEmployeeIdByUserIdAsync`
+- `GetActiveAllocationAsync`
+- `RecordPayrollDisbursementAsync`
+
+Main viewmodel/workflow functions:
+
+- `SetCurrentUser`
+- `RefreshAsync`
+- `LoadGgmsAllocationAsync`
+- `AddPeriodAsync`
+- `SavePeriodAsync`
+- `DeletePeriodAsync`
+- `UpsertRunAsync`
+- `SaveRunStatusAsync`
+- `DeleteRunAsync`
+- `ReleasePayslipAsync`
+- `DownloadPayslipAsync`
+- `PrintPayslipAsync`
+- `ReportPayrollConcernAsync`
+
+Notes:
+
+- Generates payroll periods, payroll runs, release logs, and concern reporting.
+- Uses QuestPDF to build payslip output.
+- Integrates with GGMS during release/posting.
+- Current GGMS linkage in code is:
+  - Office ID: `18`
+  - Office Code: `OFF-2026-0007`
+- Reads allocation from `officeallocations`
+- Writes disbursement to GGMS `tbl_transaction`
+
+## 7. RECRUITMENT
+
+Views:
+
+- `HRMS/View/RecruitmentWindow.xaml`
+
+ViewModel:
+
+- `RecruitmentViewModel`
+
+Service:
+
+- `RecruitmentDataService`
+
+Main service functions:
+
+- `GetStatsAsync`
+- `GetDepartmentsAsync`
+- `GetPositionsAsync`
+- `GetEmployeesAsync`
+- `GetPostingOptionsAsync`
+- `GetApplicantOptionsAsync`
+- `GetApplicationOptionsAsync`
+- `GetJobPostingsAsync`
+- `AddJobPostingAsync`
+- `UpdateJobPostingAsync`
+- `DeleteJobPostingAsync`
+- `GetApplicantsAsync`
+- `AddApplicantAsync`
+- `UpdateApplicantAsync`
+- `DeleteApplicantAsync`
+- `GetApplicationsAsync`
+- `AddApplicationAsync`
+- `UpdateApplicationAsync`
+- `DeleteApplicationAsync`
+- `GetInterviewsAsync`
+- `AddInterviewAsync`
+- `UpdateInterviewAsync`
+- `DeleteInterviewAsync`
+- `GetOffersAsync`
+- `AddOfferAsync`
+- `UpdateOfferAsync`
+- `DeleteOfferAsync`
+
+Main viewmodel/workflow functions:
+
+- `RefreshAsync`
+- `LoadLookupsAsync`
+- `LoadStatsAsync`
+- `LoadRowsAsync`
+- `AddPostingAsync`
+- `SavePostingAsync`
+- `DeletePostingAsync`
+- `AddApplicantAsync`
+- `SaveApplicantAsync`
+- `DeleteApplicantAsync`
+- `AddApplicationAsync`
+- `SaveApplicationAsync`
+- `DeleteApplicationAsync`
+- `AddInterviewAsync`
+- `SaveInterviewAsync`
+- `DeleteInterviewAsync`
+- `AddOfferAsync`
+- `SaveOfferAsync`
+- `DeleteOfferAsync`
+
+Notes:
+
+- Covers the full pipeline from job posting to job offer.
+- Includes status filtering and editor forms for each recruitment stage.
+
+## 8. DEVELOPMENT (TRAINING + PERFORMANCE)
+
+Views:
+
+- `HRMS/View/DevelopmentWindow.xaml`
+- `HRMS/View/AddCourseWindow.xaml`
+- `HRMS/View/CourseEditWindow.xaml`
+- `HRMS/View/EnrollEmployeeWindow.xaml`
+- `HRMS/View/PerformanceAdminView.xaml`
+
+ViewModels:
+
+- `TrainingViewModel`
+- `PerformanceViewModel`
+
+Services:
+
+- `TrainingDataService`
+- `PerformanceDataService`
+
+Training service functions:
+
+- `GetCoursesAsync`
+- `UpdateCourseAsync`
+- `AddCourseAsync`
+- `DeleteCourseAsync`
+- `GetEmployeesAsync`
+- `AddEnrollmentAsync`
+- `GetEnrollmentsAsync`
+- `GetEmployeeIdByUserIdAsync`
+- `UpdateEnrollmentStatusAsync`
+- `DeleteEnrollmentAsync`
+
+Training viewmodel/workflow functions:
+
+- `RefreshAsync`
+- `SetCurrentUser`
+- `ApplyEnrollmentActionAsync`
+- `RequestEnrollmentAsync`
+- `RefreshFilter`
+- `RemoveCourse`
+- `UpdateCourseStatusColor`
+- `AddCourse`
+- `AddEnrollment`
+
+Performance service functions:
+
+- `GetStatsAsync`
+- `GetTopPerformersAsync`
+- `GetCyclesAsync`
+- `UpdateCycleAsync`
+- `GetReviewsAsync`
+- `UpdateReviewAsync`
+- `GetEmployeeIdByUserIdAsync`
+
+Performance viewmodel/workflow functions:
+
+- `SetCurrentUser`
+- `RefreshAsync`
+- `SaveCycleAsync`
+- `SaveReviewAsync`
+
+Notes:
+
+- `DevelopmentWindow` is a combined training/performance workspace.
+- Training supports employee enrollment requests and admin status actions.
+- Performance supports cycle and review updates through `PerformanceAdminView`.
+
+## 9. USERS, ROLES, PROFILE, SYSTEM SETTINGS, BACKUPS, SEEDING, AND MAINTENANCE
+
+Views:
+
+- `HRMS/View/UsersRolesWindow.xaml`
+
+ViewModel:
+
+- `UsersRolesViewModel`
+
+Services:
+
+- `UsersRolesDataService`
+- `DatabaseBackupService`
+- `DbMigrationService`
+- `BeneficiaryImportService`
+
+Main user/role service functions:
+
+- `GetUsersAsync`
+- `GetRolesAsync`
+- `CreateUserAsync`
+- `GetRoleSummariesAsync`
+- `GetPermissionSummariesAsync`
+- `GetStatsAsync`
+- `UpdateUserAccessAsync`
+- `ResetPasswordAsync`
+- `DeleteUserAsync`
+- `GetCurrentUserProfileAsync`
+- `UpdateCurrentUserProfileAsync`
+
+Main system/backup/admin functions exposed in the VM:
+
+- `RefreshNowAsync`
+- `AddUserAsync`
+- `SaveUserAsync`
+- `ResetPasswordAsync`
+- `DeleteUserAsync`
+- `TestDbConnectionAsync`
+- `CreateDatabaseAsync`
+- `SaveDbConnectionAsync`
+- `RefreshSystemInfoAsync`
+- `OpenStorageFolderAsync`
+- `CreateFullBackupAsync`
+- `CreateDifferentialBackupAsync`
+- `CreateIncrementalBackupAsync`
+- `RestoreBackupAsync`
+- `ClearTempFilesAsync`
+- `SeedDatabaseAsync`
+- `ImportBeneficiariesAsync`
+- `ResetAndSeedAsync`
+- `ResetDatabaseSchemaAsync`
+- `SaveProfileAsync`
+
+Backup service functions:
+
+- `GetMetadataAsync`
+- `CreateFullBackupAsync`
+- `CreateDifferentialBackupAsync`
+- `CreateIncrementalBackupAsync`
+- `RestoreBackupAsync`
+
+Notes:
+
+- `UsersRolesWindow` contains both profile management and admin/system tooling.
+- Admin-only behavior is enforced in the window and service layer.
+- Backups are JSON-based and stored under the chosen storage location in a `Backups/` folder.
+- Differential and incremental backups depend on prior full backup metadata.
+- Includes database maintenance utilities, seeding, and beneficiary import trigger.
+
+## 10. BENEFICIARY VERIFICATION AND CRS IMPORT
+
+Views:
+
+- `HRMS/View/BeneficiaryVerificationWindow.xaml`
+- `HRMS/View/BeneficiaryChangePasswordDialog.xaml`
+
+ViewModels:
+
+- `BeneficiaryVerificationViewModel`
+- `BeneficiaryChangePasswordViewModel`
+
+Services:
+
+- `BeneficiaryDataService`
+- `BeneficiaryImportService`
+- `BeneficiaryStagingSchemaCompatibility`
+
+Main service functions:
+
+- `GetStagingBeneficiariesAsync`
+- `UpdateVerificationStatusAsync`
+- `GetStatusCountsAsync`
+- `CreateBeneficiaryAccountAsync`
+- `ImportFromCrsAsync`
+- `EnsureAsync`
+
+Main workflow functions:
+
+- `LoadAsync`
+- `ApproveBeneficiaryAsync`
+- `RejectBeneficiaryAsync`
+- `ChangePasswordAsync`
+- `CancelPasswordChange`
+
+Notes:
+
+- CRS import reads from `val_beneficiaries` in batches of 500.
+- Imports into `BeneficiaryStaging` only, with duplicate checks on `BeneficiaryId`.
+- If CRS `civilregistry_id` is blank, the import falls back to `beneficiary_id`.
+- Beneficiary verification UI supports:
+  - paging (50 records per page)
+  - status filtering
+  - search
+  - remarks
+  - approve/reject actions
+- On approval, the staging row is linked to a newly created `user_accounts` row through `MasterID`.
+
+## 11. EMPLOYEE DOCUMENTS AND NOTIFICATIONS
+
+Views:
+
+- `HRMS/View/MyDocumentsWindow.xaml`
+- `HRMS/View/NotificationsWindow.xaml`
+
+ViewModels:
+
+- `DocumentsViewModel`
+- `NotificationsViewModel`
+
+Service:
+
+- `EmployeeSelfService`
+
+Main service functions:
+
+- `GetEmployeeIdByUserIdAsync`
+- `GetEmployeeDocumentsAsync`
+- `GetAllEmployeeDocumentsAsync`
+- `GetLeaveAttachmentFileAsync`
+- `GetEmployeeNotificationsAsync`
+- `MarkEmployeeNotificationAsReadAsync`
+
+Main workflow functions:
+
+- `SetCurrentUser`
+- `RefreshAsync`
+- `OpenSourceAsync`
+
+Notes:
+
+- Documents are aggregated from payroll, leave, and training.
+- Notifications are aggregated from leave, attendance adjustments, payroll releases, and training.
+- Read state is persisted in `employee_notification_reads`.
+- Notifications can request module navigation back to dashboard modules.
+
+### AUDIT AND SUPPORT SERVICES
+
+#### `AuditLogWriter`
+
+Main functions:
+
+- `TryWriteAsync` (instance)
+- `TryWriteAsync` (static)
+
+Purpose:
+
+- Writes audit trails when the `audit_logs` table is available.
+
+#### `AsyncRelayCommand`
+
+Main functions:
+
+- `CanExecute`
+- `Execute`
+- `RaiseCanExecuteChanged`
+
+Purpose:
+
+- Shared async command implementation used throughout the ViewModels.
+
+#### Shared converters
+
+- `BooleanToActiveTextConverter`
+- `InverseBoolConverter`
+- `ObjectToVisibilityConverter`
+- `GovernmentIdMaskConverter`
+
+### SOURCE FILE INVENTORY
+
+#### Root/source entry files
+
+- `HRMS/App.xaml`
+- `HRMS/App.xaml.cs`
+- `HRMS/MainWindow.xaml`
+- `HRMS/MainWindow.xaml.cs`
+- `HRMS/AssemblyInfo.cs`
+- `HRMS/BooleanToActiveTextConverter.cs`
+- `HRMS/Converters.cs`
+
+#### Model layer files
+
+- `HRMS/Model/AttendanceDataService.cs`
+- `HRMS/Model/AttendanceDataService.Dtr.cs`
+- `HRMS/Model/AttendanceDataService.LogAdmin.cs`
+- `HRMS/Model/AuditLogWriter.cs`
+- `HRMS/Model/AuthorizationGuard.cs`
+- `HRMS/Model/BeneficiaryDataService.cs`
+- `HRMS/Model/BeneficiaryImportService.cs`
+- `HRMS/Model/BeneficiaryStagingModels.cs`
+- `HRMS/Model/BeneficiaryStagingSchemaCompatibility.cs`
+- `HRMS/Model/CrsConfig.cs`
+- `HRMS/Model/DashboardDataService.cs`
+- `HRMS/Model/DashboardStats.cs`
+- `HRMS/Model/DatabaseBackupModels.cs`
+- `HRMS/Model/DatabaseBackupService.cs`
+- `HRMS/Model/DbConfig.cs`
+- `HRMS/Model/DbMigrationService.cs`
+- `HRMS/Model/DepartmentsDataService.cs`
+- `HRMS/Model/EmployeeDataService.cs`
+- `HRMS/Model/EmployeeSelfService.cs`
+- `HRMS/Model/GgmsConfig.cs`
+- `HRMS/Model/GgmsFundAllocationService.cs`
+- `HRMS/Model/LeaveDataService.cs`
+- `HRMS/Model/LoginDataService.cs`
+- `HRMS/Model/PasswordSecurity.cs`
+- `HRMS/Model/PayrollDataService.cs`
+- `HRMS/Model/PerformanceDataService.cs`
+- `HRMS/Model/RecruitmentDataService.cs`
+- `HRMS/Model/SensitiveIdProtector.cs`
+- `HRMS/Model/SystemRefreshBus.cs`
+- `HRMS/Model/TrainingDataService.cs`
+- `HRMS/Model/UserAccountIdentitySync.cs`
+- `HRMS/Model/UsersRolesDataService.cs`
+
+#### ViewModel layer files
+
+- `HRMS/ViewModel/AsyncRelayCommand.cs`
+- `HRMS/ViewModel/AttendanceViewModel.cs`
+- `HRMS/ViewModel/AttendanceViewModel.AdjustmentsAdmin.cs`
+- `HRMS/ViewModel/AttendanceViewModel.Dtr.cs`
+- `HRMS/ViewModel/AttendanceViewModel.LogAdmin.cs`
+- `HRMS/ViewModel/BeneficiaryChangePasswordViewModel.cs`
+- `HRMS/ViewModel/BeneficiaryVerificationViewModel.cs`
+- `HRMS/ViewModel/DashboardViewModel.cs`
+- `HRMS/ViewModel/DepartmentsViewModel.cs`
+- `HRMS/ViewModel/EmployeesViewModel.cs`
+- `HRMS/ViewModel/LeaveViewModel.cs`
+- `HRMS/ViewModel/LoginViewModel.cs`
+- `HRMS/ViewModel/MyDocumentsViewModel.cs`
+- `HRMS/ViewModel/NotificationsViewModel.cs`
+- `HRMS/ViewModel/PayrollViewModel.cs`
+- `HRMS/ViewModel/PerformanceViewModel.cs`
+- `HRMS/ViewModel/RecruitmentViewModel.cs`
+- `HRMS/ViewModel/TrainingViewModel.cs`
+- `HRMS/ViewModel/UsersRolesViewModel.cs`
+
+#### View layer files
+
+- `HRMS/View/AddCourseWindow.xaml`
+- `HRMS/View/AddCourseWindow.xaml.cs`
+- `HRMS/View/AddEmployeeWindow.xaml`
+- `HRMS/View/AddEmployeeWindow.xaml.cs`
+- `HRMS/View/AdjustmentsWindow.xaml`
+- `HRMS/View/AdjustmentsWindow.xaml.cs`
+- `HRMS/View/AttendanceLogsWindow.xaml`
+- `HRMS/View/AttendanceLogsWindow.xaml.cs`
+- `HRMS/View/AttendanceWindow.xaml`
+- `HRMS/View/AttendanceWindow.xaml.cs`
+- `HRMS/View/BeneficiaryChangePasswordDialog.xaml`
+- `HRMS/View/BeneficiaryChangePasswordDialog.xaml.cs`
+- `HRMS/View/BeneficiaryVerificationWindow.xaml`
+- `HRMS/View/BeneficiaryVerificationWindow.xaml.cs`
+- `HRMS/View/CourseEditWindow.xaml`
+- `HRMS/View/CourseEditWindow.xaml.cs`
+- `HRMS/View/DashboardWindow.xaml`
+- `HRMS/View/DashboardWindow.xaml.cs`
+- `HRMS/View/DepartmentAndPositionsWindow.xaml`
+- `HRMS/View/DepartmentAndPositionsWindow.xaml.cs`
+- `HRMS/View/DevelopmentWindow.xaml`
+- `HRMS/View/DevelopmentWindow.xaml.cs`
+- `HRMS/View/EmployeesWindow.xaml`
+- `HRMS/View/EmployeesWindow.xaml.cs`
+- `HRMS/View/EnrollEmployeeWindow.xaml`
+- `HRMS/View/EnrollEmployeeWindow.xaml.cs`
+- `HRMS/View/GovernmentIdMaskConverter.cs`
+- `HRMS/View/LeaveWindow.xaml`
+- `HRMS/View/LeaveWindow.xaml.cs`
+- `HRMS/View/LoginPage.xaml`
+- `HRMS/View/LoginPage.xaml.cs`
+- `HRMS/View/MyDocumentsWindow.xaml`
+- `HRMS/View/MyDocumentsWindow.xaml.cs`
+- `HRMS/View/NotificationsWindow.xaml`
+- `HRMS/View/NotificationsWindow.xaml.cs`
+- `HRMS/View/PayrollWindow.xaml`
+- `HRMS/View/PayrollWindow.xaml.cs`
+- `HRMS/View/PerformanceAdminView.xaml`
+- `HRMS/View/PerformanceAdminView.xaml.cs`
+- `HRMS/View/RecruitmentWindow.xaml`
+- `HRMS/View/RecruitmentWindow.xaml.cs`
+- `HRMS/View/UsersRolesWindow.xaml`
+- `HRMS/View/UsersRolesWindow.xaml.cs`
+
+### PRACTICAL HANDOFF NOTES FOR FUTURE WORK
+
+- Do not treat `MainWindow.xaml` as the real shell; the real startup window is `View/LoginPage.xaml`.
+- The actual source code is inside the nested `HRMS/` folder.
+- Ignore `_build_out/` copies when tracing behavior; they are output artifacts.
+- Beneficiary import and GGMS sync are already implemented in source, not just planned.
+- Payroll currently has hardcoded GGMS office mapping for HRMS:
+  - Office ID `18`
+  - Office Code `OFF-2026-0007`
+- Documents and notifications depend on the logged-in user being linked to a valid employee profile.
+- Beneficiary accounts are not employee-linked; they are created through `BeneficiaryStaging -> user_accounts`.
+- User/profile data, attendance, leave, payroll, training, recruitment, and beneficiary verification all raise or depend on shared refresh patterns.
+- If working on database changes, check the SQL migration chain first and keep `schema_migrations` in sync.

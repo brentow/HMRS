@@ -18,10 +18,11 @@ namespace HRMS.ViewModel
         private static readonly Brush InfoBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#4A5B6C"));
         private static readonly Brush SuccessBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2E9D5B"));
         private static readonly Brush ErrorBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D84343"));
+        private static readonly Brush WarningBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B7791F"));
 
         private readonly AttendanceDataService _dataService = new(DbConfig.ConnectionString);
+        private readonly BiometricHardwareService _biometricHardwareService = new();
         private readonly List<AttendanceLogVm> _allLogs = new();
-        private readonly Random _enrollmentCaptureRandom = new();
 
         private int _totalLogs;
         private int _todayLogs;
@@ -55,6 +56,13 @@ namespace HRMS.ViewModel
         private int _enrollmentCaptureCompleted;
         private string _enrollmentQualityResult = "Waiting for first capture.";
         private string _enrollmentResultText = "No enrollment attempt yet.";
+        private string _biometricHardwareStatusTitle = "No connected fingerprint reader";
+        private string _biometricHardwareStatusText = "HRMS has not detected a supported fingerprint reader on this PC yet.";
+        private string _biometricHardwareGuidanceText = "Plug in the U.are.U 4500 reader and click Detect Reader.";
+        private Brush _biometricHardwareStatusBrush = ErrorBrush;
+        private bool _hasConnectedBiometricReaders;
+        private string _enrollmentFlowSubtitle = "Connect the HID DigitalPersona reader before starting employee enrollment.";
+        private BiometricHardwareProbeResult _lastBiometricHardwareProbe = new(Array.Empty<ConnectedBiometricReaderInfo>(), 0, false);
 
         private string _newShiftName = string.Empty;
         private string _newShiftStart = "07:00";
@@ -140,6 +148,7 @@ namespace HRMS.ViewModel
             ? "Track your logs, assigned shifts, and monthly DTR."
             : "Biometric devices, enrollments, shifts, and assignments for DTR.";
         public string ShiftAssignmentsTabHeader => IsEmployeeMode ? "My Shift" : "Shift Assignments";
+        public string AttendanceRemarksTabHeader => IsEmployeeMode ? "My Travel / OB" : "Travel / OB";
         public string DtrTabHeader => IsEmployeeMode ? "My DTR" : "DTR";
         public string ShiftAssignmentsInfoText => IsEmployeeMode
             ? "This section shows your assigned shifts. Contact Admin/HR for schedule changes."
@@ -220,12 +229,21 @@ namespace HRMS.ViewModel
                 OnPropertyChanged(nameof(AttendancePageTitle));
                 OnPropertyChanged(nameof(AttendancePageSubtitle));
                 OnPropertyChanged(nameof(ShiftAssignmentsTabHeader));
+                OnPropertyChanged(nameof(AttendanceRemarksTabHeader));
                 OnPropertyChanged(nameof(DtrTabHeader));
                 OnPropertyChanged(nameof(ShiftAssignmentsInfoText));
+                OnPropertyChanged(nameof(CanRegisterConnectedReaders));
             }
         }
 
         public bool IsAdminOrHrMode => !IsEmployeeMode;
+        public string BiometricHardwareStatusTitle { get => _biometricHardwareStatusTitle; private set { if (_biometricHardwareStatusTitle != value) { _biometricHardwareStatusTitle = value; OnPropertyChanged(); } } }
+        public string BiometricHardwareStatusText { get => _biometricHardwareStatusText; private set { if (_biometricHardwareStatusText != value) { _biometricHardwareStatusText = value; OnPropertyChanged(); } } }
+        public string BiometricHardwareGuidanceText { get => _biometricHardwareGuidanceText; private set { if (_biometricHardwareGuidanceText != value) { _biometricHardwareGuidanceText = value; OnPropertyChanged(); } } }
+        public Brush BiometricHardwareStatusBrush { get => _biometricHardwareStatusBrush; private set { if (!Equals(_biometricHardwareStatusBrush, value)) { _biometricHardwareStatusBrush = value; OnPropertyChanged(); } } }
+        public bool HasConnectedBiometricReaders { get => _hasConnectedBiometricReaders; private set { if (_hasConnectedBiometricReaders != value) { _hasConnectedBiometricReaders = value; OnPropertyChanged(); OnPropertyChanged(nameof(CanRegisterConnectedReaders)); } } }
+        public bool CanRegisterConnectedReaders => IsAdminOrHrMode && HasConnectedBiometricReaders;
+        public string EnrollmentFlowSubtitle { get => _enrollmentFlowSubtitle; private set { if (_enrollmentFlowSubtitle != value) { _enrollmentFlowSubtitle = value; OnPropertyChanged(); } } }
 
         public string SearchText
         {
@@ -572,6 +590,7 @@ namespace HRMS.ViewModel
         public ObservableCollection<AttendanceAdjustmentVm> Adjustments { get; } = new();
         public ObservableCollection<BiometricDeviceVm> BiometricDevices { get; } = new();
         public ObservableCollection<BiometricEnrollmentVm> BiometricEnrollments { get; } = new();
+        public ObservableCollection<ConnectedBiometricReaderInfo> ConnectedBiometricReaders { get; } = new();
         public ObservableCollection<ShiftVm> Shifts { get; } = new();
         public ObservableCollection<ShiftAssignmentVm> ShiftAssignments { get; } = new();
         public ObservableCollection<LookupOptionVm> EmployeeOptions { get; } = new();
@@ -585,6 +604,8 @@ namespace HRMS.ViewModel
         public ICommand RejectAdjustmentCommand { get; }
         public ICommand ClearDateFilterCommand { get; }
         public ICommand AddDeviceCommand { get; }
+        public ICommand DetectConnectedReaderCommand { get; }
+        public ICommand RegisterConnectedReaderCommand { get; }
         public ICommand ToggleDeviceActiveCommand { get; }
         public ICommand SyncDeviceCommand { get; }
         public ICommand AddEnrollmentCommand { get; }
@@ -613,6 +634,8 @@ namespace HRMS.ViewModel
                 return Task.CompletedTask;
             });
             AddDeviceCommand = new AsyncRelayCommand(_ => AddDeviceAsync());
+            DetectConnectedReaderCommand = new AsyncRelayCommand(_ => DetectConnectedReaderAsync());
+            RegisterConnectedReaderCommand = new AsyncRelayCommand(_ => RegisterConnectedReaderAsync());
             ToggleDeviceActiveCommand = new AsyncRelayCommand(ToggleDeviceActiveAsync);
             SyncDeviceCommand = new AsyncRelayCommand(SyncDeviceAsync);
             OpenEnrollmentFlowCommand = new AsyncRelayCommand(_ => OpenEnrollmentFlowAsync());
@@ -628,7 +651,9 @@ namespace HRMS.ViewModel
             DeleteAssignmentCommand = new AsyncRelayCommand(DeleteAssignmentAsync);
             SubmitAdjustmentRequestCommand = new AsyncRelayCommand(_ => SubmitAdjustmentRequestAsync());
             CancelMyAdjustmentCommand = new AsyncRelayCommand(CancelMyAdjustmentAsync);
+            InitializeBiometricRuntimeCommands();
             InitializeAdjustmentsAdmin();
+            InitializeAttendanceRemarks();
             InitializeDtr();
             InitializeLogsAdmin();
 
@@ -656,6 +681,7 @@ namespace HRMS.ViewModel
             {
                 SelectedDtrEmployeeId = _currentEmployeeId.Value;
                 SelectedManualLogEmployeeId = _currentEmployeeId.Value;
+                SelectedRemarkEmployeeId = _currentEmployeeId.Value;
             }
 
             await RefreshAsync();
@@ -677,21 +703,25 @@ namespace HRMS.ViewModel
                 var logsTask = _dataService.GetRecentLogsAsync(300);
                 var adjustmentsTask = _dataService.GetPendingAdjustmentsAsync(300, null);
                 var adjustmentCountsTask = _dataService.GetAdjustmentStatusCountsAsync();
+                var remarksTask = _dataService.GetAttendanceRemarksAsync(IsEmployeeMode ? _currentEmployeeId : null, 400);
                 var devicesTask = _dataService.GetBiometricDevicesAsync();
                 var employeesTask = _dataService.GetEmployeesLookupAsync();
                 var enrollmentsTask = _dataService.GetBiometricEnrollmentsAsync(600);
                 var shiftsTask = _dataService.GetShiftsAsync();
                 var assignmentsTask = _dataService.GetShiftAssignmentsAsync(700);
+                var hardwareProbeTask = _biometricHardwareService.ProbeAsync();
 
                 var stats = await statsTask;
                 var logs = await logsTask;
                 var adjustments = await adjustmentsTask;
                 var adjustmentCounts = await adjustmentCountsTask;
+                var remarks = await remarksTask;
                 var devices = await devicesTask;
                 var employees = await employeesTask;
                 var enrollments = await enrollmentsTask;
                 var shifts = await shiftsTask;
                 var assignments = await assignmentsTask;
+                var hardwareProbe = await hardwareProbeTask;
 
                 var scopedEmployee = IsEmployeeMode && _currentEmployeeId.HasValue
                     ? employees.FirstOrDefault(x => x.EmployeeId == _currentEmployeeId.Value)
@@ -790,6 +820,7 @@ namespace HRMS.ViewModel
                     : adjustmentCounts;
 
                 RebuildAdjustments(effectiveAdjustments, effectiveAdjustmentCounts);
+                RebuildAttendanceRemarks(remarks);
 
                 BiometricDevices.Clear();
                 DeviceOptions.Clear();
@@ -808,6 +839,9 @@ namespace HRMS.ViewModel
                     DeviceOptions.Add(new LookupOptionVm(device.DeviceId, device.DeviceName));
                 }
 
+                SyncBiometricRuntimeSelections();
+                ApplyBiometricHardwareProbe(hardwareProbe, autoPopulateDeviceDraft: false);
+
                 EmployeeOptions.Clear();
                 DtrEmployeeOptions.Clear();
 
@@ -817,6 +851,7 @@ namespace HRMS.ViewModel
                     EmployeeOptions.Add(new LookupOptionVm(scopedEmployee.EmployeeId, selfLabel));
                     DtrEmployeeOptions.Add(new LookupOptionVm(scopedEmployee.EmployeeId, selfLabel));
                     SelectedDtrEmployeeId = scopedEmployee.EmployeeId;
+                    SelectedRemarkEmployeeId = scopedEmployee.EmployeeId;
                 }
                 else
                 {
@@ -831,6 +866,11 @@ namespace HRMS.ViewModel
                     if (!SelectedDtrEmployeeId.HasValue || !DtrEmployeeOptions.Any(x => x.Id == SelectedDtrEmployeeId.Value))
                     {
                         SelectedDtrEmployeeId = 0;
+                    }
+
+                    if (!SelectedRemarkEmployeeId.HasValue || !EmployeeOptions.Any(x => x.Id == SelectedRemarkEmployeeId.Value))
+                    {
+                        SelectedRemarkEmployeeId = EmployeeOptions.Count > 0 ? EmployeeOptions[0].Id : null;
                     }
                 }
 
@@ -852,7 +892,9 @@ namespace HRMS.ViewModel
                         enrollment.BiometricUserId,
                         enrollment.DeviceName,
                         enrollment.Status,
-                        enrollment.CreatedAt));
+                        enrollment.CreatedAt,
+                        enrollment.HasTemplate,
+                        enrollment.TemplateUpdatedAt));
                 }
 
                 await LoadEnrollmentEmployeeProfileAsync();
@@ -1132,6 +1174,76 @@ namespace HRMS.ViewModel
             }
         }
 
+        private async Task DetectConnectedReaderAsync()
+        {
+            if (!EnsureAdminOrHrAccess("Managing biometric devices"))
+            {
+                return;
+            }
+
+            try
+            {
+                var probe = await _biometricHardwareService.ProbeAsync();
+                ApplyBiometricHardwareProbe(probe, autoPopulateDeviceDraft: true);
+
+                if (!probe.HasConnectedReaders)
+                {
+                    SetMessage("No connected fingerprint reader was detected.", ErrorBrush);
+                    return;
+                }
+
+                SetMessage(
+                    probe.HasDigitalPersonaSdkRuntime
+                        ? "Connected fingerprint reader detected. SDK runtime files were also found."
+                        : "Connected fingerprint reader detected. Driver is installed, but live capture runtime is not ready.",
+                    probe.HasDigitalPersonaSdkRuntime ? SuccessBrush : WarningBrush);
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Unable to detect connected reader: {ex.Message}", ErrorBrush);
+            }
+        }
+
+        private async Task RegisterConnectedReaderAsync()
+        {
+            if (!EnsureAdminOrHrAccess("Managing biometric devices"))
+            {
+                return;
+            }
+
+            try
+            {
+                var probe = await _biometricHardwareService.ProbeAsync();
+                ApplyBiometricHardwareProbe(probe, autoPopulateDeviceDraft: true);
+
+                if (!probe.HasConnectedReaders)
+                {
+                    SetMessage("No connected fingerprint reader is available to register.", ErrorBrush);
+                    return;
+                }
+
+                foreach (var reader in probe.Readers)
+                {
+                    await _dataService.AddDeviceAsync(
+                        reader.DeviceName,
+                        reader.SuggestedSerialNo,
+                        reader.SuggestedLocation,
+                        string.Empty,
+                        isActive: true);
+                }
+
+                await RefreshAsync();
+                SetMessage(
+                    $"Registered {probe.Readers.Count} connected biometric reader(s) in HRMS.",
+                    SuccessBrush);
+                SystemRefreshBus.Raise("BiometricDeviceSaved");
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Unable to register connected reader: {ex.Message}", ErrorBrush);
+            }
+        }
+
         private async Task ToggleDeviceActiveAsync(object? parameter)
         {
             if (!EnsureAdminOrHrAccess("Managing biometric devices"))
@@ -1204,6 +1316,8 @@ namespace HRMS.ViewModel
                 SelectedEnrollmentDeviceId = DeviceOptions.First(x => x.Id > 0).Id;
             }
 
+            var probe = await _biometricHardwareService.ProbeAsync();
+            ApplyBiometricHardwareProbe(probe, autoPopulateDeviceDraft: false);
             await LoadEnrollmentEmployeeProfileAsync();
             AddEnrollmentAudit("Enrollment flow opened.");
         }
@@ -1247,42 +1361,69 @@ namespace HRMS.ViewModel
                 return;
             }
 
-            if (_enrollmentCaptureCompleted >= 3)
+            if (_pendingEnrollmentTemplateData != null && _pendingEnrollmentTemplateData.Length > 0)
             {
-                EnrollmentQualityResult = "Capture already complete (3/3).";
-                EnrollmentResultText = "Ready to generate template and save enrollment.";
+                EnrollmentQualityResult = "A fingerprint template is already captured.";
+                EnrollmentResultText = "Click Complete Enrollment to save the captured fingerprint.";
                 return;
             }
 
             await LoadEnrollmentEmployeeProfileAsync();
 
-            var targetCaptureIndex = _enrollmentCaptureCompleted + 1;
-            var qualityScore = _enrollmentCaptureRandom.Next(45, 101);
-            const int minimumQuality = 65;
-            if (qualityScore < minimumQuality)
+            var probe = await _biometricHardwareService.ProbeAsync();
+            ApplyBiometricHardwareProbe(probe, autoPopulateDeviceDraft: false);
+
+            if (!probe.HasConnectedReaders)
             {
-                EnrollmentQualityResult = $"Capture {targetCaptureIndex}/3 rejected (quality {qualityScore}%). Repeat this step.";
-                EnrollmentResultText = "Low quality capture. Please scan the same finger again.";
-                AddEnrollmentAudit($"Capture {targetCaptureIndex}/3 failed quality check ({qualityScore}%).");
-                SetMessage("Low-quality capture detected. Repeat the scan.", ErrorBrush);
+                EnrollmentResultText = "No connected fingerprint reader detected.";
+                AddEnrollmentAudit("Capture blocked: no supported fingerprint reader is connected.");
+                SetMessage("No connected fingerprint reader detected.", ErrorBrush);
                 return;
             }
 
-            _enrollmentCaptureCompleted++;
-            EnrollmentProgressText = $"Capture {_enrollmentCaptureCompleted}/3";
-            EnrollmentQualityResult = $"Capture {_enrollmentCaptureCompleted}/3 accepted (quality {qualityScore}%).";
-            AddEnrollmentAudit($"Capture {_enrollmentCaptureCompleted}/3 passed quality check ({qualityScore}%).");
-            OnPropertyChanged(nameof(IsEnrollmentReadyToSave));
-
-            if (_enrollmentCaptureCompleted >= 3)
+            var reader = probe.Readers[0];
+            if (!probe.HasDigitalPersonaSdkRuntime)
             {
-                EnrollmentResultText = "3/3 captures completed. Template can now be generated and saved.";
-                AddEnrollmentAudit("All 3 captures completed successfully.");
-                SetMessage("Capture complete. Click Complete Enrollment.", SuccessBrush);
+                EnrollmentQualityResult = reader.DetailText;
+                EnrollmentResultText = "Reader detected, but the HID DigitalPersona SDK/runtime is not installed on this PC. HRMS cannot capture fingerprints yet.";
+                AddEnrollmentAudit($"Capture blocked: reader detected ({reader.DeviceName}) but DigitalPersona SDK/runtime files were not found.");
+                SetMessage("Reader detected, but fingerprint capture runtime is not installed.", ErrorBrush);
                 return;
             }
 
-            EnrollmentResultText = $"Capture complete. Next step: {_enrollmentCaptureCompleted + 1}/3.";
+            try
+            {
+                EnrollmentInstructionText = "Place the employee finger on the reader now.";
+                EnrollmentProgressText = "Waiting for scan";
+                EnrollmentQualityResult = reader.DetailText;
+                EnrollmentResultText = "Waiting for a clear fingerprint capture...";
+                AddEnrollmentAudit($"Capture started on {reader.DeviceName}.");
+                SetMessage("Waiting for biometric enrollment scan...", InfoBrush);
+
+                var capture = await _digitalPersonaRuntimeService.CaptureTemplateAsync();
+                _pendingEnrollmentTemplateData = capture.TemplateData;
+                _pendingEnrollmentTemplateFormat = capture.TemplateFormat;
+                _pendingEnrollmentTemplateEncoding = capture.TemplateEncoding;
+                _pendingEnrollmentTemplateQuality = capture.QualityScore;
+                _enrollmentCaptureCompleted = 3;
+                OnPropertyChanged(nameof(IsEnrollmentReadyToSave));
+
+                EnrollmentInstructionText = "Fingerprint captured. Review the details, then click Complete Enrollment.";
+                EnrollmentProgressText = "Template ready";
+                EnrollmentQualityResult = capture.QualityScore.HasValue
+                    ? $"Quality score: {capture.QualityScore.Value}"
+                    : capture.ReaderDetail;
+                EnrollmentResultText = "Fingerprint template captured successfully.";
+                AddEnrollmentAudit($"Fingerprint template captured from {capture.ReaderName}.");
+                SetMessage("Fingerprint captured. Complete the enrollment to save it.", SuccessBrush);
+            }
+            catch (Exception ex)
+            {
+                EnrollmentProgressText = "Capture failed";
+                EnrollmentResultText = ex.Message;
+                AddEnrollmentAudit($"Capture failed: {ex.Message}");
+                SetMessage($"Unable to capture fingerprint: {ex.Message}", ErrorBrush);
+            }
         }
 
         private async Task AddEnrollmentAsync()
@@ -1306,7 +1447,13 @@ namespace HRMS.ViewModel
 
             if (_enrollmentCaptureCompleted < 3)
             {
-                SetMessage("Capture must reach 3/3 before saving enrollment.", ErrorBrush);
+                SetMessage("Capture a fingerprint first before saving enrollment.", ErrorBrush);
+                return;
+            }
+
+            if (_pendingEnrollmentTemplateData == null || _pendingEnrollmentTemplateData.Length == 0)
+            {
+                SetMessage("No captured fingerprint template is ready to save.", ErrorBrush);
                 return;
             }
 
@@ -1322,12 +1469,16 @@ namespace HRMS.ViewModel
                     SelectedEnrollmentEmployeeId.Value,
                     NewBiometricUserId,
                     SelectedEnrollmentDeviceId,
-                    "ACTIVE");
+                    "ACTIVE",
+                    _pendingEnrollmentTemplateData,
+                    _pendingEnrollmentTemplateFormat,
+                    _pendingEnrollmentTemplateEncoding,
+                    _pendingEnrollmentTemplateQuality);
 
-                EnrollmentResultText = "Enrollment successful. Template saved to device and database mapping created.";
+                EnrollmentResultText = "Enrollment record saved and fingerprint template stored.";
                 EnrollmentCurrentStatus = "ACTIVE";
-                AddEnrollmentAudit("Template generated from 3 captures.");
-                AddEnrollmentAudit($"Enrollment saved to biometric_enrollments (employee_id={SelectedEnrollmentEmployeeId.Value}, biometric_user_id={NewBiometricUserId}, device_id={SelectedEnrollmentDeviceId.Value}, status=ACTIVE).");
+                AddEnrollmentAudit("Enrollment capture workflow completed.");
+                AddEnrollmentAudit($"Enrollment saved to biometric_enrollments (employee_id={SelectedEnrollmentEmployeeId.Value}, biometric_user_id={NewBiometricUserId}, device_id={SelectedEnrollmentDeviceId.Value}, status=ACTIVE, template=YES).");
                 AddEnrollmentAudit("Audit log entry recorded.");
                 ResetEnrollmentCaptureState(clearAuditLogs: false);
 
@@ -1377,17 +1528,93 @@ namespace HRMS.ViewModel
             }
         }
 
+        private void ApplyBiometricHardwareProbe(BiometricHardwareProbeResult probe, bool autoPopulateDeviceDraft)
+        {
+            _lastBiometricHardwareProbe = probe ?? new BiometricHardwareProbeResult(Array.Empty<ConnectedBiometricReaderInfo>(), 0, false);
+
+            ConnectedBiometricReaders.Clear();
+            foreach (var reader in _lastBiometricHardwareProbe.Readers)
+            {
+                ConnectedBiometricReaders.Add(reader);
+            }
+
+            HasConnectedBiometricReaders = _lastBiometricHardwareProbe.HasConnectedReaders;
+            BiometricHardwareStatusTitle = _lastBiometricHardwareProbe.StatusTitle;
+            BiometricHardwareStatusText = _lastBiometricHardwareProbe.StatusText;
+            BiometricHardwareGuidanceText = _lastBiometricHardwareProbe.GuidanceText;
+            BiometricHardwareStatusBrush = !_lastBiometricHardwareProbe.HasConnectedReaders
+                ? ErrorBrush
+                : _lastBiometricHardwareProbe.HasDigitalPersonaSdkRuntime || _lastBiometricHardwareProbe.IsWbfReady
+                    ? SuccessBrush
+                    : WarningBrush;
+            EnrollmentFlowSubtitle = _lastBiometricHardwareProbe.GuidanceText;
+
+            if (autoPopulateDeviceDraft && _lastBiometricHardwareProbe.Readers.Count > 0)
+            {
+                PopulateNewDeviceDraft(_lastBiometricHardwareProbe.Readers[0]);
+            }
+
+            ApplyLiveScannerHardwareState(_lastBiometricHardwareProbe);
+            ApplyEnrollmentHardwareState(_lastBiometricHardwareProbe);
+        }
+
+        private void PopulateNewDeviceDraft(ConnectedBiometricReaderInfo reader)
+        {
+            if (reader is null)
+            {
+                return;
+            }
+
+            NewDeviceName = reader.DeviceName;
+            NewDeviceSerial = reader.SuggestedSerialNo;
+            NewDeviceLocation = reader.SuggestedLocation;
+            NewDeviceIp = string.Empty;
+            NewDeviceIsActive = true;
+        }
+
+        private void ApplyEnrollmentHardwareState(BiometricHardwareProbeResult probe)
+        {
+            if (_enrollmentCaptureCompleted > 0)
+            {
+                return;
+            }
+
+            if (!probe.HasConnectedReaders)
+            {
+                EnrollmentInstructionText = "Connect the HID DigitalPersona U.are.U 4500 reader before attempting enrollment.";
+                EnrollmentProgressText = "Capture unavailable";
+                EnrollmentQualityResult = "No connected fingerprint reader detected.";
+                EnrollmentResultText = "Device capture is unavailable until a supported reader is connected.";
+                return;
+            }
+
+            var reader = probe.Readers[0];
+            if (!probe.HasDigitalPersonaSdkRuntime)
+            {
+                EnrollmentInstructionText = "The reader is connected. Register the device now, then install the HID DigitalPersona SDK/runtime to enable real fingerprint capture in HRMS.";
+                EnrollmentProgressText = "Driver detected";
+                EnrollmentQualityResult = reader.DetailText;
+                EnrollmentResultText = "Reader detected, but the PC only has the HID driver layer. Live fingerprint capture is not available yet.";
+                return;
+            }
+
+            EnrollmentInstructionText = "Reader and DigitalPersona runtime are ready. Capture one clear fingerprint, then save the enrollment.";
+            EnrollmentProgressText = "Ready to capture";
+            EnrollmentQualityResult = reader.DetailText;
+            EnrollmentResultText = "The fingerprint reader is ready for employee enrollment.";
+        }
+
         private void ResetEnrollmentCaptureState(bool clearAuditLogs)
         {
             _enrollmentCaptureCompleted = 0;
-            EnrollmentInstructionText = "Place finger 3 times to capture biometric template.";
-            EnrollmentProgressText = "Capture 0/3";
-            EnrollmentQualityResult = "Waiting for first capture.";
+            ResetPendingEnrollmentTemplate();
             OnPropertyChanged(nameof(IsEnrollmentReadyToSave));
             if (clearAuditLogs)
             {
                 EnrollmentAuditLogs.Clear();
             }
+
+            ApplyEnrollmentHardwareState(_lastBiometricHardwareProbe);
         }
 
         private void ClearEnrollmentEmployeeProfile()
@@ -1877,7 +2104,9 @@ namespace HRMS.ViewModel
             string biometricUserId,
             string deviceName,
             string status,
-            DateTime createdAt)
+            DateTime createdAt,
+            bool hasTemplate,
+            DateTime? templateUpdatedAt)
         {
             EnrollmentId = enrollmentId;
             EmployeeNo = string.IsNullOrWhiteSpace(employeeNo) ? "-" : employeeNo.Trim();
@@ -1886,6 +2115,8 @@ namespace HRMS.ViewModel
             DeviceName = string.IsNullOrWhiteSpace(deviceName) ? "-" : deviceName.Trim();
             Status = string.IsNullOrWhiteSpace(status) ? "ACTIVE" : status.Trim().ToUpperInvariant();
             CreatedAt = createdAt;
+            HasTemplate = hasTemplate;
+            TemplateUpdatedAt = templateUpdatedAt;
         }
 
         public int EnrollmentId { get; }
@@ -1895,10 +2126,16 @@ namespace HRMS.ViewModel
         public string DeviceName { get; }
         public string Status { get; }
         public DateTime CreatedAt { get; }
+        public bool HasTemplate { get; }
+        public DateTime? TemplateUpdatedAt { get; }
 
         public string CreatedAtText => CreatedAt == DateTime.MinValue
             ? "-"
             : CreatedAt.ToString("MMM dd, yyyy hh:mm tt", CultureInfo.InvariantCulture);
+        public string TemplateStatusText => HasTemplate ? "TEMPLATE READY" : "NO TEMPLATE";
+        public string TemplateUpdatedAtText => TemplateUpdatedAt.HasValue
+            ? TemplateUpdatedAt.Value.ToString("MMM dd, yyyy hh:mm tt", CultureInfo.InvariantCulture)
+            : "-";
         public Brush StatusBrush => string.Equals(Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)
             ? ActiveBrush
             : InactiveBrush;

@@ -1,14 +1,14 @@
-﻿using System.Configuration;
-using System.Data;
+using HRMS.Model;
 using System.Windows;
 
 namespace HRMS
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
     public partial class App : Application
     {
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            StartMenuShortcutService.EnsureInstalledShortcutUsesHrmsIcon();
+            base.OnStartup(e);
+        }
     }
-
 }

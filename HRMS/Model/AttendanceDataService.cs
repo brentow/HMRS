@@ -69,7 +69,9 @@ namespace HRMS.Model
         int? DeviceId,
         string DeviceName,
         string Status,
-        DateTime CreatedAt);
+        DateTime CreatedAt,
+        bool HasTemplate,
+        DateTime? TemplateUpdatedAt);
 
     public record ShiftDto(
         int ShiftId,
@@ -739,7 +741,9 @@ SELECT be.enrollment_id, e.employee_id, COALESCE(e.employee_no,'-') employee_no,
        CONCAT(e.last_name, ', ', e.first_name, IFNULL(CONCAT(' ', e.middle_name), '')) employee_name,
        COALESCE(be.biometric_user_id,'-') biometric_user_id,
        be.device_id, COALESCE(d.device_name,'-') device_name,
-       COALESCE(be.status,'ACTIVE') status, be.created_at
+       COALESCE(be.status,'ACTIVE') status, be.created_at,
+       COALESCE(OCTET_LENGTH(be.template_data), 0) template_size,
+       be.template_updated_at
 FROM biometric_enrollments be
 JOIN employees e ON e.employee_id = be.employee_id
 LEFT JOIN biometric_devices d ON d.device_id = be.device_id
@@ -765,7 +769,9 @@ LIMIT @limit;";
                         reader["device_id"] == DBNull.Value ? null : ToInt(reader["device_id"]),
                         reader["device_name"]?.ToString() ?? "-",
                         reader["status"]?.ToString() ?? "ACTIVE",
-                        reader["created_at"] == DBNull.Value ? DateTime.MinValue : Convert.ToDateTime(reader["created_at"], CultureInfo.InvariantCulture)));
+                        reader["created_at"] == DBNull.Value ? DateTime.MinValue : Convert.ToDateTime(reader["created_at"], CultureInfo.InvariantCulture),
+                        ToLong(reader["template_size"]) > 0,
+                        reader["template_updated_at"] == DBNull.Value ? null : Convert.ToDateTime(reader["template_updated_at"], CultureInfo.InvariantCulture)));
                 }
             }
             catch (MySqlException ex) when (IsMissingObjectError(ex))
@@ -775,7 +781,15 @@ LIMIT @limit;";
             return list;
         }
 
-        public async Task AddBiometricEnrollmentAsync(int employeeId, string biometricUserId, int? deviceId, string status)
+        public async Task AddBiometricEnrollmentAsync(
+            int employeeId,
+            string biometricUserId,
+            int? deviceId,
+            string status,
+            byte[]? templateData,
+            string? templateFormat,
+            string? templateEncoding,
+            int? templateQuality)
         {
             if (employeeId <= 0 || string.IsNullOrWhiteSpace(biometricUserId))
             {
@@ -783,8 +797,42 @@ LIMIT @limit;";
             }
 
             const string sql = @"
-INSERT INTO biometric_enrollments (employee_id, biometric_user_id, device_id, status)
-VALUES (@employee_id, @bio_id, @device_id, @status);";
+INSERT INTO biometric_enrollments
+(
+    employee_id,
+    biometric_user_id,
+    device_id,
+    status,
+    template_data,
+    template_format,
+    template_encoding,
+    template_quality,
+    template_updated_at
+)
+VALUES
+(
+    @employee_id,
+    @bio_id,
+    @device_id,
+    @status,
+    @template_data,
+    @template_format,
+    @template_encoding,
+    @template_quality,
+    CASE WHEN @template_data IS NULL THEN NULL ELSE NOW() END
+)
+ON DUPLICATE KEY UPDATE
+    employee_id = VALUES(employee_id),
+    device_id = VALUES(device_id),
+    status = VALUES(status),
+    template_data = VALUES(template_data),
+    template_format = VALUES(template_format),
+    template_encoding = VALUES(template_encoding),
+    template_quality = VALUES(template_quality),
+    template_updated_at = CASE
+        WHEN VALUES(template_data) IS NULL THEN template_updated_at
+        ELSE NOW()
+    END;";
 
             await using var connection = new MySqlConnection(_connectionString);
             await connection.OpenAsync();
@@ -793,6 +841,10 @@ VALUES (@employee_id, @bio_id, @device_id, @status);";
             command.Parameters.AddWithValue("@bio_id", biometricUserId.Trim());
             command.Parameters.AddWithValue("@device_id", deviceId.HasValue && deviceId.Value > 0 ? deviceId.Value : DBNull.Value);
             command.Parameters.AddWithValue("@status", NormalizeEnrollmentStatus(status));
+            command.Parameters.AddWithValue("@template_data", templateData != null && templateData.Length > 0 ? templateData : DBNull.Value);
+            command.Parameters.AddWithValue("@template_format", string.IsNullOrWhiteSpace(templateFormat) ? DBNull.Value : templateFormat.Trim());
+            command.Parameters.AddWithValue("@template_encoding", string.IsNullOrWhiteSpace(templateEncoding) ? DBNull.Value : templateEncoding.Trim().ToUpperInvariant());
+            command.Parameters.AddWithValue("@template_quality", templateQuality.HasValue ? templateQuality.Value : DBNull.Value);
             await command.ExecuteNonQueryAsync();
         }
 

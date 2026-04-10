@@ -10,11 +10,17 @@ namespace HRMS.ViewModel
     public class DashboardViewModel : INotifyPropertyChanged
     {
         private readonly DashboardDataService _dataService;
+        private readonly CompanyProfileDataService _companyProfileDataService;
         private readonly AuthenticatedUser? _authenticatedUser;
         private DashboardStats _stats = new DashboardStats();
         private bool _isLoading;
         private string _errorMessage = string.Empty;
         private DateTime _lastUpdated;
+        private string _companyName = CompanyProfile.Default.CompanyName;
+        private string _companyAddress = CompanyProfile.Default.Address;
+        private string _companyOwner = CompanyProfile.Default.OwnerName;
+        private string _serialNumber = CompanyProfile.Default.SerialNumber;
+        private string _companyLogoPath = CompanyProfile.Default.LogoPath;
         private bool _isDashboardVisible = true;
         private bool _isTrainingVisible = false;
         private bool _isRecruitmentVisible = false;
@@ -27,14 +33,20 @@ namespace HRMS.ViewModel
         private bool _isAdjustmentsVisible = false;
         private bool _isLeaveVisible = false;
         private bool _isPayrollVisible = false;
+        private bool _isTransactionsVisible = false;
+        private bool _isReportsVisible = false;
         private bool _isDocumentsVisible = false;
+        private bool _isDocumentVerificationVisible = false;
         private bool _isBeneficiariesVisible = false;
 
         public DashboardViewModel(AuthenticatedUser? authenticatedUser = null)
         {
             _authenticatedUser = authenticatedUser;
             _dataService = new DashboardDataService(DbConfig.ConnectionString);
+            _companyProfileDataService = new CompanyProfileDataService(DbConfig.ConnectionString);
             RefreshCommand = new AsyncRelayCommand(_ => LoadStatsAsync());
+
+            _ = LoadCompanyProfileAsync();
 
             // Eagerly kick off the first load
             RefreshCommand.Execute(null);
@@ -56,6 +68,112 @@ namespace HRMS.ViewModel
         public bool ShowAdminHrDashboard => IsAdminAccess || IsHrAccess;
         public bool ShowEmployeeDashboard => IsEmployeeAccess;
         public string DocumentsNavLabel => ShowEmployeeDashboard ? "My Documents" : "Documents";
+
+        public string CompanyName
+        {
+            get => _companyName;
+            private set
+            {
+                if (_companyName != value)
+                {
+                    _companyName = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(CompanyShortName));
+                    OnPropertyChanged(nameof(CompanyAbbreviation));
+                }
+            }
+        }
+
+        public string CompanyAddress
+        {
+            get => _companyAddress;
+            private set
+            {
+                if (_companyAddress != value)
+                {
+                    _companyAddress = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string CompanyOwner
+        {
+            get => _companyOwner;
+            private set
+            {
+                if (_companyOwner != value)
+                {
+                    _companyOwner = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string SerialNumber
+        {
+            get => _serialNumber;
+            private set
+            {
+                if (_serialNumber != value)
+                {
+                    _serialNumber = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string CompanyLogoPath
+        {
+            get => _companyLogoPath;
+            private set
+            {
+                if (_companyLogoPath != value)
+                {
+                    _companyLogoPath = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string CompanyShortName
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(CompanyName))
+                {
+                    return "HRMS";
+                }
+
+                return CompanyName.Length <= 18
+                    ? CompanyName
+                    : CompanyName.Substring(0, 18) + "...";
+            }
+        }
+
+        public string CompanyAbbreviation
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(CompanyName))
+                {
+                    return "HRMS";
+                }
+
+                var parts = CompanyName
+                    .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+                if (parts.Length <= 1)
+                {
+                    return parts[0].Length <= 6
+                        ? parts[0].ToUpperInvariant()
+                        : parts[0].Substring(0, 6).ToUpperInvariant();
+                }
+
+                var abbreviation = string.Concat(parts.Select(part => char.ToUpperInvariant(part[0])));
+                return abbreviation.Length <= 6 ? abbreviation : abbreviation.Substring(0, 6);
+            }
+        }
 
         public string SnapshotTitle => ShowEmployeeDashboard ? "My Workday Snapshot" : "Organization Snapshot";
 
@@ -218,10 +336,28 @@ namespace HRMS.ViewModel
             private set { if (_isPayrollVisible != value) { _isPayrollVisible = value; OnPropertyChanged(); } }
         }
 
+        public bool IsTransactionsVisible
+        {
+            get => _isTransactionsVisible;
+            private set { if (_isTransactionsVisible != value) { _isTransactionsVisible = value; OnPropertyChanged(); } }
+        }
+
+        public bool IsReportsVisible
+        {
+            get => _isReportsVisible;
+            private set { if (_isReportsVisible != value) { _isReportsVisible = value; OnPropertyChanged(); } }
+        }
+
         public bool IsDocumentsVisible
         {
             get => _isDocumentsVisible;
             private set { if (_isDocumentsVisible != value) { _isDocumentsVisible = value; OnPropertyChanged(); } }
+        }
+
+        public bool IsDocumentVerificationVisible
+        {
+            get => _isDocumentVerificationVisible;
+            private set { if (_isDocumentVerificationVisible != value) { _isDocumentVerificationVisible = value; OnPropertyChanged(); } }
         }
 
         public bool IsBeneficiariesVisible
@@ -244,7 +380,10 @@ namespace HRMS.ViewModel
             IsAdjustmentsVisible = false;
             IsLeaveVisible = false;
             IsPayrollVisible = false;
+            IsTransactionsVisible = false;
+            IsReportsVisible = false;
             IsDocumentsVisible = false;
+            IsDocumentVerificationVisible = false;
             IsBeneficiariesVisible = false;
         }
 
@@ -320,16 +459,70 @@ namespace HRMS.ViewModel
             IsPayrollVisible = true;
         }
 
+        public void ShowTransactions()
+        {
+            HideAllModules();
+            IsTransactionsVisible = true;
+        }
+
+        public void ShowReports()
+        {
+            HideAllModules();
+            IsReportsVisible = true;
+        }
+
         public void ShowDocuments()
         {
             HideAllModules();
             IsDocumentsVisible = true;
         }
 
+        public void ShowDocumentVerification()
+        {
+            HideAllModules();
+            IsDocumentVerificationVisible = true;
+        }
+
         public void ShowBeneficiaries()
         {
             HideAllModules();
             IsBeneficiariesVisible = true;
+        }
+
+        private async Task LoadCompanyProfileAsync()
+        {
+            var profile = await _companyProfileDataService.GetCompanyProfileAsync();
+            CompanyName = profile.CompanyName;
+            CompanyAddress = profile.Address;
+            CompanyOwner = profile.OwnerName;
+            SerialNumber = profile.SerialNumber;
+            CompanyLogoPath = NormalizeLogoPath(profile.LogoPath);
+        }
+
+        private static string NormalizeLogoPath(string? rawPath)
+        {
+            const string packagedLogoPath = "/Images/ePRIME_logo.png";
+
+            if (string.IsNullOrWhiteSpace(rawPath))
+            {
+                return packagedLogoPath;
+            }
+
+            var path = rawPath.Trim().Replace('\\', '/');
+            if (path.Equals("HRMS/Images/ePRIME_logo.png", StringComparison.OrdinalIgnoreCase) ||
+                path.Equals("HRMS/Images/ERPMS_logo.png", StringComparison.OrdinalIgnoreCase) ||
+                path.Equals("HRMS/Images/HRMS_logo_cropped.png", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith("/Images/ePRIME_logo.png", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith("Images/ePRIME_logo.png", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith("/Images/ERPMS_logo.png", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith("Images/ERPMS_logo.png", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith("/Images/HRMS_logo_cropped.png", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith("Images/HRMS_logo_cropped.png", StringComparison.OrdinalIgnoreCase))
+            {
+                return packagedLogoPath;
+            }
+
+            return path;
         }
 
         private async Task LoadStatsAsync()

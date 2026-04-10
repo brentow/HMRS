@@ -92,7 +92,13 @@
 
     <Grid Margin="4" Background="White">
         <TabControl x:Name="UsersRolesTabControl">
-            <TabItem x:Name="ProfileTabItem" Header="Profile">
+            <TabItem x:Name="ProfileTabItem">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="AccountCircleOutline" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Profile"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid Margin="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -301,7 +307,13 @@
                 </Grid>
             </TabItem>
 
-            <TabItem x:Name="UsersRolesAdminTabItem" Header="Users &amp; Roles Administration">
+            <TabItem x:Name="UsersRolesAdminTabItem">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="AccountGroupOutline" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Users &amp; Roles Administration"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid Margin="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -486,7 +498,13 @@
                 </Grid>
             </TabItem>
 
-            <TabItem x:Name="SystemSettingsTabItem" Header="System Settings">
+            <TabItem x:Name="SystemSettingsTabItem">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="CogOutline" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="System Settings"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="8">
                         <Border Style="{StaticResource SettingsCardStyle}">
@@ -598,10 +616,89 @@
                                                Margin="12,0,0,0"
                                                FontWeight="SemiBold"/>
                                 </StackPanel>
-                                <TextBlock Text="Reads from Sulop beneficiaries_validation and inserts only into BeneficiaryStaging as Pending."
+                                <TextBlock Text="Reads from CRS val_beneficiaries in batches and inserts only into BeneficiaryStaging as Pending."
                                            Foreground="#5B6A7A"
                                            Margin="0,8,0,0"
                                            TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingsCardStyle}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <materialDesign:PackIcon Kind="Domain" Width="22" Height="22" Foreground="{StaticResource PrimaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <StackPanel>
+                                        <TextBlock Text="System Identity" FontSize="22" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                                        <TextBlock Text="Configure the company name, address, owner, serial number, and logo path used by Login and Dashboard." Foreground="#5B6A7A" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,8,0">
+                                        <TextBlock Text="Company Name" Foreground="#5B6A7A" Margin="0,0,0,4"/>
+                                        <TextBox Style="{StaticResource SettingsInputStyle}" Text="{Binding SystemCompanyName, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                        <TextBlock Text="Address" Foreground="#5B6A7A" Margin="0,0,0,4"/>
+                                        <TextBox Style="{StaticResource SettingsInputStyle}" Text="{Binding SystemCompanyAddress, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,8,0">
+                                        <TextBlock Text="Owner / Signatory" Foreground="#5B6A7A" Margin="0,0,0,4"/>
+                                        <TextBox Style="{StaticResource SettingsInputStyle}" Text="{Binding SystemCompanyOwner, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                        <TextBlock Text="Serial Number" Foreground="#5B6A7A" Margin="0,0,0,4"/>
+                                        <TextBox Style="{StaticResource SettingsInputStyle}" Text="{Binding SystemSerialNumber, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <TextBlock Text="Logo Path (default: HRMS/Images/ePRIME_logo.png)" Foreground="#5B6A7A" Margin="0,0,0,4"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Style="{StaticResource SettingsInputStyle}"
+                                             Text="{Binding SystemLogoPath, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <Button Grid.Column="1"
+                                            Width="160"
+                                            Height="40"
+                                            Margin="10,0,0,0"
+                                            Command="{Binding ChooseSystemLogoCommand}"
+                                            Style="{StaticResource ProfileSecondaryButtonStyle}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="FolderImage" Width="16" Height="16" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Choose Logo"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+                                <TextBlock Text="Choose a picture to replace the logo. HRMS will copy it into local branding storage for this installation."
+                                           Foreground="#5B6A7A"
+                                           Margin="0,6,0,0"
+                                           TextWrapping="Wrap"/>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <Button Width="170"
+                                            Height="40"
+                                            Command="{Binding SaveCompanyProfileCommand}"
+                                            Style="{StaticResource ProfilePrimaryButtonStyle}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="ContentSaveOutline" Width="16" Height="16" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Save Identity"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
                             </StackPanel>
                         </Border>
 
@@ -653,6 +750,9 @@
                                     <Button Width="150" Height="40" Margin="0,0,0,8" Command="{Binding RefreshSystemInfoCommand}" Style="{StaticResource ProfileSecondaryButtonStyle}">
                                         <TextBlock Text="Test Connection"/>
                                     </Button>
+                                    <Button Width="150" Height="40" Margin="0,0,0,8" Command="{Binding ChooseStorageFolderCommand}" Style="{StaticResource ProfileSecondaryButtonStyle}">
+                                        <TextBlock Text="Choose Folder"/>
+                                    </Button>
                                     <Button Width="150" Height="40" Command="{Binding OpenStorageFolderCommand}" Style="{StaticResource ProfileSecondaryButtonStyle}">
                                         <TextBlock Text="Open Folder"/>
                                     </Button>
@@ -666,11 +766,12 @@
                                     <materialDesign:PackIcon Kind="DatabaseExportOutline" Width="22" Height="22" Foreground="#F59E0B" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                     <TextBlock Text="Database Backup" FontSize="22" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
                                 </StackPanel>
-                                <TextBlock Text="Create recovery copies of your Hostinger online MySQL database. Use these backup files if you need to restore the live system later." Foreground="#5B6A7A" Margin="0,0,0,10" TextWrapping="Wrap"/>
-                                <Border Background="#FFF8E8" BorderBrush="#F6E3BA" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,10">
-                                    <StackPanel Orientation="Horizontal">
-                                        <materialDesign:PackIcon Kind="AlertOutline" Width="16" Height="16" Foreground="#C48213" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Requires mysqldump to be installed and available in your PATH so the app can export the database to a backup file." Foreground="#A56800" TextWrapping="Wrap"/>
+                                <TextBlock Text="Create full, differential, and incremental backups of the currently configured HRMS database. Restore can rebuild a selected backup chain back into the same database." Foreground="#5B6A7A" Margin="0,0,0,10" TextWrapping="Wrap"/>
+                                <Border Background="#EFF7FF" BorderBrush="#CEE2F7" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding LastFullBackupText, StringFormat=Last Full Backup: {0}}" Foreground="#2D5783" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding LastDifferentialBackupText, StringFormat=Last Differential Backup: {0}}" Foreground="#41576D" Margin="0,4,0,0"/>
+                                        <TextBlock Text="{Binding LastIncrementalBackupText, StringFormat=Last Incremental Backup: {0}}" Foreground="#41576D" Margin="0,4,0,0"/>
                                     </StackPanel>
                                 </Border>
                                 <TextBlock Text="Backup Type" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,10"/>
@@ -704,8 +805,8 @@
                                                     <TextBlock Text="Recommended" FontSize="11" FontWeight="SemiBold" Foreground="#234D7A"/>
                                                 </Border>
                                             </StackPanel>
-                                            <TextBlock Grid.Row="1" Text="Copies the whole Hostinger online database." Foreground="#41576D" Margin="0,0,0,6" TextWrapping="Wrap"/>
-                                            <TextBlock Grid.Row="2" Text="Best choice for your current setup because restore is simplest when multiple PCs use one live database." TextWrapping="Wrap" Foreground="#5B6A7A" FontSize="12"/>
+                                            <TextBlock Grid.Row="1" Text="Copies the whole configured HRMS database." Foreground="#41576D" Margin="0,0,0,6" TextWrapping="Wrap"/>
+                                            <TextBlock Grid.Row="2" Text="Creates a complete snapshot of every HRMS table. Required before differential or incremental backups can run." TextWrapping="Wrap" Foreground="#5B6A7A" FontSize="12"/>
                                             <Button Width="150"
                                                     Grid.Row="4"
                                                     Height="38"
@@ -713,6 +814,7 @@
                                                     HorizontalAlignment="Left"
                                                     Background="#1E4368"
                                                     Foreground="White"
+                                                    Command="{Binding CreateBackupCommand}"
                                                     Style="{StaticResource ProfilePrimaryButtonStyle}">
                                                 <StackPanel Orientation="Horizontal">
                                                     <materialDesign:PackIcon Kind="DatabaseArrowDownOutline" Width="16" Height="16" Margin="0,0,6,0"/>
@@ -740,8 +842,8 @@
                                                 <materialDesign:PackIcon Kind="DatabaseRefreshOutline" Width="18" Height="18" Foreground="#50657B" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                                 <TextBlock Text="Incremental Backup" FontSize="15" FontWeight="Bold" Foreground="#2A3C50" VerticalAlignment="Center"/>
                                             </StackPanel>
-                                            <TextBlock Grid.Row="1" Text="Copies only the new changes after the last backup of the Hostinger live database." Foreground="#41576D" Margin="0,0,0,6" TextWrapping="Wrap"/>
-                                            <TextBlock Grid.Row="2" Text="Uses the least storage, but restoring later needs the full backup plus every incremental file in order." TextWrapping="Wrap" Foreground="#5B6A7A" FontSize="12"/>
+                                            <TextBlock Grid.Row="1" Text="Copies only the new changes after the most recent backup." Foreground="#41576D" Margin="0,0,0,6" TextWrapping="Wrap"/>
+                                            <TextBlock Grid.Row="2" Text="Creates a compact delta from the most recent backup in the chain. Best when you back up often and want smaller files." TextWrapping="Wrap" Foreground="#5B6A7A" FontSize="12"/>
                                             <Button Width="180"
                                                     Grid.Row="4"
                                                     Height="38"
@@ -749,6 +851,7 @@
                                                     HorizontalAlignment="Left"
                                                     Background="#4E647B"
                                                     Foreground="White"
+                                                    Command="{Binding CreateIncrementalBackupCommand}"
                                                     Style="{StaticResource ProfileSecondaryButtonStyle}">
                                                 <StackPanel Orientation="Horizontal">
                                                     <materialDesign:PackIcon Kind="DatabaseRefreshOutline" Width="16" Height="16" Margin="0,0,6,0"/>
@@ -776,8 +879,8 @@
                                                 <materialDesign:PackIcon Kind="DatabaseSyncOutline" Width="18" Height="18" Foreground="#9C6B00" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                                 <TextBlock Text="Differential Backup" FontSize="15" FontWeight="Bold" Foreground="#7D5A00" VerticalAlignment="Center"/>
                                             </StackPanel>
-                                            <TextBlock Grid.Row="1" Text="Copies all changes made since the last full backup of the Hostinger live database." Foreground="#7A6333" Margin="0,0,0,6" TextWrapping="Wrap"/>
-                                            <TextBlock Grid.Row="2" Text="Good middle option: larger than incremental, but easier to restore because you only need the full backup and the latest differential file." TextWrapping="Wrap" Foreground="#8A7342" FontSize="12"/>
+                                            <TextBlock Grid.Row="1" Text="Copies all changes made since the last full backup." Foreground="#7A6333" Margin="0,0,0,6" TextWrapping="Wrap"/>
+                                            <TextBlock Grid.Row="2" Text="Captures all changes since the latest full backup. Larger than incremental, but simpler to restore because it only needs the matching full backup." TextWrapping="Wrap" Foreground="#8A7342" FontSize="12"/>
                                             <Button Width="175"
                                                     Grid.Row="4"
                                                     Height="38"
@@ -785,6 +888,7 @@
                                                     HorizontalAlignment="Left"
                                                     Background="#C48213"
                                                     Foreground="White"
+                                                    Command="{Binding CreateDifferentialBackupCommand}"
                                                     Style="{StaticResource ProfileSecondaryButtonStyle}">
                                                 <StackPanel Orientation="Horizontal">
                                                     <materialDesign:PackIcon Kind="DatabaseSyncOutline" Width="16" Height="16" Margin="0,0,6,0"/>
@@ -794,6 +898,159 @@
                                         </Grid>
                                     </Border>
                                 </Grid>
+                                <Border Background="#FBFDFF"
+                                        BorderBrush="#E2EAF5"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        Padding="12"
+                                        Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="Saved Backups"
+                                                           FontSize="16"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{StaticResource PrimaryBrush}"/>
+                                                <TextBlock Text="{Binding BackupCatalog.Count, StringFormat=Stored backup files: {0}}"
+                                                           Foreground="#5B6A7A"
+                                                           Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1"
+                                                        Orientation="Horizontal"
+                                                        VerticalAlignment="Center">
+                                                <Button Width="150"
+                                                        Height="38"
+                                                        Margin="0,0,8,0"
+                                                        Command="{Binding RestoreBackupCommand}"
+                                                        IsEnabled="{Binding HasSelectedBackup}"
+                                                        Style="{StaticResource ProfilePrimaryButtonStyle}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <materialDesign:PackIcon Kind="DatabaseImportOutline" Width="16" Height="16" Margin="0,0,6,0"/>
+                                                        <TextBlock Text="Use Selected"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Width="140"
+                                                        Height="38"
+                                                        Margin="0,0,8,0"
+                                                        Command="{Binding ClearBackupSelectionCommand}"
+                                                        IsEnabled="{Binding HasSelectedBackup}"
+                                                        Style="{StaticResource ProfileSecondaryButtonStyle}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <materialDesign:PackIcon Kind="SelectionOff" Width="16" Height="16" Margin="0,0,6,0"/>
+                                                        <TextBlock Text="Clear Selection"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Width="140"
+                                                        Height="38"
+                                                        Command="{Binding DeleteBackupCommand}"
+                                                        IsEnabled="{Binding HasSelectedBackup}"
+                                                        Style="{StaticResource ProfileDangerButtonStyle}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <materialDesign:PackIcon Kind="DeleteOutline" Width="16" Height="16" Margin="0,0,6,0"/>
+                                                        <TextBlock Text="Delete Selected"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <TextBlock Text="Select a saved backup below to restore its chain into HRMS or remove it from storage."
+                                                   Foreground="#5B6A7A"
+                                                   Margin="0,0,0,8"
+                                                   TextWrapping="Wrap"/>
+
+                                        <DataGrid AutoGenerateColumns="False"
+                                                  CanUserAddRows="False"
+                                                  CanUserDeleteRows="False"
+                                                  CanUserResizeRows="False"
+                                                  GridLinesVisibility="Horizontal"
+                                                  HeadersVisibility="Column"
+                                                  RowHeaderWidth="0"
+                                                  BorderThickness="1"
+                                                  BorderBrush="#E5EDF7"
+                                                  IsReadOnly="True"
+                                                  Height="280"
+                                                  ItemsSource="{Binding BackupCatalog}"
+                                                  SelectedItem="{Binding SelectedBackup, Mode=TwoWay}"
+                                                  SelectionMode="Single"
+                                                  SelectionUnit="FullRow">
+                                            <DataGrid.ColumnHeaderStyle>
+                                                <Style TargetType="DataGridColumnHeader">
+                                                    <Setter Property="Background" Value="#F2F6FC"/>
+                                                    <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}"/>
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                    <Setter Property="Padding" Value="10,8"/>
+                                                </Style>
+                                            </DataGrid.ColumnHeaderStyle>
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Created" Binding="{Binding CreatedAtText}" Width="170"/>
+                                                <DataGridTextColumn Header="Type" Binding="{Binding BackupTypeLabel}" Width="110"/>
+                                                <DataGridTextColumn Header="Database" Binding="{Binding DatabaseName}" Width="160"/>
+                                                <DataGridTextColumn Header="File" Binding="{Binding FileName}" Width="*"/>
+                                                <DataGridTextColumn Header="Chain" Binding="{Binding ChainText}" Width="210"/>
+                                                <DataGridTextColumn Header="Status" Binding="{Binding StatusText}" Width="110"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </StackPanel>
+                                </Border>
+
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Width="180"
+                                            Height="40"
+                                            Margin="0,0,8,0"
+                                            Command="{Binding RestoreBackupCommand}"
+                                            CommandParameter="browse"
+                                            Style="{StaticResource ProfilePrimaryButtonStyle}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="FolderSearchOutline" Width="16" Height="16" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Browse Backup File"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBlock Text="Browse ignores the table selection and lets you pick any JSON backup file manually. Use Selected restores the highlighted backup row."
+                                               Foreground="#7A6333"
+                                               VerticalAlignment="Center"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingsCardStyle}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <materialDesign:PackIcon Kind="CloudSyncOutline" Width="22" Height="22" Foreground="#2E8BCE" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="Sync Live to Local" FontSize="22" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                                </StackPanel>
+                                <TextBlock Text="Mirror the current live Hostinger HRMS, GGMS, and CRS data into your localhost offline databases so Local mode keeps working when the internet is unavailable."
+                                           Foreground="#5B6A7A"
+                                           Margin="0,0,0,10"
+                                           TextWrapping="Wrap"/>
+                                <Border Background="#EEF7FF" BorderBrush="#CFE5FF" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <TextBlock Text="This sync updates localhost only:" FontWeight="SemiBold" Foreground="#2D5783"/>
+                                        <TextBlock Text="- HRMS records, payroll, attendance, leave, documents, and company profile" Foreground="#2D5783" Margin="0,4,0,0"/>
+                                        <TextBlock Text="- GGMS allocation snapshot for offline payroll reference" Foreground="#2D5783"/>
+                                        <TextBlock Text="- CRS beneficiary data for offline beneficiary access" Foreground="#2D5783"/>
+                                    </StackPanel>
+                                </Border>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Width="180"
+                                            Height="40"
+                                            Margin="0,0,8,0"
+                                            Command="{Binding SyncLiveToLocalCommand}"
+                                            Style="{StaticResource ProfilePrimaryButtonStyle}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="CloudSyncOutline" Width="16" Height="16" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Sync Live to Local"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBlock Text="This does not switch the current connection automatically. Use the Local preset after sync when you want the offline snapshot."
+                                               Foreground="#5B6A7A"
+                                               VerticalAlignment="Center"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
                             </StackPanel>
                         </Border>
 

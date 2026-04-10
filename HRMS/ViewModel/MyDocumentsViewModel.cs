@@ -1,4 +1,5 @@
 using HRMS.Model;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -17,15 +18,19 @@ namespace HRMS.ViewModel
     public class DocumentsViewModel : INotifyPropertyChanged
     {
         private readonly EmployeeSelfService _dataService = new(DbConfig.ConnectionString);
+        private readonly DocumentChecklistDataService _checklistService = new(DbConfig.ConnectionString);
         private readonly ObservableCollection<MyDocumentRowVm> _allDocuments = new();
+        private readonly ObservableCollection<EmployeeChecklistDocumentRowVm> _allChecklistDocuments = new();
         private int _currentUserId;
         private int? _currentEmployeeId;
         private bool _isAdminOrHr;
         private bool _isLoading;
         private string _searchText = string.Empty;
         private string _selectedType = "All";
+        private string _selectedChecklistFilePath = string.Empty;
         private string _statusMessage = "Ready.";
         private Brush _statusBrush = Brushes.SeaGreen;
+        private EmployeeChecklistDocumentRowVm? _selectedChecklistDocument;
 
         public DocumentsViewModel()
         {
@@ -36,24 +41,53 @@ namespace HRMS.ViewModel
 
             RefreshCommand = new AsyncRelayCommand(_ => RefreshAsync());
             OpenDocumentCommand = new AsyncRelayCommand(OpenDocumentAsync);
+            BrowseChecklistFileCommand = new AsyncRelayCommand(_ => BrowseChecklistFileAsync());
+            UploadChecklistFileCommand = new AsyncRelayCommand(_ => UploadChecklistFileAsync());
+            OpenChecklistAttachmentCommand = new AsyncRelayCommand(OpenChecklistAttachmentAsync);
         }
 
         public ObservableCollection<string> TypeOptions { get; } = new();
         public ObservableCollection<MyDocumentRowVm> Documents { get; } = new();
+        public ObservableCollection<EmployeeChecklistDocumentRowVm> ChecklistDocuments { get; } = new();
 
         public ICommand RefreshCommand { get; }
         public ICommand OpenDocumentCommand { get; }
+        public ICommand BrowseChecklistFileCommand { get; }
+        public ICommand UploadChecklistFileCommand { get; }
+        public ICommand OpenChecklistAttachmentCommand { get; }
 
         public string DocumentsTitle => _isAdminOrHr ? "Documents" : "My Documents";
 
         public string DocumentsSubtitle => _isAdminOrHr
             ? "Central access to employee payslips, leave attachments, and training certificates."
-            : "Central access for payslips, leave attachments, and training certificates.";
+            : "Central access for required document submission, payslips, leave attachments, and training certificates.";
+
+        public bool ShowChecklistSubmission => !_isAdminOrHr;
+        public bool HasLinkedEmployee => _currentEmployeeId.HasValue && _currentEmployeeId.Value > 0;
+        public string ChecklistTitle => "Required Documents Submission";
+        public string ChecklistSubtitle => HasLinkedEmployee
+            ? "Select a requirement, browse a file, then submit it for verifier review."
+            : "Your account must be linked to an employee profile before you can submit required documents.";
+        public string SelectedChecklistDocumentTitle => SelectedChecklistDocument == null
+            ? "Select a required document"
+            : $"{SelectedChecklistDocument.DocumentName} ({SelectedChecklistDocument.TierLabel})";
+        public bool CanUploadChecklist =>
+            !IsLoading &&
+            HasLinkedEmployee &&
+            SelectedChecklistDocument != null &&
+            !string.IsNullOrWhiteSpace(SelectedChecklistFilePath);
+        public bool CanOpenChecklistAttachment => SelectedChecklistDocument?.HasAttachment == true;
 
         public bool IsLoading
         {
             get => _isLoading;
-            private set => SetField(ref _isLoading, value);
+            private set
+            {
+                if (SetField(ref _isLoading, value))
+                {
+                    NotifyChecklistStateChanged();
+                }
+            }
         }
 
         public string SearchText
@@ -80,6 +114,30 @@ namespace HRMS.ViewModel
             }
         }
 
+        public EmployeeChecklistDocumentRowVm? SelectedChecklistDocument
+        {
+            get => _selectedChecklistDocument;
+            set
+            {
+                if (SetField(ref _selectedChecklistDocument, value))
+                {
+                    NotifyChecklistStateChanged();
+                }
+            }
+        }
+
+        public string SelectedChecklistFilePath
+        {
+            get => _selectedChecklistFilePath;
+            set
+            {
+                if (SetField(ref _selectedChecklistFilePath, value))
+                {
+                    NotifyChecklistStateChanged();
+                }
+            }
+        }
+
         public string StatusMessage
         {
             get => _statusMessage;
@@ -102,6 +160,7 @@ namespace HRMS.ViewModel
             _isAdminOrHr = IsAdminOrHrRole(user?.RoleName);
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DocumentsTitle)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DocumentsSubtitle)));
+            NotifyChecklistStateChanged();
             _ = RefreshAsync();
         }
 
@@ -110,8 +169,11 @@ namespace HRMS.ViewModel
             IsLoading = true;
             try
             {
+                var selectedChecklistId = SelectedChecklistDocument?.ChecklistId;
+
                 if (_isAdminOrHr)
                 {
+                    ClearChecklistRows();
                     var allData = await _dataService.GetAllEmployeeDocumentsAsync(800);
                     RebuildRows(allData);
                     ApplyFilter();
@@ -126,16 +188,28 @@ namespace HRMS.ViewModel
 
                 if (!_currentEmployeeId.HasValue || _currentEmployeeId.Value <= 0)
                 {
+                    ClearChecklistRows();
                     _allDocuments.Clear();
                     Documents.Clear();
                     SetMessage("Employee profile is not linked to this account.", Brushes.IndianRed);
                     return;
                 }
 
-                var data = await _dataService.GetEmployeeDocumentsAsync(_currentEmployeeId.Value, 400);
+                await _checklistService.GenerateChecklistForEmployeeAsync(_currentEmployeeId.Value);
+
+                var checklistTask = _checklistService.GetChecklistAsync(_currentEmployeeId.Value);
+                var dataTask = _dataService.GetEmployeeDocumentsAsync(_currentEmployeeId.Value, 400);
+
+                await Task.WhenAll(checklistTask, dataTask);
+
+                RebuildChecklistRows(checklistTask.Result, selectedChecklistId);
+
+                var data = dataTask.Result;
                 RebuildRows(data);
                 ApplyFilter();
-                SetMessage($"Loaded {Documents.Count} document(s).", Brushes.SeaGreen);
+                SetMessage(
+                    $"Loaded {ChecklistDocuments.Count} required document(s) and {Documents.Count} related record(s).",
+                    Brushes.SeaGreen);
             }
             catch (Exception ex)
             {
@@ -210,6 +284,114 @@ namespace HRMS.ViewModel
             }
         }
 
+        private Task BrowseChecklistFileAsync()
+        {
+            if (!HasLinkedEmployee)
+            {
+                SetMessage("Employee profile is not linked to this account.", Brushes.IndianRed);
+                return Task.CompletedTask;
+            }
+
+            var dialog = new OpenFileDialog
+            {
+                Title = "Select Required Document",
+                Filter = "All files (*.*)|*.*"
+            };
+
+            var result = dialog.ShowDialog();
+            if (result == true && !string.IsNullOrWhiteSpace(dialog.FileName))
+            {
+                SelectedChecklistFilePath = dialog.FileName;
+                SetMessage("Required document selected.", Brushes.SeaGreen);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private async Task UploadChecklistFileAsync()
+        {
+            if (!HasLinkedEmployee)
+            {
+                SetMessage("Employee profile is not linked to this account.", Brushes.IndianRed);
+                return;
+            }
+
+            if (SelectedChecklistDocument == null)
+            {
+                SetMessage("Select a required document first.", Brushes.IndianRed);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(SelectedChecklistFilePath))
+            {
+                SetMessage("Browse and select a file first.", Brushes.IndianRed);
+                return;
+            }
+
+            try
+            {
+                await _checklistService.AddChecklistAttachmentAsync(
+                    SelectedChecklistDocument.ChecklistId,
+                    _currentEmployeeId!.Value,
+                    SelectedChecklistFilePath,
+                    _currentEmployeeId.Value);
+
+                var submittedCode = SelectedChecklistDocument.DocumentCode;
+                SelectedChecklistFilePath = string.Empty;
+                await RefreshAsync();
+                SetMessage($"{submittedCode} submitted for verifier review.", Brushes.SeaGreen);
+                SystemRefreshBus.Raise("ChecklistDocumentSubmitted");
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Unable to submit required document: {ex.Message}", Brushes.IndianRed);
+            }
+        }
+
+        private async Task OpenChecklistAttachmentAsync(object? parameter)
+        {
+            var row = parameter as EmployeeChecklistDocumentRowVm ?? SelectedChecklistDocument;
+            if (row == null)
+            {
+                SetMessage("Select a required document first.", Brushes.IndianRed);
+                return;
+            }
+
+            try
+            {
+                var attachment = await _checklistService.GetChecklistAttachmentAsync(row.ChecklistId, _currentEmployeeId);
+                if (attachment == null)
+                {
+                    SetMessage("No uploaded file is available for this requirement.", Brushes.IndianRed);
+                    return;
+                }
+
+                if (TryOpenExistingFile(attachment.FilePath))
+                {
+                    SetMessage("Uploaded file opened.", Brushes.SeaGreen);
+                    return;
+                }
+
+                if (attachment.FileBlob != null && attachment.FileBlob.Length > 0)
+                {
+                    var extractedPath = WriteChecklistAttachmentToLocalCache(row.ChecklistId, attachment.FileName, attachment.FileBlob);
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = extractedPath,
+                        UseShellExecute = true
+                    });
+                    SetMessage("Uploaded file opened.", Brushes.SeaGreen);
+                    return;
+                }
+
+                SetMessage("Uploaded file is no longer accessible.", Brushes.IndianRed);
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Unable to open uploaded file: {ex.Message}", Brushes.IndianRed);
+            }
+        }
+
         private void RebuildRows(IReadOnlyList<EmployeeDocumentDto> data)
         {
             _allDocuments.Clear();
@@ -217,6 +399,34 @@ namespace HRMS.ViewModel
             {
                 _allDocuments.Add(new MyDocumentRowVm(item));
             }
+        }
+
+        private void RebuildChecklistRows(IReadOnlyList<DocumentChecklistItemDto> checklist, int? preferredChecklistId)
+        {
+            _allChecklistDocuments.Clear();
+            foreach (var item in checklist)
+            {
+                _allChecklistDocuments.Add(new EmployeeChecklistDocumentRowVm(item));
+            }
+
+            ChecklistDocuments.Clear();
+            foreach (var item in _allChecklistDocuments)
+            {
+                ChecklistDocuments.Add(item);
+            }
+
+            SelectedChecklistDocument = preferredChecklistId.HasValue
+                ? ChecklistDocuments.FirstOrDefault(x => x.ChecklistId == preferredChecklistId.Value)
+                : ChecklistDocuments.FirstOrDefault();
+        }
+
+        private void ClearChecklistRows()
+        {
+            _allChecklistDocuments.Clear();
+            ChecklistDocuments.Clear();
+            SelectedChecklistDocument = null;
+            SelectedChecklistFilePath = string.Empty;
+            NotifyChecklistStateChanged();
         }
 
         private static string WriteLeaveAttachmentToLocalCache(long sourceId, string fileName, byte[] fileBlob)
@@ -234,6 +444,49 @@ namespace HRMS.ViewModel
             var targetPath = Path.Combine(folder, $"{sourceId}_{sanitized}");
             File.WriteAllBytes(targetPath, fileBlob);
             return targetPath;
+        }
+
+        private static string WriteChecklistAttachmentToLocalCache(int checklistId, string fileName, byte[] fileBlob)
+        {
+            var baseName = string.IsNullOrWhiteSpace(fileName)
+                ? $"checklist_{checklistId}.bin"
+                : fileName.Trim();
+            var sanitized = string.Concat(baseName.Select(ch => Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch));
+            var folder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "HRMS",
+                "checklist_attachments_cache");
+            Directory.CreateDirectory(folder);
+
+            var targetPath = Path.Combine(folder, $"{checklistId}_{sanitized}");
+            File.WriteAllBytes(targetPath, fileBlob);
+            return targetPath;
+        }
+
+        private static bool TryOpenExistingFile(string? filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return false;
+            }
+
+            var fullPath = filePath.Trim();
+            if (!Path.IsPathRooted(fullPath))
+            {
+                fullPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, fullPath));
+            }
+
+            if (!File.Exists(fullPath))
+            {
+                return false;
+            }
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = fullPath,
+                UseShellExecute = true
+            });
+            return true;
         }
 
         private void ApplyFilter()
@@ -288,6 +541,17 @@ namespace HRMS.ViewModel
             StatusBrush = brush;
         }
 
+        private void NotifyChecklistStateChanged()
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ShowChecklistSubmission)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasLinkedEmployee)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ChecklistTitle)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ChecklistSubtitle)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedChecklistDocumentTitle)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanUploadChecklist)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanOpenChecklistAttachment)));
+        }
+
         private bool SetField<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)
         {
             if (EqualityComparer<T>.Default.Equals(storage, value))
@@ -337,5 +601,48 @@ namespace HRMS.ViewModel
         public string SourceModuleLabel { get; }
         public string? FilePath { get; }
         public string ActionLabel { get; }
+    }
+
+    public class EmployeeChecklistDocumentRowVm
+    {
+        public EmployeeChecklistDocumentRowVm(DocumentChecklistItemDto dto)
+        {
+            ChecklistId = dto.ChecklistId;
+            DocumentCode = string.IsNullOrWhiteSpace(dto.DocumentCode) ? "-" : dto.DocumentCode.Trim();
+            DocumentName = string.IsNullOrWhiteSpace(dto.DocumentName) ? "Required Document" : dto.DocumentName.Trim();
+            DocumentTier = dto.DocumentTier;
+            TierLabel = $"Tier {dto.DocumentTier}";
+            StatusKey = string.IsNullOrWhiteSpace(dto.Status) ? "not_submitted" : dto.Status.Trim().ToLowerInvariant();
+            SubmittedDate = dto.SubmittedDate;
+            UploadedAt = dto.UploadedAt;
+            FileName = dto.FileName;
+            FilePath = dto.FilePath;
+            FileSize = dto.FileSize;
+        }
+
+        public int ChecklistId { get; }
+        public string DocumentCode { get; }
+        public string DocumentName { get; }
+        public int DocumentTier { get; }
+        public string TierLabel { get; }
+        public string StatusKey { get; }
+        public DateTime? SubmittedDate { get; }
+        public DateTime? UploadedAt { get; }
+        public string? FileName { get; }
+        public string? FilePath { get; }
+        public long FileSize { get; }
+        public bool HasAttachment => !string.IsNullOrWhiteSpace(FileName) || !string.IsNullOrWhiteSpace(FilePath);
+        public string StatusLabel => StatusKey switch
+        {
+            "not_submitted" => "Not Submitted",
+            "submitted" => "Submitted",
+            "verified" => "Verified",
+            "expired" => "Expired",
+            "waived" => "Waived",
+            _ => StatusKey
+        };
+        public string SubmittedDateText => SubmittedDate.HasValue ? SubmittedDate.Value.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture) : "-";
+        public string UploadedAtText => UploadedAt.HasValue ? UploadedAt.Value.ToString("MMM dd, yyyy hh:mm tt", CultureInfo.InvariantCulture) : "No upload yet";
+        public string AttachmentText => HasAttachment ? "Available" : "None";
     }
 }

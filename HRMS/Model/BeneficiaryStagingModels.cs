@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 namespace HRMS.Model
 {
@@ -11,14 +12,28 @@ namespace HRMS.Model
 
     public record BeneficiaryStagingDto(
         int StagingID,
+        string BeneficiaryID,
         string CivilRegistryID,
         string FirstName,
         string LastName,
         string? MiddleName,
+        string? FullName,
         string? Address,
+        string? Sex,
+        string? Age,
+        bool IsPwd,
+        bool IsSenior,
         BeneficiaryVerificationStatus VerificationStatus,
         DateTime ImportedAt,
         string? Remarks,
         DateTime? ApprovedRejectedAt,
-        int? MasterID);
+        int? MasterID)
+    {
+        public string FullNameDisplay =>
+            !string.IsNullOrWhiteSpace(FullName)
+                ? FullName
+                : string.Join(" ", new[] { FirstName, MiddleName, LastName }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+        public bool IsPending => VerificationStatus == BeneficiaryVerificationStatus.Pending;
+    }
 }

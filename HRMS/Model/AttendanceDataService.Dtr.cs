@@ -14,7 +14,9 @@ namespace HRMS.Model
         DateTime? TimeIn,
         DateTime? TimeOut,
         int WorkedMinutes,
-        string Remarks);
+        string Remarks,
+        int LateMinutes,
+        int EarlyOutMinutes);
 
     public record DtrMonthlyCertificationDto(
         int EmployeeId,
@@ -41,17 +43,46 @@ SELECT
     d.time_in,
     d.time_out,
     COALESCE(d.worked_minutes, 0) worked_minutes,
-    COALESCE(GROUP_CONCAT(DISTINCT ar.remark_type ORDER BY ar.remark_type SEPARATOR ', '), '') remarks
+    COALESCE(GROUP_CONCAT(DISTINCT ar.remark_type ORDER BY ar.remark_type SEPARATOR ', '), '') remarks,
+    GREATEST(
+        COALESCE(
+            TIMESTAMPDIFF(
+                MINUTE,
+                DATE_ADD(
+                    TIMESTAMP(d.work_date, COALESCE(s.start_time, TIME('00:00:00'))),
+                    INTERVAL COALESCE(s.grace_minutes, 0) MINUTE),
+                d.time_in),
+            0),
+        0) AS late_minutes,
+    GREATEST(
+        COALESCE(
+            TIMESTAMPDIFF(
+                MINUTE,
+                d.time_out,
+                CASE
+                    WHEN COALESCE(s.is_overnight, 0) = 1
+                    THEN DATE_ADD(TIMESTAMP(d.work_date, COALESCE(s.end_time, TIME('00:00:00'))), INTERVAL 1 DAY)
+                    ELSE TIMESTAMP(d.work_date, COALESCE(s.end_time, TIME('00:00:00')))
+                END),
+            0),
+        0) AS early_out_minutes
 FROM v_dtr_daily_effective d
 JOIN employees e ON e.employee_id = d.employee_id
 LEFT JOIN attendance_remarks ar
     ON ar.employee_id = d.employee_id
    AND ar.work_date = d.work_date
+LEFT JOIN shift_assignments sa
+    ON sa.employee_id = d.employee_id
+   AND sa.status = 'ASSIGNED'
+   AND sa.start_date <= d.work_date
+   AND (sa.end_date IS NULL OR sa.end_date >= d.work_date)
+LEFT JOIN shifts s ON s.shift_id = sa.shift_id
 WHERE YEAR(d.work_date) = @year
   AND MONTH(d.work_date) = @month
   AND (@employee_id IS NULL OR d.employee_id = @employee_id)
 GROUP BY d.employee_id, e.employee_no, e.last_name, e.first_name, e.middle_name,
-         d.work_date, d.time_in, d.time_out, d.worked_minutes
+         d.work_date, d.time_in, d.time_out, d.worked_minutes,
+         s.start_time, s.end_time, s.grace_minutes, s.is_overnight
 ORDER BY e.employee_no, d.work_date;";
 
             var list = new List<DtrDailyDto>();
@@ -75,7 +106,9 @@ ORDER BY e.employee_no, d.work_date;";
                         TimeIn: reader["time_in"] == DBNull.Value ? null : Convert.ToDateTime(reader["time_in"], CultureInfo.InvariantCulture),
                         TimeOut: reader["time_out"] == DBNull.Value ? null : Convert.ToDateTime(reader["time_out"], CultureInfo.InvariantCulture),
                         WorkedMinutes: ToInt(reader["worked_minutes"]),
-                        Remarks: reader["remarks"]?.ToString() ?? string.Empty));
+                        Remarks: reader["remarks"]?.ToString() ?? string.Empty,
+                        LateMinutes: ToInt(reader["late_minutes"]),
+                        EarlyOutMinutes: ToInt(reader["early_out_minutes"])));
                 }
             }
             catch (MySqlException ex) when (IsMissingObjectError(ex))

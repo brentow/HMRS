@@ -1,9 +1,13 @@
 using HRMS.Model;
 using Microsoft.Win32;
+using QuestPDF.Fluent;
+using QColors = QuestPDF.Helpers.Colors;
+using QuestPDF.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -20,6 +24,7 @@ namespace HRMS.ViewModel
         private string _manualLogTime = DateTime.Now.ToString("HH:mm", CultureInfo.InvariantCulture);
         private string _manualLogType = "IN";
         private string _manualLogSource = "MANUAL";
+        private AttendanceLogVm? _selectedLog;
 
         public ObservableCollection<string> ManualLogTypes { get; } = new()
         {
@@ -37,8 +42,11 @@ namespace HRMS.ViewModel
         };
 
         public ICommand AddManualLogCommand { get; private set; } = null!;
+        public ICommand UpdateSelectedLogCommand { get; private set; } = null!;
+        public ICommand ClearLogEditorCommand { get; private set; } = null!;
         public ICommand ImportLogsCsvCommand { get; private set; } = null!;
         public ICommand ExportLogsCsvCommand { get; private set; } = null!;
+        public ICommand PrintLogsReportCommand { get; private set; } = null!;
 
         public int? SelectedManualLogEmployeeId
         {
@@ -130,11 +138,42 @@ namespace HRMS.ViewModel
             }
         }
 
+        public AttendanceLogVm? SelectedLog
+        {
+            get => _selectedLog;
+            set
+            {
+                if (ReferenceEquals(_selectedLog, value))
+                {
+                    return;
+                }
+
+                _selectedLog = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanEditSelectedLog));
+                OnPropertyChanged(nameof(SelectedLogLabel));
+
+                if (_selectedLog != null)
+                {
+                    LoadSelectedLogIntoEditor(_selectedLog);
+                }
+            }
+        }
+
+        public bool CanEditSelectedLog => SelectedLog != null;
+
+        public string SelectedLogLabel => SelectedLog == null
+            ? "No attendance log selected."
+            : $"Editing log #{SelectedLog.LogId} for {SelectedLog.EmployeeNo} on {SelectedLog.LogDateText} {SelectedLog.LogTimeText}.";
+
         private void InitializeLogsAdmin()
         {
             AddManualLogCommand = new AsyncRelayCommand(_ => AddManualLogAsync());
+            UpdateSelectedLogCommand = new AsyncRelayCommand(_ => UpdateSelectedLogAsync());
+            ClearLogEditorCommand = new AsyncRelayCommand(_ => ClearLogEditorAsync());
             ImportLogsCsvCommand = new AsyncRelayCommand(_ => ImportLogsCsvAsync());
             ExportLogsCsvCommand = new AsyncRelayCommand(_ => ExportLogsCsvAsync());
+            PrintLogsReportCommand = new AsyncRelayCommand(_ => PrintLogsReportAsync());
 
             ManualLogType = ManualLogTypes.First();
             ManualLogSource = ManualLogSources.First();
@@ -188,6 +227,70 @@ namespace HRMS.ViewModel
             {
                 SetMessage($"Unable to save manual log: {ex.Message}", ErrorBrush);
             }
+        }
+
+        private async Task UpdateSelectedLogAsync()
+        {
+            if (SelectedLog == null)
+            {
+                SetMessage("Select an attendance log to edit.", ErrorBrush);
+                return;
+            }
+
+            if (!SelectedManualLogEmployeeId.HasValue || SelectedManualLogEmployeeId.Value <= 0)
+            {
+                SetMessage("Select an employee before updating the log.", ErrorBrush);
+                return;
+            }
+
+            if (!TryParseTime(ManualLogTime, out var parsedTime))
+            {
+                SetMessage("Time format should be HH:mm (example: 07:00).", ErrorBrush);
+                return;
+            }
+
+            try
+            {
+                var logTime = ManualLogDate.Date + parsedTime;
+                await _dataService.UpdateAttendanceLogAsync(
+                    logId: SelectedLog.LogId,
+                    employeeId: SelectedManualLogEmployeeId.Value,
+                    deviceId: SelectedManualLogDeviceId > 0 ? SelectedManualLogDeviceId : null,
+                    logTime: logTime,
+                    logType: ManualLogType,
+                    source: ManualLogSource);
+
+                var editedLogId = SelectedLog.LogId;
+                await RefreshAsync();
+                SelectedLog = Logs.FirstOrDefault(x => x.LogId == editedLogId);
+                SetMessage($"Attendance log #{editedLogId} updated.", SuccessBrush);
+                SystemRefreshBus.Raise("AttendanceLogUpdated");
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Unable to update attendance log: {ex.Message}", ErrorBrush);
+            }
+        }
+
+        private Task ClearLogEditorAsync()
+        {
+            SelectedLog = null;
+            if (IsEmployeeMode && _currentEmployeeId.HasValue && _currentEmployeeId.Value > 0)
+            {
+                SelectedManualLogEmployeeId = _currentEmployeeId.Value;
+            }
+            else if (!EmployeeOptions.Any(x => x.Id == SelectedManualLogEmployeeId.GetValueOrDefault()))
+            {
+                SelectedManualLogEmployeeId = EmployeeOptions.FirstOrDefault()?.Id;
+            }
+
+            SelectedManualLogDeviceId = 0;
+            ManualLogDate = DateTime.Today;
+            ManualLogTime = DateTime.Now.ToString("HH:mm", CultureInfo.InvariantCulture);
+            ManualLogType = ManualLogTypes.First();
+            ManualLogSource = ManualLogSources.First();
+            SetMessage("Log editor cleared.", InfoBrush);
+            return Task.CompletedTask;
         }
 
         private async Task ImportLogsCsvAsync()
@@ -369,11 +472,158 @@ namespace HRMS.ViewModel
             }
         }
 
+        private async Task PrintLogsReportAsync()
+        {
+            if (Logs.Count == 0)
+            {
+                SetMessage("No logs available for printing.", ErrorBrush);
+                return;
+            }
+
+            try
+            {
+                QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
+                var tempPdf = Path.Combine(
+                    Path.GetTempPath(),
+                    $"HRMS-AttendanceLogs-{DateTime.Now:yyyyMMddHHmmss}.pdf");
+
+                BuildAttendanceLogsPdf().GeneratePdf(tempPdf);
+
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = tempPdf,
+                        Verb = "print",
+                        UseShellExecute = true,
+                        WindowStyle = ProcessWindowStyle.Hidden
+                    });
+
+                    SetMessage("Attendance log report sent to printer.", SuccessBrush);
+                }
+                catch
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = tempPdf,
+                        UseShellExecute = true
+                    });
+
+                    SetMessage("Direct printing is unavailable. The report was opened for manual printing.", InfoBrush);
+                }
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Unable to print attendance logs: {ex.Message}", ErrorBrush);
+            }
+
+            await Task.CompletedTask;
+        }
+
         private static string CsvLog(string? input)
         {
             var value = input ?? string.Empty;
             return $"\"{value.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
         }
+
+        private void LoadSelectedLogIntoEditor(AttendanceLogVm log)
+        {
+            SelectedManualLogEmployeeId = EmployeeOptions
+                .FirstOrDefault(x => x.Label.StartsWith($"{log.EmployeeNo} - ", StringComparison.OrdinalIgnoreCase))
+                ?.Id;
+
+            SelectedManualLogDeviceId = DeviceOptions
+                .FirstOrDefault(x => string.Equals(x.Label, log.DeviceName, StringComparison.OrdinalIgnoreCase))
+                ?.Id ?? 0;
+
+            ManualLogDate = log.LogTime.Date;
+            ManualLogTime = log.LogTime.ToString("HH:mm", CultureInfo.InvariantCulture);
+            ManualLogType = ManualLogTypes.Contains(log.LogType, StringComparer.OrdinalIgnoreCase)
+                ? ManualLogTypes.First(x => string.Equals(x, log.LogType, StringComparison.OrdinalIgnoreCase))
+                : ManualLogTypes.First();
+            ManualLogSource = ManualLogSources.Contains(log.Source, StringComparer.OrdinalIgnoreCase)
+                ? ManualLogSources.First(x => string.Equals(x, log.Source, StringComparison.OrdinalIgnoreCase))
+                : ManualLogSources.First();
+        }
+
+        private QuestPDF.Infrastructure.IDocument BuildAttendanceLogsPdf()
+        {
+            var generatedAt = DateTime.Now.ToString("MMM dd, yyyy hh:mm tt", CultureInfo.InvariantCulture);
+            var rows = Logs.ToList();
+
+            return Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(QuestPDF.Helpers.PageSizes.A4);
+                    page.Margin(24);
+                    page.DefaultTextStyle(x => x.FontSize(9));
+
+                    page.Header().Column(column =>
+                    {
+                        column.Spacing(3);
+                        column.Item().Text("ATTENDANCE LOG REPORT").FontSize(18).Bold().FontColor(QColors.Blue.Darken3);
+                        column.Item().Text($"Generated: {generatedAt}").FontColor(QColors.Grey.Darken2);
+                        column.Item().Text(
+                            $"Filters: Source={SelectedSourceFilter}, Type={SelectedTypeFilter}, Date={(SelectedDateFilter.HasValue ? SelectedDateFilter.Value.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture) : "All")}")
+                            .FontColor(QColors.Grey.Darken2);
+                    });
+
+                    page.Content().PaddingTop(12).Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.ConstantColumn(72);
+                            columns.RelativeColumn(2.2f);
+                            columns.ConstantColumn(90);
+                            columns.ConstantColumn(80);
+                            columns.ConstantColumn(70);
+                            columns.ConstantColumn(78);
+                            columns.RelativeColumn(1.4f);
+                        });
+
+                        table.Header(header =>
+                        {
+                            header.Cell().Element(CellHeader).Text("Emp No");
+                            header.Cell().Element(CellHeader).Text("Employee");
+                            header.Cell().Element(CellHeader).Text("Date");
+                            header.Cell().Element(CellHeader).Text("Time");
+                            header.Cell().Element(CellHeader).Text("Type");
+                            header.Cell().Element(CellHeader).Text("Source");
+                            header.Cell().Element(CellHeader).Text("Device");
+                        });
+
+                        foreach (var row in rows)
+                        {
+                            table.Cell().Element(CellBody).Text(row.EmployeeNo);
+                            table.Cell().Element(CellBody).Text(row.EmployeeName);
+                            table.Cell().Element(CellBody).Text(row.LogDateText);
+                            table.Cell().Element(CellBody).Text(row.LogTimeText);
+                            table.Cell().Element(CellBody).Text(row.LogType);
+                            table.Cell().Element(CellBody).Text(row.Source);
+                            table.Cell().Element(CellBody).Text(row.DeviceName);
+                        }
+                    });
+
+                    page.Footer().AlignRight().Text($"Rows: {rows.Count}");
+                });
+            });
+        }
+
+        private static IContainer CellHeader(IContainer container) =>
+            container
+                .Background("#EAF2FB")
+                .BorderBottom(1)
+                .BorderColor("#D5E3F5")
+                .Padding(6)
+                .DefaultTextStyle(x => x.SemiBold().FontColor(QColors.Blue.Darken3));
+
+        private static IContainer CellBody(IContainer container) =>
+            container
+                .BorderBottom(1)
+                .BorderColor("#E5EDF7")
+                .Padding(6);
 
         private static int FindHeaderIndex(IReadOnlyList<string> headers, params string[] aliases)
         {

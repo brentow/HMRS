@@ -169,9 +169,72 @@
                     <Grid Margin="8">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <Grid Margin="0,0,0,8">
+                        <Border Grid.Row="0"
+                                Margin="0,0,0,8"
+                                Padding="12"
+                                Style="{StaticResource CardStyle}"
+                                Background="#F8FBFF">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Margin="0,0,16,0">
+                                    <TextBlock Text="{Binding BiometricHardwareStatusTitle}"
+                                               FontSize="16"
+                                               FontWeight="Bold"
+                                               Foreground="{Binding BiometricHardwareStatusBrush}" />
+                                    <TextBlock Margin="0,4,0,0"
+                                               Foreground="#4A5B6C"
+                                               TextWrapping="Wrap"
+                                               Text="{Binding BiometricHardwareStatusText}" />
+                                    <TextBlock Margin="0,4,0,0"
+                                               Foreground="#6E7C8C"
+                                               TextWrapping="Wrap"
+                                               Text="{Binding BiometricHardwareGuidanceText}" />
+
+                                    <ItemsControl Margin="0,8,0,0"
+                                                  ItemsSource="{Binding ConnectedBiometricReaders}"
+                                                  Visibility="{Binding HasConnectedBiometricReaders, Converter={StaticResource BoolToVis}}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Margin="0,0,0,6">
+                                                    <TextBlock Text="{Binding SummaryText}"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{StaticResource PrimaryBrush}" />
+                                                    <TextBlock Text="{Binding DetailText}"
+                                                               FontSize="12"
+                                                               Foreground="#6E7C8C"
+                                                               TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1"
+                                            Orientation="Vertical"
+                                            VerticalAlignment="Top">
+                                    <Button Style="{StaticResource ButtonStyle}"
+                                            MinWidth="160"
+                                            Margin="0,0,0,8"
+                                            Command="{Binding DetectConnectedReaderCommand}"
+                                            Content="Detect Reader" />
+                                    <Button Style="{StaticResource ButtonStyle}"
+                                            MinWidth="160"
+                                            Background="#2E9D5B"
+                                            IsEnabled="{Binding CanRegisterConnectedReaders}"
+                                            Command="{Binding RegisterConnectedReaderCommand}"
+                                            Content="Register Connected Reader" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Grid Grid.Row="1" Margin="0,0,0,8">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
@@ -198,7 +261,7 @@
                             <CheckBox Grid.Row="1" Grid.Column="4" Height="36" VerticalAlignment="Center" Margin="8,0,0,0" IsChecked="{Binding NewDeviceIsActive}" />
                             <Button Grid.Row="1" Grid.Column="5" Style="{StaticResource ButtonStyle}" Margin="8,0,0,0" Command="{Binding AddDeviceCommand}" Content="Add Device" />
                         </Grid>
-                        <DataGrid Grid.Row="1"
+                        <DataGrid Grid.Row="2"
                                   Margin="0,2,0,0"
                                   ItemsSource="{Binding BiometricDevices}"
                                   AutoGenerateColumns="False"
@@ -257,15 +320,65 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <StackPanel Margin="0,0,0,8"
-                                    Orientation="Horizontal"
-                                    HorizontalAlignment="Right"
-                                    Visibility="{Binding IsEnrollmentLauncherVisible, Converter={StaticResource BoolToVis}}">
-                            <Button Style="{StaticResource ButtonStyle}"
+                        <Grid Grid.Row="0"
+                              Margin="0,0,0,8"
+                              Visibility="{Binding IsEnrollmentLauncherVisible, Converter={StaticResource BoolToVis}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0"
+                                    Margin="0,0,12,0"
+                                    Padding="12"
+                                    Style="{StaticResource CardStyle}"
+                                    Background="#F8FBFF">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding LiveScannerTitle}"
+                                               FontSize="16"
+                                               FontWeight="Bold"
+                                               Foreground="{Binding LiveScannerBrush}" />
+                                    <TextBlock Margin="0,4,0,0"
+                                               Foreground="#5B6A7A"
+                                               TextWrapping="Wrap"
+                                               Text="{Binding LiveScannerStatusText}" />
+                                    <Grid Margin="0,10,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="1.5*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <ComboBox Height="36"
+                                                  ItemsSource="{Binding DeviceOptions}"
+                                                  DisplayMemberPath="Label"
+                                                  SelectedValuePath="Id"
+                                                  SelectedValue="{Binding SelectedLivePunchDeviceId}" />
+                                        <Button Grid.Column="1"
+                                                Style="{StaticResource ButtonStyle}"
+                                                Margin="8,0,0,0"
+                                                MinWidth="160"
+                                                Command="{Binding ScanAttendanceCommand}"
+                                                Content="Scan Attendance" />
+                                    </Grid>
+                                    <TextBlock Margin="0,8,0,0"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource PrimaryBrush}"
+                                               Text="{Binding LastLivePunchEmployee}" />
+                                    <TextBlock Margin="0,2,0,0"
+                                               Foreground="#5B6A7A"
+                                               TextWrapping="Wrap"
+                                               Text="{Binding LastLivePunchSummary}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Button Grid.Column="1"
+                                    Style="{StaticResource ButtonStyle}"
                                     MinWidth="170"
+                                    Height="42"
+                                    VerticalAlignment="Top"
                                     Command="{Binding OpenEnrollmentFlowCommand}"
                                     Content="Enroll Employee" />
-                        </StackPanel>
+                        </Grid>
 
                         <Border Margin="0,0,0,8"
                                 Padding="12"
@@ -285,10 +398,10 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <StackPanel>
-                                        <TextBlock Text="Employee Biometric Enrollment" FontWeight="Bold" FontSize="18" Foreground="{StaticResource PrimaryBrush}" />
-                                        <TextBlock Margin="0,2,0,0" Foreground="#5B6A7A" Text="Place finger 3 times. Low-quality captures are rejected automatically." />
-                                    </StackPanel>
+                                     <StackPanel>
+                                         <TextBlock Text="Employee Biometric Enrollment" FontWeight="Bold" FontSize="18" Foreground="{StaticResource PrimaryBrush}" />
+                                         <TextBlock Margin="0,2,0,0" Foreground="#5B6A7A" Text="{Binding EnrollmentFlowSubtitle}" TextWrapping="Wrap" />
+                                     </StackPanel>
                                     <Button Grid.Column="1"
                                             Style="{StaticResource SmallButtonStyle}"
                                             MinWidth="90"
@@ -399,7 +512,7 @@
                                             <TextBlock Text="{Binding EnrollmentProgressText}" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
                                         </StackPanel>
                                         <StackPanel Grid.Column="2" Margin="8,0,0,0">
-                                            <TextBlock Text="SDK Quality Check / Result" Foreground="#5B6A7A" />
+                                            <TextBlock Text="Reader / Capture Status" Foreground="#5B6A7A" />
                                             <TextBlock Text="{Binding EnrollmentQualityResult}" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" TextWrapping="Wrap" />
                                             <TextBlock Text="{Binding EnrollmentResultText}" Margin="0,4,0,0" Foreground="#2E9D5B" FontWeight="SemiBold" TextWrapping="Wrap" />
                                         </StackPanel>
@@ -447,6 +560,7 @@
                                 <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName}" Width="2.1*" />
                                 <DataGridTextColumn Header="Biometric ID" Binding="{Binding BiometricUserId}" Width="1.5*" />
                                 <DataGridTextColumn Header="Device" Binding="{Binding DeviceName}" Width="1.4*" />
+                                <DataGridTextColumn Header="Template" Binding="{Binding TemplateStatusText}" Width="1.1*" />
                                 <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="0.9*" />
                                 <DataGridTextColumn Header="Created" Binding="{Binding CreatedAtText}" Width="1.6*" />
                                 <DataGridTemplateColumn Header="Actions" Width="2.4*">
@@ -693,12 +807,170 @@
                     </Grid>
                 </TabItem>
 
+                <TabItem Header="{Binding AttendanceRemarksTabHeader}">
+                    <Grid Margin="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0"
+                                    Margin="0,0,10,0"
+                                    Padding="10,6"
+                                    Background="#F2F7FD"
+                                    BorderBrush="#E0EAF6"
+                                    BorderThickness="1"
+                                    CornerRadius="10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <materialDesign:PackIcon Kind="Magnify" Width="18" Height="18" Margin="0,0,8,0" Foreground="#7A8FA5" VerticalAlignment="Center" />
+                                    <TextBox Grid.Column="1"
+                                             Background="Transparent"
+                                             BorderThickness="0"
+                                             FontSize="14"
+                                             Foreground="#5B6A7A"
+                                             VerticalContentAlignment="Center"
+                                             Text="{Binding AttendanceRemarkSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                             materialDesign:HintAssist.Hint="Search employee, date, remark type, or details" />
+                                </Grid>
+                            </Border>
+
+                            <TextBlock Grid.Column="1"
+                                       VerticalAlignment="Center"
+                                       Foreground="#6A7684"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding AttendanceRemarks.Count, StringFormat=Rows: {0}}" />
+                        </Grid>
+
+                        <Border Grid.Row="1"
+                                Margin="0,0,0,8"
+                                Padding="12"
+                                Style="{StaticResource CardStyle}"
+                                Background="#F9FBFF">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.8*" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="110" />
+                                    <ColumnDefinition Width="2*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Employee" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="Work date" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="8,0,0,6" />
+                                <TextBlock Grid.Row="0" Grid.Column="2" Text="Type" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="8,0,0,6" />
+                                <TextBlock Grid.Row="0" Grid.Column="3" Text="Details" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="8,0,0,6" />
+
+                                <ComboBox Grid.Row="1"
+                                          Grid.Column="0"
+                                          Height="36"
+                                          ItemsSource="{Binding EmployeeOptions}"
+                                          DisplayMemberPath="Label"
+                                          SelectedValuePath="Id"
+                                          SelectedValue="{Binding SelectedRemarkEmployeeId}"
+                                          IsEnabled="{Binding IsAdminOrHrMode}" />
+                                <Border Grid.Row="1" Grid.Column="1" Height="36" Margin="8,0,0,0" BorderBrush="#D5E3F5" BorderThickness="1" CornerRadius="8" Background="#F8FBFF">
+                                    <DatePicker BorderThickness="0"
+                                                Padding="8,0"
+                                                VerticalContentAlignment="Center"
+                                                Background="Transparent"
+                                                SelectedDate="{Binding NewAttendanceRemarkDate}" />
+                                </Border>
+                                <ComboBox Grid.Row="1"
+                                          Grid.Column="2"
+                                          Height="36"
+                                          Margin="8,0,0,0"
+                                          ItemsSource="{Binding AttendanceRemarkTypeOptions}"
+                                          SelectedItem="{Binding SelectedRemarkType}" />
+                                <TextBox Grid.Row="1"
+                                         Grid.Column="3"
+                                         Margin="8,0,0,0"
+                                         Height="36"
+                                         VerticalContentAlignment="Center"
+                                         Text="{Binding NewAttendanceRemarkDetails, UpdateSourceTrigger=PropertyChanged}" />
+                                <Button Grid.Row="1"
+                                        Grid.Column="4"
+                                        Style="{StaticResource ButtonStyle}"
+                                        Margin="8,0,0,0"
+                                        Command="{Binding SaveAttendanceRemarkCommand}"
+                                        Content="Save" />
+                                <Button Grid.Row="1"
+                                        Grid.Column="5"
+                                        Style="{StaticResource ButtonStyle}"
+                                        Margin="8,0,0,0"
+                                        Background="#D84343"
+                                        Command="{Binding DeleteAttendanceRemarkCommand}"
+                                        CommandParameter="{Binding SelectedAttendanceRemark}"
+                                        Content="Delete" />
+
+                                <TextBlock Grid.Row="2"
+                                           Grid.ColumnSpan="6"
+                                           Margin="0,10,0,0"
+                                           Foreground="#5B6A7A"
+                                           Text="Use TO for travel/time-off style remarks and OB for official business. These entries are reflected in DTR remarks." />
+                            </Grid>
+                        </Border>
+
+                        <DataGrid Grid.Row="2"
+                                  Margin="0,2,0,0"
+                                  ItemsSource="{Binding AttendanceRemarks}"
+                                  SelectedItem="{Binding SelectedAttendanceRemark}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  RowHeaderWidth="0"
+                                  ColumnHeaderHeight="38"
+                                  RowHeight="44"
+                                  GridLinesVisibility="Horizontal"
+                                  HorizontalGridLinesBrush="#E9F0FA"
+                                  VerticalGridLinesBrush="#E9F0FA"
+                                  AlternatingRowBackground="#F8FBFF"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                            <DataGrid.ColumnHeaderStyle>
+                                <Style BasedOn="{StaticResource HeaderStyle}" TargetType="DataGridColumnHeader"/>
+                            </DataGrid.ColumnHeaderStyle>
+                            <DataGrid.CellStyle>
+                                <Style BasedOn="{StaticResource GridCellStyle}" TargetType="DataGridCell" />
+                            </DataGrid.CellStyle>
+                            <DataGrid.RowStyle>
+                                <Style BasedOn="{StaticResource GridRowStyle}" TargetType="DataGridRow" />
+                            </DataGrid.RowStyle>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Remark ID" Binding="{Binding RemarkId}" Width="0.8*" />
+                                <DataGridTextColumn Header="Emp No" Binding="{Binding EmployeeNo}" Width="0.9*" />
+                                <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName}" Width="1.8*" />
+                                <DataGridTextColumn Header="Work Date" Binding="{Binding WorkDateText}" Width="1.1*" />
+                                <DataGridTextColumn Header="Type" Binding="{Binding RemarkType}" Width="0.7*" />
+                                <DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="2.3*" />
+                                <DataGridTextColumn Header="Created" Binding="{Binding CreatedAtText}" Width="1.4*" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </TabItem>
+
                 <TabItem x:Name="DtrTab" Header="{Binding DtrTabHeader}">
                     <Grid Margin="8">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="Auto" />
+                            <RowDefinition x:Name="DtrDailyRowDefinition" Height="1.1*" />
+                            <RowDefinition x:Name="DtrCertificationRowDefinition" Height="0.9*" />
                         </Grid.RowDefinitions>
 
                         <Grid Margin="0,0,0,8">
@@ -772,6 +1044,7 @@
                         </Grid>
 
                         <DataGrid Grid.Row="1"
+                                  MinHeight="0"
                                   Margin="0,2,0,8"
                                   ItemsSource="{Binding DtrDailyRows}"
                                   AutoGenerateColumns="False"
@@ -785,7 +1058,8 @@
                                   HorizontalGridLinesBrush="#E9F0FA"
                                   VerticalGridLinesBrush="#E9F0FA"
                                   AlternatingRowBackground="#F8FBFF"
-                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                  ScrollViewer.VerticalScrollBarVisibility="Auto">
                             <DataGrid.ColumnHeaderStyle>
                                 <Style BasedOn="{StaticResource HeaderStyle}" TargetType="DataGridColumnHeader"/>
                             </DataGrid.ColumnHeaderStyle>
@@ -806,6 +1080,9 @@
                                 <DataGridTextColumn Header="PM Depart" Binding="{Binding PmDeparture}" Width="1*" />
                                 <DataGridTextColumn Header="Minutes" Binding="{Binding WorkedMinutes}" Width="0.8*" />
                                 <DataGridTextColumn Header="Worked" Binding="{Binding WorkedHoursText}" Width="0.9*" />
+                                <DataGridTextColumn Header="Late" Binding="{Binding LateMinutes}" Width="0.7*" />
+                                <DataGridTextColumn Header="Early Out" Binding="{Binding EarlyOutMinutes}" Width="0.8*" />
+                                <DataGridTextColumn Header="Flag" Binding="{Binding AttendanceFlag}" Width="1.2*" />
                                 <DataGridTextColumn Header="Remarks" Binding="{Binding Remarks}" Width="1.4*" />
                             </DataGrid.Columns>
                         </DataGrid>
@@ -814,8 +1091,9 @@
                                 Style="{StaticResource CardStyle}"
                                 Padding="8"
                                 Background="#F9FBFF"
+                                MinHeight="0"
                                 Visibility="{Binding IsAdminOrHrMode, Converter={StaticResource BoolToVis}}">
-                            <Grid>
+                            <Grid MinHeight="0">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
@@ -839,6 +1117,7 @@
                                 </Grid>
 
                                 <DataGrid Grid.Row="1"
+                                          MinHeight="0"
                                           Margin="0,2,0,0"
                                           ItemsSource="{Binding DtrCertificationRows}"
                                           SelectedItem="{Binding SelectedDtrCertification}"
@@ -853,7 +1132,8 @@
                                           HorizontalGridLinesBrush="#E9F0FA"
                                           VerticalGridLinesBrush="#E9F0FA"
                                           AlternatingRowBackground="#F8FBFF"
-                                          ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                          ScrollViewer.VerticalScrollBarVisibility="Auto">
                                     <DataGrid.ColumnHeaderStyle>
                                         <Style BasedOn="{StaticResource HeaderStyle}" TargetType="DataGridColumnHeader"/>
                                     </DataGrid.ColumnHeaderStyle>

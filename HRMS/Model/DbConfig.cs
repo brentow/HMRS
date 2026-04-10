@@ -7,7 +7,7 @@ namespace HRMS.Model
 {
     public sealed class DbConnectionSettings
     {
-        public string Host { get; set; } = "srv1237.hstgr.io";
+        public string Host { get; set; } = "194.59.164.58";
         public string Port { get; set; } = "3306";
         public string Database { get; set; } = "u621755393_hrms3b";
         public string Username { get; set; } = "u621755393_hrms3b_user";
@@ -20,7 +20,7 @@ namespace HRMS.Model
     /// </summary>
     public static class DbConfig
     {
-        private const string DefaultHost = "srv1237.hstgr.io";
+        private const string DefaultHost = "194.59.164.58";
         private const string DefaultPort = "3306";
         private const string DefaultDatabase = "u621755393_hrms3b";
         private const string DefaultUser = "u621755393_hrms3b_user";

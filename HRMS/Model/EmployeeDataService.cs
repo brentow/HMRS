@@ -53,6 +53,7 @@ namespace HRMS.Model
         string PagibigMidNo);
 
     public record EmployeeRowDto(
+        int EmployeeId,
         string EmployeeNo,
         string Name,
         string Department,
@@ -70,7 +71,36 @@ namespace HRMS.Model
         DateTime? LastDtrDate,
         TimeSpan? LastTimeIn,
         TimeSpan? LastTimeOut,
-        int LastWorkedMinutes);
+        int LastWorkedMinutes,
+        int CurrentMonthWorkedDays,
+        int CurrentMonthWorkedMinutes,
+        DateTime? CurrentMonthLastWorkDate,
+        string LatestPayrollPeriodCode,
+        string LatestPayrollStatus,
+        DateTime? LatestPayrollGeneratedAt,
+        decimal LatestPayrollBasicPay,
+        decimal LatestPayrollAllowances,
+        decimal LatestPayrollOvertimePay,
+        decimal LatestPayrollOtherEarnings,
+        decimal LatestPayrollGrossPay,
+        decimal LatestPayrollDeductionsTotal,
+        decimal LatestPayrollNetPay,
+        string LatestPayrollDeductionsSummary);
+
+    public record EmployeeAttendanceLogDto(
+        DateTime LogTime,
+        string LogType,
+        string Source,
+        string DeviceName);
+
+    public record EmployeeAttendanceDayDto(
+        DateTime WorkDate,
+        TimeSpan? TimeIn,
+        TimeSpan? TimeOut,
+        int WorkedMinutes,
+        string Remarks,
+        int LateMinutes,
+        int EarlyOutMinutes);
 
     public class EmployeeDataService
     {
@@ -104,7 +134,7 @@ namespace HRMS.Model
             }
         }
 
-        public async Task<IReadOnlyList<EmployeeRowDto>> GetRecentEmployeesAsync(int limit = 500)
+        public async Task<IReadOnlyList<EmployeeRowDto>> GetRecentEmployeesAsync(int limit = 500, int? scopedEmployeeId = null)
         {
             if (limit <= 0)
             {
@@ -113,6 +143,7 @@ namespace HRMS.Model
 
             const string sql = @"
 SELECT
+    e.employee_id,
     e.employee_no,
     CONCAT(e.last_name, ', ', e.first_name, IFNULL(CONCAT(' ', e.middle_name), '')) AS employee_name,
     COALESCE(d.dept_name, '-') AS dept_name,
@@ -136,7 +167,21 @@ SELECT
     dtr.work_date AS last_dtr_date,
     TIME(dtr.time_in) AS last_time_in,
     TIME(dtr.time_out) AS last_time_out,
-    COALESCE(dtr.worked_minutes, 0) AS worked_minutes
+    COALESCE(dtr.worked_minutes, 0) AS worked_minutes,
+    COALESCE(month_dtr.worked_days, 0) AS current_month_worked_days,
+    COALESCE(month_dtr.worked_minutes, 0) AS current_month_worked_minutes,
+    month_dtr.last_work_date AS current_month_last_work_date,
+    COALESCE(latest_pp.period_code, '-') AS latest_payroll_period_code,
+    COALESCE(latest_pr.status, '-') AS latest_payroll_status,
+    latest_pr.generated_at AS latest_payroll_generated_at,
+    COALESCE(latest_pr.basic_pay, 0) AS latest_payroll_basic_pay,
+    COALESCE(latest_pr.allowances, 0) AS latest_payroll_allowances,
+    COALESCE(latest_pr.overtime_pay, 0) AS latest_payroll_overtime_pay,
+    COALESCE(latest_pr.other_earnings, 0) AS latest_payroll_other_earnings,
+    COALESCE(latest_pr.gross_pay, 0) AS latest_payroll_gross_pay,
+    COALESCE(latest_pr.deductions_total, 0) AS latest_payroll_deductions_total,
+    COALESCE(latest_pr.net_pay, 0) AS latest_payroll_net_pay,
+    COALESCE(latest_items.deductions_summary, '') AS latest_payroll_deductions_summary
 FROM employees e
 LEFT JOIN departments d ON d.department_id = e.department_id
 LEFT JOIN positions p ON p.position_id = e.position_id
@@ -162,11 +207,47 @@ LEFT JOIN (
             ON latest.employee_id = d1.employee_id
            AND latest.max_work_date = d1.work_date
 ) dtr ON dtr.employee_id = e.employee_id
+LEFT JOIN (
+    SELECT
+        d.employee_id,
+        COUNT(*) AS worked_days,
+        COALESCE(SUM(d.worked_minutes), 0) AS worked_minutes,
+        MAX(d.work_date) AS last_work_date
+    FROM v_dtr_daily_effective d
+    WHERE YEAR(d.work_date) = YEAR(CURDATE())
+      AND MONTH(d.work_date) = MONTH(CURDATE())
+    GROUP BY d.employee_id
+) month_dtr ON month_dtr.employee_id = e.employee_id
+LEFT JOIN payroll_runs latest_pr
+       ON latest_pr.payroll_run_id = (
+            SELECT pr2.payroll_run_id
+            FROM payroll_runs pr2
+            WHERE pr2.employee_id = e.employee_id
+            ORDER BY pr2.generated_at DESC, pr2.payroll_run_id DESC
+            LIMIT 1
+       )
+LEFT JOIN payroll_periods latest_pp ON latest_pp.payroll_period_id = latest_pr.payroll_period_id
+LEFT JOIN (
+    SELECT
+        pri.payroll_run_id,
+        GROUP_CONCAT(
+            CASE
+                WHEN UPPER(pri.item_type) = 'DEDUCTION'
+                THEN CONCAT(COALESCE(NULLIF(pri.description, ''), pri.code), ': PHP ', FORMAT(pri.amount, 2))
+                ELSE NULL
+            END
+            ORDER BY pri.payroll_run_item_id
+            SEPARATOR '\n'
+        ) AS deductions_summary
+    FROM payroll_run_items pri
+    GROUP BY pri.payroll_run_id
+) latest_items ON latest_items.payroll_run_id = latest_pr.payroll_run_id
 ORDER BY e.employee_no
 LIMIT @limit;";
 
             const string fallbackSql = @"
 SELECT
+    e.employee_id,
     e.employee_no,
     CONCAT(e.last_name, ', ', e.first_name, IFNULL(CONCAT(' ', e.middle_name), '')) AS employee_name,
     COALESCE(d.dept_name, '-') AS dept_name,
@@ -190,7 +271,21 @@ SELECT
     dtr.work_date AS last_dtr_date,
     TIME(dtr.time_in) AS last_time_in,
     TIME(dtr.time_out) AS last_time_out,
-    COALESCE(dtr.worked_minutes, 0) AS worked_minutes
+    COALESCE(dtr.worked_minutes, 0) AS worked_minutes,
+    COALESCE(month_dtr.worked_days, 0) AS current_month_worked_days,
+    COALESCE(month_dtr.worked_minutes, 0) AS current_month_worked_minutes,
+    month_dtr.last_work_date AS current_month_last_work_date,
+    COALESCE(latest_pp.period_code, '-') AS latest_payroll_period_code,
+    COALESCE(latest_pr.status, '-') AS latest_payroll_status,
+    latest_pr.generated_at AS latest_payroll_generated_at,
+    COALESCE(latest_pr.basic_pay, 0) AS latest_payroll_basic_pay,
+    COALESCE(latest_pr.allowances, 0) AS latest_payroll_allowances,
+    COALESCE(latest_pr.overtime_pay, 0) AS latest_payroll_overtime_pay,
+    COALESCE(latest_pr.other_earnings, 0) AS latest_payroll_other_earnings,
+    COALESCE(latest_pr.gross_pay, 0) AS latest_payroll_gross_pay,
+    COALESCE(latest_pr.deductions_total, 0) AS latest_payroll_deductions_total,
+    COALESCE(latest_pr.net_pay, 0) AS latest_payroll_net_pay,
+    COALESCE(latest_items.deductions_summary, '') AS latest_payroll_deductions_summary
 FROM employees e
 LEFT JOIN departments d ON d.department_id = e.department_id
 LEFT JOIN positions p ON p.position_id = e.position_id
@@ -234,8 +329,74 @@ LEFT JOIN (
             ON latest.employee_id = daily.employee_id
            AND latest.max_work_date = daily.work_date
 ) dtr ON dtr.employee_id = e.employee_id
+LEFT JOIN (
+    SELECT
+        daily.employee_id,
+        COUNT(*) AS worked_days,
+        COALESCE(SUM(daily.worked_minutes), 0) AS worked_minutes,
+        MAX(daily.work_date) AS last_work_date
+    FROM (
+        SELECT
+            al.employee_id,
+            DATE(al.log_time) AS work_date,
+            CASE
+                WHEN MIN(CASE WHEN al.log_type = 'IN' THEN al.log_time END) IS NULL
+                  OR MAX(CASE WHEN al.log_type = 'OUT' THEN al.log_time END) IS NULL
+                THEN 0
+                ELSE TIMESTAMPDIFF(
+                    MINUTE,
+                    MIN(CASE WHEN al.log_type = 'IN' THEN al.log_time END),
+                    MAX(CASE WHEN al.log_type = 'OUT' THEN al.log_time END)
+                )
+            END AS worked_minutes
+        FROM attendance_logs al
+        WHERE YEAR(al.log_time) = YEAR(CURDATE())
+          AND MONTH(al.log_time) = MONTH(CURDATE())
+        GROUP BY al.employee_id, DATE(al.log_time)
+    ) daily
+    GROUP BY daily.employee_id
+) month_dtr ON month_dtr.employee_id = e.employee_id
+LEFT JOIN payroll_runs latest_pr
+       ON latest_pr.payroll_run_id = (
+            SELECT pr2.payroll_run_id
+            FROM payroll_runs pr2
+            WHERE pr2.employee_id = e.employee_id
+            ORDER BY pr2.generated_at DESC, pr2.payroll_run_id DESC
+            LIMIT 1
+       )
+LEFT JOIN payroll_periods latest_pp ON latest_pp.payroll_period_id = latest_pr.payroll_period_id
+LEFT JOIN (
+    SELECT
+        pri.payroll_run_id,
+        GROUP_CONCAT(
+            CASE
+                WHEN UPPER(pri.item_type) = 'DEDUCTION'
+                THEN CONCAT(COALESCE(NULLIF(pri.description, ''), pri.code), ': PHP ', FORMAT(pri.amount, 2))
+                ELSE NULL
+            END
+            ORDER BY pri.payroll_run_item_id
+            SEPARATOR '\n'
+        ) AS deductions_summary
+    FROM payroll_run_items pri
+    GROUP BY pri.payroll_run_id
+) latest_items ON latest_items.payroll_run_id = latest_pr.payroll_run_id
 ORDER BY e.employee_no
 LIMIT @limit;";
+
+            var effectiveSql = sql;
+            var effectiveFallbackSql = fallbackSql;
+            var hasScopedEmployee = scopedEmployeeId.HasValue && scopedEmployeeId.Value > 0;
+            if (hasScopedEmployee)
+            {
+                effectiveSql = effectiveSql.Replace(
+                    "ORDER BY e.employee_no",
+                    "WHERE e.employee_id = @employee_id\nORDER BY e.employee_no",
+                    StringComparison.Ordinal);
+                effectiveFallbackSql = effectiveFallbackSql.Replace(
+                    "ORDER BY e.employee_no",
+                    "WHERE e.employee_id = @employee_id\nORDER BY e.employee_no",
+                    StringComparison.Ordinal);
+            }
 
             var list = new List<EmployeeRowDto>();
 
@@ -245,37 +406,18 @@ LIMIT @limit;";
                 await connection.OpenAsync();
                 await EnsureGovernmentIdsProtectedAsync(connection);
 
-                await using (var command = new MySqlCommand(sql, connection))
+                await using (var command = new MySqlCommand(effectiveSql, connection))
                 {
                     command.Parameters.AddWithValue("@limit", limit);
+                    if (hasScopedEmployee)
+                    {
+                        command.Parameters.AddWithValue("@employee_id", scopedEmployeeId!.Value);
+                    }
 
                     await using var reader = await command.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
                     {
-                        var hireDate = reader["hire_date"] == DBNull.Value
-                            ? DateTime.Today
-                            : Convert.ToDateTime(reader["hire_date"], CultureInfo.InvariantCulture);
-
-                        list.Add(new EmployeeRowDto(
-                            EmployeeNo: reader["employee_no"]?.ToString() ?? string.Empty,
-                            Name: reader["employee_name"]?.ToString() ?? string.Empty,
-                            Department: reader["dept_name"]?.ToString() ?? "-",
-                            Position: reader["position_name"]?.ToString() ?? "-",
-                            HireDate: hireDate,
-                            Status: reader["status"]?.ToString() ?? "ACTIVE",
-                            AppointmentType: reader["appointment_type"]?.ToString() ?? "-",
-                            SalaryGrade: reader["salary_grade"]?.ToString() ?? "-",
-                            SalaryStep: reader["salary_step"]?.ToString() ?? "-",
-                            MonthlySalary: reader["monthly_salary"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["monthly_salary"], CultureInfo.InvariantCulture),
-                            TinNo: SafeGovernmentIdValue(reader["tin_no"]),
-                            GsisBpNo: SafeGovernmentIdValue(reader["gsis_bp_no"]),
-                            PhilHealthNo: SafeGovernmentIdValue(reader["philhealth_no"]),
-                            PagibigMidNo: SafeGovernmentIdValue(reader["pagibig_mid_no"]),
-                            LastDtrDate: reader["last_dtr_date"] == DBNull.Value ? null : Convert.ToDateTime(reader["last_dtr_date"], CultureInfo.InvariantCulture),
-                            LastTimeIn: ToTimeSpan(reader["last_time_in"]),
-                            LastTimeOut: ToTimeSpan(reader["last_time_out"]),
-                            LastWorkedMinutes: reader["worked_minutes"] == DBNull.Value ? 0 : Convert.ToInt32(reader["worked_minutes"], CultureInfo.InvariantCulture)
-                        ));
+                        list.Add(MapEmployeeRow(reader));
                     }
                 }
             }
@@ -287,36 +429,17 @@ LIMIT @limit;";
                     await connection.OpenAsync();
                     await EnsureGovernmentIdsProtectedAsync(connection);
 
-                    await using var command = new MySqlCommand(fallbackSql, connection);
+                    await using var command = new MySqlCommand(effectiveFallbackSql, connection);
                     command.Parameters.AddWithValue("@limit", limit);
+                    if (hasScopedEmployee)
+                    {
+                        command.Parameters.AddWithValue("@employee_id", scopedEmployeeId!.Value);
+                    }
 
                     await using var reader = await command.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
                     {
-                        var hireDate = reader["hire_date"] == DBNull.Value
-                            ? DateTime.Today
-                            : Convert.ToDateTime(reader["hire_date"], CultureInfo.InvariantCulture);
-
-                        list.Add(new EmployeeRowDto(
-                            EmployeeNo: reader["employee_no"]?.ToString() ?? string.Empty,
-                            Name: reader["employee_name"]?.ToString() ?? string.Empty,
-                            Department: reader["dept_name"]?.ToString() ?? "-",
-                            Position: reader["position_name"]?.ToString() ?? "-",
-                            HireDate: hireDate,
-                            Status: reader["status"]?.ToString() ?? "ACTIVE",
-                            AppointmentType: reader["appointment_type"]?.ToString() ?? "-",
-                            SalaryGrade: reader["salary_grade"]?.ToString() ?? "-",
-                            SalaryStep: reader["salary_step"]?.ToString() ?? "-",
-                            MonthlySalary: reader["monthly_salary"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["monthly_salary"], CultureInfo.InvariantCulture),
-                            TinNo: SafeGovernmentIdValue(reader["tin_no"]),
-                            GsisBpNo: SafeGovernmentIdValue(reader["gsis_bp_no"]),
-                            PhilHealthNo: SafeGovernmentIdValue(reader["philhealth_no"]),
-                            PagibigMidNo: SafeGovernmentIdValue(reader["pagibig_mid_no"]),
-                            LastDtrDate: reader["last_dtr_date"] == DBNull.Value ? null : Convert.ToDateTime(reader["last_dtr_date"], CultureInfo.InvariantCulture),
-                            LastTimeIn: ToTimeSpan(reader["last_time_in"]),
-                            LastTimeOut: ToTimeSpan(reader["last_time_out"]),
-                            LastWorkedMinutes: reader["worked_minutes"] == DBNull.Value ? 0 : Convert.ToInt32(reader["worked_minutes"], CultureInfo.InvariantCulture)
-                        ));
+                        list.Add(MapEmployeeRow(reader));
                     }
                 }
                 catch (MySqlException)
@@ -326,6 +449,180 @@ LIMIT @limit;";
             }
 
             return list;
+        }
+
+        public async Task<IReadOnlyList<EmployeeAttendanceLogDto>> GetEmployeeRecentAttendanceLogsAsync(string employeeNo, int limit = 24)
+        {
+            if (string.IsNullOrWhiteSpace(employeeNo))
+            {
+                return Array.Empty<EmployeeAttendanceLogDto>();
+            }
+
+            const string sql = @"
+SELECT
+    al.log_time,
+    COALESCE(al.log_type, '-') AS log_type,
+    COALESCE(al.source, '-') AS source,
+    COALESCE(d.device_name, '-') AS device_name
+FROM attendance_logs al
+INNER JOIN employees e ON e.employee_id = al.employee_id
+LEFT JOIN biometric_devices d ON d.device_id = al.device_id
+WHERE e.employee_no = @employee_no
+ORDER BY al.log_time DESC, al.log_id DESC
+LIMIT @limit;";
+
+            var list = new List<EmployeeAttendanceLogDto>();
+
+            try
+            {
+                await using var connection = new MySqlConnection(_connectionString);
+                await connection.OpenAsync();
+                await using var command = new MySqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@employee_no", employeeNo.Trim());
+                command.Parameters.AddWithValue("@limit", Math.Max(1, limit));
+
+                await using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    list.Add(new EmployeeAttendanceLogDto(
+                        LogTime: reader["log_time"] == DBNull.Value ? DateTime.MinValue : Convert.ToDateTime(reader["log_time"], CultureInfo.InvariantCulture),
+                        LogType: reader["log_type"]?.ToString() ?? "-",
+                        Source: reader["source"]?.ToString() ?? "-",
+                        DeviceName: reader["device_name"]?.ToString() ?? "-"));
+                }
+            }
+            catch (MySqlException)
+            {
+                return Array.Empty<EmployeeAttendanceLogDto>();
+            }
+
+            return list;
+        }
+
+        public async Task<IReadOnlyList<EmployeeAttendanceDayDto>> GetEmployeeCurrentMonthAttendanceAsync(string employeeNo)
+        {
+            if (string.IsNullOrWhiteSpace(employeeNo))
+            {
+                return Array.Empty<EmployeeAttendanceDayDto>();
+            }
+
+            const string sql = @"
+SELECT
+    d.work_date,
+    TIME(d.time_in) AS time_in,
+    TIME(d.time_out) AS time_out,
+    COALESCE(d.worked_minutes, 0) AS worked_minutes,
+    COALESCE(GROUP_CONCAT(DISTINCT ar.remark_type ORDER BY ar.remark_type SEPARATOR ', '), '') AS remarks,
+    GREATEST(
+        COALESCE(
+            TIMESTAMPDIFF(
+                MINUTE,
+                DATE_ADD(
+                    TIMESTAMP(d.work_date, COALESCE(s.start_time, TIME('00:00:00'))),
+                    INTERVAL COALESCE(s.grace_minutes, 0) MINUTE),
+                d.time_in),
+            0),
+        0) AS late_minutes,
+    GREATEST(
+        COALESCE(
+            TIMESTAMPDIFF(
+                MINUTE,
+                d.time_out,
+                CASE
+                    WHEN COALESCE(s.is_overnight, 0) = 1
+                    THEN DATE_ADD(TIMESTAMP(d.work_date, COALESCE(s.end_time, TIME('00:00:00'))), INTERVAL 1 DAY)
+                    ELSE TIMESTAMP(d.work_date, COALESCE(s.end_time, TIME('00:00:00')))
+                END),
+            0),
+        0) AS early_out_minutes
+FROM employees e
+INNER JOIN v_dtr_daily_effective d ON d.employee_id = e.employee_id
+LEFT JOIN attendance_remarks ar
+       ON ar.employee_id = e.employee_id
+      AND ar.work_date = d.work_date
+LEFT JOIN shift_assignments sa
+       ON sa.employee_id = e.employee_id
+      AND sa.status = 'ASSIGNED'
+      AND sa.start_date <= d.work_date
+      AND (sa.end_date IS NULL OR sa.end_date >= d.work_date)
+LEFT JOIN shifts s ON s.shift_id = sa.shift_id
+WHERE e.employee_no = @employee_no
+  AND YEAR(d.work_date) = YEAR(CURDATE())
+  AND MONTH(d.work_date) = MONTH(CURDATE())
+GROUP BY d.work_date, d.time_in, d.time_out, d.worked_minutes,
+         s.start_time, s.end_time, s.grace_minutes, s.is_overnight
+ORDER BY d.work_date DESC;";
+
+            var list = new List<EmployeeAttendanceDayDto>();
+
+            try
+            {
+                await using var connection = new MySqlConnection(_connectionString);
+                await connection.OpenAsync();
+                await using var command = new MySqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@employee_no", employeeNo.Trim());
+
+                await using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    list.Add(new EmployeeAttendanceDayDto(
+                        WorkDate: reader["work_date"] == DBNull.Value ? DateTime.MinValue : Convert.ToDateTime(reader["work_date"], CultureInfo.InvariantCulture),
+                        TimeIn: ToTimeSpan(reader["time_in"]),
+                        TimeOut: ToTimeSpan(reader["time_out"]),
+                        WorkedMinutes: reader["worked_minutes"] == DBNull.Value ? 0 : Convert.ToInt32(reader["worked_minutes"], CultureInfo.InvariantCulture),
+                        Remarks: reader["remarks"]?.ToString() ?? string.Empty,
+                        LateMinutes: reader["late_minutes"] == DBNull.Value ? 0 : Convert.ToInt32(reader["late_minutes"], CultureInfo.InvariantCulture),
+                        EarlyOutMinutes: reader["early_out_minutes"] == DBNull.Value ? 0 : Convert.ToInt32(reader["early_out_minutes"], CultureInfo.InvariantCulture)));
+                }
+            }
+            catch (MySqlException)
+            {
+                return Array.Empty<EmployeeAttendanceDayDto>();
+            }
+
+            return list;
+        }
+
+        private static EmployeeRowDto MapEmployeeRow(MySqlDataReader reader)
+        {
+            var hireDate = reader["hire_date"] == DBNull.Value
+                ? DateTime.Today
+                : Convert.ToDateTime(reader["hire_date"], CultureInfo.InvariantCulture);
+
+            return new EmployeeRowDto(
+                EmployeeId: reader["employee_id"] == DBNull.Value ? 0 : Convert.ToInt32(reader["employee_id"], CultureInfo.InvariantCulture),
+                EmployeeNo: reader["employee_no"]?.ToString() ?? string.Empty,
+                Name: reader["employee_name"]?.ToString() ?? string.Empty,
+                Department: reader["dept_name"]?.ToString() ?? "-",
+                Position: reader["position_name"]?.ToString() ?? "-",
+                HireDate: hireDate,
+                Status: reader["status"]?.ToString() ?? "ACTIVE",
+                AppointmentType: reader["appointment_type"]?.ToString() ?? "-",
+                SalaryGrade: reader["salary_grade"]?.ToString() ?? "-",
+                SalaryStep: reader["salary_step"]?.ToString() ?? "-",
+                MonthlySalary: reader["monthly_salary"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["monthly_salary"], CultureInfo.InvariantCulture),
+                TinNo: SafeGovernmentIdValue(reader["tin_no"]),
+                GsisBpNo: SafeGovernmentIdValue(reader["gsis_bp_no"]),
+                PhilHealthNo: SafeGovernmentIdValue(reader["philhealth_no"]),
+                PagibigMidNo: SafeGovernmentIdValue(reader["pagibig_mid_no"]),
+                LastDtrDate: reader["last_dtr_date"] == DBNull.Value ? null : Convert.ToDateTime(reader["last_dtr_date"], CultureInfo.InvariantCulture),
+                LastTimeIn: ToTimeSpan(reader["last_time_in"]),
+                LastTimeOut: ToTimeSpan(reader["last_time_out"]),
+                LastWorkedMinutes: reader["worked_minutes"] == DBNull.Value ? 0 : Convert.ToInt32(reader["worked_minutes"], CultureInfo.InvariantCulture),
+                CurrentMonthWorkedDays: reader["current_month_worked_days"] == DBNull.Value ? 0 : Convert.ToInt32(reader["current_month_worked_days"], CultureInfo.InvariantCulture),
+                CurrentMonthWorkedMinutes: reader["current_month_worked_minutes"] == DBNull.Value ? 0 : Convert.ToInt32(reader["current_month_worked_minutes"], CultureInfo.InvariantCulture),
+                CurrentMonthLastWorkDate: reader["current_month_last_work_date"] == DBNull.Value ? null : Convert.ToDateTime(reader["current_month_last_work_date"], CultureInfo.InvariantCulture),
+                LatestPayrollPeriodCode: reader["latest_payroll_period_code"]?.ToString() ?? "-",
+                LatestPayrollStatus: reader["latest_payroll_status"]?.ToString() ?? "-",
+                LatestPayrollGeneratedAt: reader["latest_payroll_generated_at"] == DBNull.Value ? null : Convert.ToDateTime(reader["latest_payroll_generated_at"], CultureInfo.InvariantCulture),
+                LatestPayrollBasicPay: reader["latest_payroll_basic_pay"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["latest_payroll_basic_pay"], CultureInfo.InvariantCulture),
+                LatestPayrollAllowances: reader["latest_payroll_allowances"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["latest_payroll_allowances"], CultureInfo.InvariantCulture),
+                LatestPayrollOvertimePay: reader["latest_payroll_overtime_pay"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["latest_payroll_overtime_pay"], CultureInfo.InvariantCulture),
+                LatestPayrollOtherEarnings: reader["latest_payroll_other_earnings"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["latest_payroll_other_earnings"], CultureInfo.InvariantCulture),
+                LatestPayrollGrossPay: reader["latest_payroll_gross_pay"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["latest_payroll_gross_pay"], CultureInfo.InvariantCulture),
+                LatestPayrollDeductionsTotal: reader["latest_payroll_deductions_total"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["latest_payroll_deductions_total"], CultureInfo.InvariantCulture),
+                LatestPayrollNetPay: reader["latest_payroll_net_pay"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["latest_payroll_net_pay"], CultureInfo.InvariantCulture),
+                LatestPayrollDeductionsSummary: reader["latest_payroll_deductions_summary"]?.ToString() ?? string.Empty);
         }
 
         public async Task<IReadOnlyList<LookupItemDto>> GetDepartmentsLookupAsync()
@@ -535,8 +832,9 @@ SELECT LAST_INSERT_ID();";
 
             await using var connection = new MySqlConnection(_connectionString);
             await connection.OpenAsync();
+            await using var transaction = await connection.BeginTransactionAsync();
 
-            await using var command = new MySqlCommand(sql, connection);
+            await using var command = new MySqlCommand(sql, connection, transaction);
             command.Parameters.AddWithValue("@employee_no", dto.EmployeeNo.Trim());
             command.Parameters.AddWithValue("@last_name", dto.LastName.Trim());
             command.Parameters.AddWithValue("@first_name", dto.FirstName.Trim());
@@ -561,7 +859,17 @@ SELECT LAST_INSERT_ID();";
             command.Parameters.AddWithValue("@emergency_phone", DbValue(dto.EmergencyPhone));
 
             var scalar = await command.ExecuteScalarAsync();
-            return scalar == null || scalar == DBNull.Value ? 0 : Convert.ToInt32(scalar, CultureInfo.InvariantCulture);
+            var employeeId = scalar == null || scalar == DBNull.Value ? 0 : Convert.ToInt32(scalar, CultureInfo.InvariantCulture);
+            if (employeeId <= 0)
+            {
+                await transaction.RollbackAsync();
+                return 0;
+            }
+
+            var checklistService = new DocumentChecklistDataService(_connectionString);
+            await checklistService.GenerateChecklistForEmployeeAsync(connection, transaction, employeeId);
+            await transaction.CommitAsync();
+            return employeeId;
         }
 
         public async Task CreateDefaultUserAccountForEmployeeAsync(
