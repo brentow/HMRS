@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -14,6 +15,13 @@ namespace HRMS.Model
         string TemplateFormat,
         string TemplateEncoding,
         int? QualityScore,
+        string ReaderName,
+        string ReaderDetail);
+
+    public sealed record BiometricCaptureProgress(
+        int CompletedSamples,
+        int TargetSamples,
+        string Message,
         string ReaderName,
         string ReaderDetail);
 
@@ -37,7 +45,7 @@ namespace HRMS.Model
 
     public sealed class DigitalPersonaRuntimeService
     {
-        private const int DefaultCaptureTimeoutMs = 15000;
+        private const int DefaultCaptureTimeoutMs = 60000;
         private const int DefaultResolution = 500;
         private const int DefaultMatchThreshold = 21474;
 
@@ -56,8 +64,18 @@ namespace HRMS.Model
         private static string? _sdkDirectory;
         private static SdkContext? _cachedContext;
 
-        public Task<BiometricCapturedTemplate> CaptureTemplateAsync(int timeoutMs = DefaultCaptureTimeoutMs)
-            => Task.Run(() => CaptureTemplate(timeoutMs));
+        public async Task<BiometricCapturedTemplate> CaptureTemplateAsync(
+            Action<BiometricCaptureProgress>? progressCallback = null,
+            int timeoutMs = DefaultCaptureTimeoutMs)
+        {
+            var bridgeCapture = await TryCaptureTemplateViaBridgeAsync(progressCallback, timeoutMs);
+            if (bridgeCapture != null)
+            {
+                return bridgeCapture;
+            }
+
+            return await Task.Run(() => CaptureTemplate(timeoutMs));
+        }
 
         public Task<BiometricMatchedEnrollment?> IdentifyAsync(
             IReadOnlyList<BiometricStoredTemplate> gallery,
@@ -86,6 +104,12 @@ namespace HRMS.Model
             if (gallery == null || gallery.Count == 0)
             {
                 throw new InvalidOperationException("No enrolled fingerprint templates are available for matching.");
+            }
+
+            var bridgeMatch = TryIdentifyViaBridge(gallery, timeoutMs);
+            if (bridgeMatch.Attempted)
+            {
+                return bridgeMatch.Match;
             }
 
             var context = EnsureSdkContext();
@@ -117,6 +141,282 @@ namespace HRMS.Model
             }
 
             return new BiometricMatchedEnrollment(bestEnrollment, bestScore, probe.ReaderName, probe.ReaderDetail);
+        }
+
+        private static async Task<BiometricCapturedTemplate?> TryCaptureTemplateViaBridgeAsync(
+            Action<BiometricCaptureProgress>? progressCallback,
+            int timeoutMs)
+        {
+            var bridgeExe = ResolveOneTouchBridgeExecutablePath();
+            if (bridgeExe == null)
+            {
+                return null;
+            }
+
+            var outputFile = Path.Combine(Path.GetTempPath(), $"hrms_dp_capture_{Guid.NewGuid():N}.txt");
+            try
+            {
+                using var process = StartBridgeProcess(bridgeExe, $"capture-template \"{outputFile}\" {timeoutMs}");
+                string? lastProgressSignature = null;
+
+                while (!process.HasExited)
+                {
+                    var progressData = TryReadBridgeOutput(outputFile);
+                    if (progressData != null &&
+                        progressData.TryGetValue("status", out var progressStatus) &&
+                        string.Equals(progressStatus, "progress", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var signature = string.Join("|",
+                            GetOptionalBridgeValue(progressData, "scanCount") ?? "0",
+                            GetOptionalBridgeValue(progressData, "scanTarget") ?? "3",
+                            GetOptionalBridgeValue(progressData, "message") ?? string.Empty);
+
+                        if (!string.Equals(signature, lastProgressSignature, StringComparison.Ordinal))
+                        {
+                            lastProgressSignature = signature;
+                            progressCallback?.Invoke(new BiometricCaptureProgress(
+                                CompletedSamples: int.TryParse(GetOptionalBridgeValue(progressData, "scanCount"), out var completed) ? completed : 0,
+                                TargetSamples: int.TryParse(GetOptionalBridgeValue(progressData, "scanTarget"), out var target) ? target : 3,
+                                Message: GetOptionalBridgeValue(progressData, "message") ?? "Waiting for fingerprint scan...",
+                                ReaderName: GetOptionalBridgeValue(progressData, "reader") ?? "Fingerprint Reader",
+                                ReaderDetail: GetOptionalBridgeValue(progressData, "detail") ?? "One Touch SDK"));
+                        }
+                    }
+
+                    await Task.Delay(250).ConfigureAwait(false);
+                }
+
+                var standardError = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
+                if (process.ExitCode != 0 && !string.IsNullOrWhiteSpace(standardError))
+                {
+                    throw new InvalidOperationException(standardError.Trim());
+                }
+
+                var data = ReadBridgeOutput(outputFile);
+                var status = GetRequiredBridgeValue(data, "status");
+                if (string.Equals(status, "cancelled", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new OperationCanceledException(GetOptionalBridgeValue(data, "message") ?? "Fingerprint capture cancelled.");
+                }
+
+                if (!string.Equals(status, "ok", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(GetRequiredBridgeValue(data, "message"));
+                }
+
+                return new BiometricCapturedTemplate(
+                    TemplateData: Convert.FromBase64String(GetRequiredBridgeValue(data, "template")),
+                    TemplateFormat: GetRequiredBridgeValue(data, "format"),
+                    TemplateEncoding: GetRequiredBridgeValue(data, "encoding"),
+                    QualityScore: int.TryParse(GetOptionalBridgeValue(data, "quality"), out var quality) ? quality : null,
+                    ReaderName: GetOptionalBridgeValue(data, "reader") ?? "Fingerprint Reader",
+                    ReaderDetail: GetOptionalBridgeValue(data, "detail") ?? "One Touch SDK");
+            }
+            finally
+            {
+                TryDeleteFile(outputFile);
+            }
+        }
+
+        private static (bool Attempted, BiometricMatchedEnrollment? Match) TryIdentifyViaBridge(
+            IReadOnlyList<BiometricStoredTemplate> gallery,
+            int timeoutMs)
+        {
+            var bridgeExe = ResolveOneTouchBridgeExecutablePath();
+            if (bridgeExe == null)
+            {
+                return (false, null);
+            }
+
+            var manifestFile = Path.Combine(Path.GetTempPath(), $"hrms_dp_gallery_{Guid.NewGuid():N}.txt");
+            var outputFile = Path.Combine(Path.GetTempPath(), $"hrms_dp_identify_{Guid.NewGuid():N}.txt");
+
+            try
+            {
+                File.WriteAllLines(
+                    manifestFile,
+                    gallery
+                        .Where(x => x.TemplateData != null && x.TemplateData.Length > 0)
+                        .Select(x => $"{x.EnrollmentId}|{Convert.ToBase64String(x.TemplateData)}"));
+
+                ExecuteBridge(bridgeExe, $"identify-template \"{outputFile}\" \"{manifestFile}\" {timeoutMs}");
+                var data = ReadBridgeOutput(outputFile);
+                var status = GetRequiredBridgeValue(data, "status");
+                if (string.Equals(status, "error", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(GetRequiredBridgeValue(data, "message"));
+                }
+
+                if (!string.Equals(status, "matched", StringComparison.OrdinalIgnoreCase))
+                {
+                    return (true, null);
+                }
+
+                if (!int.TryParse(GetRequiredBridgeValue(data, "enrollmentId"), out var enrollmentId))
+                {
+                    throw new InvalidOperationException("Bridge returned an invalid enrollment id.");
+                }
+
+                var matchedEnrollment = gallery.FirstOrDefault(x => x.EnrollmentId == enrollmentId);
+                if (matchedEnrollment == null)
+                {
+                    throw new InvalidOperationException($"Bridge matched enrollment {enrollmentId}, but it was not found in the active gallery.");
+                }
+
+                var score = int.TryParse(GetOptionalBridgeValue(data, "matchScore"), out var parsedScore)
+                    ? parsedScore
+                    : int.MaxValue;
+
+                return (true, new BiometricMatchedEnrollment(
+                    matchedEnrollment,
+                    score,
+                    GetOptionalBridgeValue(data, "reader") ?? "Fingerprint Reader",
+                    GetOptionalBridgeValue(data, "detail") ?? "One Touch SDK"));
+            }
+            finally
+            {
+                TryDeleteFile(manifestFile);
+                TryDeleteFile(outputFile);
+            }
+        }
+
+        private static string? ResolveOneTouchBridgeExecutablePath()
+        {
+            return GetOneTouchBridgeCandidates()
+                .Where(File.Exists)
+                .Select(path => new FileInfo(path))
+                .OrderByDescending(file => file.LastWriteTimeUtc)
+                .Select(file => file.FullName)
+                .FirstOrDefault();
+        }
+
+        private static IEnumerable<string> GetOneTouchBridgeCandidates()
+        {
+            yield return Path.Combine(AppContext.BaseDirectory, "DigitalPersonaOneTouchBridge.exe");
+
+            var current = AppContext.BaseDirectory;
+            for (var i = 0; i < 6; i++)
+            {
+                var root = Path.GetFullPath(Path.Combine(current, string.Concat(Enumerable.Repeat("..\\", i + 1))));
+                yield return Path.Combine(root, "Tools", "DigitalPersonaOneTouchBridge", "bin", "Debug", "net48", "DigitalPersonaOneTouchBridge.exe");
+                yield return Path.Combine(root, "Tools", "DigitalPersonaOneTouchBridge", "bin", "Release", "net48", "DigitalPersonaOneTouchBridge.exe");
+            }
+        }
+
+        private static void ExecuteBridge(string bridgeExe, string arguments)
+        {
+            using var process = StartBridgeProcess(bridgeExe, arguments);
+            var standardError = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+
+            if (process.ExitCode != 0 && !string.IsNullOrWhiteSpace(standardError))
+            {
+                throw new InvalidOperationException(standardError.Trim());
+            }
+        }
+
+        private static Process StartBridgeProcess(string bridgeExe, string arguments)
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = bridgeExe,
+                Arguments = arguments,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+                WorkingDirectory = Path.GetDirectoryName(bridgeExe) ?? AppContext.BaseDirectory
+            };
+
+            return Process.Start(startInfo)
+                ?? throw new InvalidOperationException("Unable to start the DigitalPersona One Touch bridge.");
+        }
+
+        private static Dictionary<string, string> ReadBridgeOutput(string outputFile)
+        {
+            if (!File.Exists(outputFile))
+            {
+                throw new InvalidOperationException("Fingerprint bridge did not return an output file.");
+            }
+
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var line in ReadAllLinesShared(outputFile))
+            {
+                var separator = line.IndexOf('=');
+                if (separator <= 0)
+                {
+                    continue;
+                }
+
+                var key = line[..separator].Trim();
+                var value = line[(separator + 1)..].Trim();
+                if (!string.IsNullOrWhiteSpace(key))
+                {
+                    map[key] = value;
+                }
+            }
+
+            return map;
+        }
+
+        private static IReadOnlyList<string> ReadAllLinesShared(string path)
+        {
+            using var stream = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite);
+            using var reader = new StreamReader(stream);
+            var lines = new List<string>();
+            while (!reader.EndOfStream)
+            {
+                lines.Add(reader.ReadLine() ?? string.Empty);
+            }
+
+            return lines;
+        }
+
+        private static Dictionary<string, string>? TryReadBridgeOutput(string outputFile)
+        {
+            try
+            {
+                return File.Exists(outputFile) ? ReadBridgeOutput(outputFile) : null;
+            }
+            catch (IOException)
+            {
+                return null;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return null;
+            }
+        }
+
+        private static string GetRequiredBridgeValue(IReadOnlyDictionary<string, string> data, string key)
+        {
+            if (data.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
+
+            throw new InvalidOperationException($"Fingerprint bridge output is missing '{key}'.");
+        }
+
+        private static string? GetOptionalBridgeValue(IReadOnlyDictionary<string, string> data, string key)
+            => data.TryGetValue(key, out var value) ? value : null;
+
+        private static void TryDeleteFile(string path)
+        {
+            try
+            {
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+            }
+            catch
+            {
+            }
         }
 
         private static SdkContext EnsureSdkContext()
@@ -261,14 +561,14 @@ namespace HRMS.Model
         private static IEnumerable<object> GetReaders(SdkContext context)
         {
             var getReadersMethod = context.ReaderCollectionType.GetMethod("GetReaders", BindingFlags.Public | BindingFlags.Static);
-            object? collection = getReadersMethod?.Invoke(null, null);
+            object? collection = InvokeWithSdkErrorTranslation(() => getReadersMethod?.Invoke(null, null));
 
             if (collection == null)
             {
                 var readerCollection = Activator.CreateInstance(context.ReaderCollectionType);
-                collection = context.ReaderCollectionType
+                collection = InvokeWithSdkErrorTranslation(() => context.ReaderCollectionType
                     .GetMethod("GetReaders", BindingFlags.Public | BindingFlags.Instance)
-                    ?.Invoke(readerCollection, null);
+                    ?.Invoke(readerCollection, null));
             }
 
             if (collection is IEnumerable enumerable)
@@ -350,7 +650,7 @@ namespace HRMS.Model
         private static object InvokeReaderCapture(MethodInfo method, object reader, SdkContext context, int timeoutMs)
         {
             var args = BuildCaptureArguments(method, context, reader, timeoutMs);
-            var result = method.Invoke(reader, args);
+            var result = InvokeWithSdkErrorTranslation(() => method.Invoke(reader, args));
 
             if (result is Task task)
             {
@@ -805,7 +1105,59 @@ namespace HRMS.Model
                 .FirstOrDefault(x => string.Equals(x.Name, methodName, StringComparison.OrdinalIgnoreCase) &&
                                      x.GetParameters().Length == args.Length);
 
-            method?.Invoke(target, args);
+            InvokeWithSdkErrorTranslation(() =>
+            {
+                method?.Invoke(target, args);
+                return null;
+            });
+        }
+
+        private static object? InvokeWithSdkErrorTranslation(Func<object?> action)
+        {
+            try
+            {
+                return action();
+            }
+            catch (TargetInvocationException ex) when (TryTranslateSdkException(ex.InnerException, out var translated))
+            {
+                throw translated;
+            }
+            catch (DllNotFoundException ex) when (TryTranslateSdkException(ex, out var translated))
+            {
+                throw translated;
+            }
+            catch (BadImageFormatException ex) when (TryTranslateSdkException(ex, out var translated))
+            {
+                throw translated;
+            }
+        }
+
+        private static bool TryTranslateSdkException(Exception? ex, out InvalidOperationException translated)
+        {
+            translated = null!;
+            if (ex == null)
+            {
+                return false;
+            }
+
+            var message = ex.Message ?? string.Empty;
+            if (ex is DllNotFoundException && message.Contains("dpfpdd.dll", StringComparison.OrdinalIgnoreCase))
+            {
+                translated = new InvalidOperationException(
+                    "Fingerprint capture runtime is incomplete on this PC. The native DigitalPersona file dpfpdd.dll is missing. Install the full U.are.U / DigitalPersona capture runtime, not only the .NET DLLs.",
+                    ex);
+                return true;
+            }
+
+            if (ex is BadImageFormatException)
+            {
+                translated = new InvalidOperationException(
+                    "Fingerprint runtime architecture mismatch. The installed DigitalPersona native files do not match the running HRMS process architecture.",
+                    ex);
+                return true;
+            }
+
+            return false;
         }
 
         private static object? GetDefaultValue(Type type)

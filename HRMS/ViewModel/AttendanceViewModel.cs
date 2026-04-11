@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 
@@ -59,10 +60,11 @@ namespace HRMS.ViewModel
         private string _biometricHardwareStatusTitle = "No connected fingerprint reader";
         private string _biometricHardwareStatusText = "HRMS has not detected a supported fingerprint reader on this PC yet.";
         private string _biometricHardwareGuidanceText = "Plug in the U.are.U 4500 reader and click Detect Reader.";
+        private string _biometricHardwareDiagnosticText = string.Empty;
         private Brush _biometricHardwareStatusBrush = ErrorBrush;
         private bool _hasConnectedBiometricReaders;
         private string _enrollmentFlowSubtitle = "Connect the HID DigitalPersona reader before starting employee enrollment.";
-        private BiometricHardwareProbeResult _lastBiometricHardwareProbe = new(Array.Empty<ConnectedBiometricReaderInfo>(), 0, false);
+        private BiometricHardwareProbeResult _lastBiometricHardwareProbe = new(Array.Empty<ConnectedBiometricReaderInfo>(), 0, false, string.Empty);
 
         private string _newShiftName = string.Empty;
         private string _newShiftStart = "07:00";
@@ -240,6 +242,7 @@ namespace HRMS.ViewModel
         public string BiometricHardwareStatusTitle { get => _biometricHardwareStatusTitle; private set { if (_biometricHardwareStatusTitle != value) { _biometricHardwareStatusTitle = value; OnPropertyChanged(); } } }
         public string BiometricHardwareStatusText { get => _biometricHardwareStatusText; private set { if (_biometricHardwareStatusText != value) { _biometricHardwareStatusText = value; OnPropertyChanged(); } } }
         public string BiometricHardwareGuidanceText { get => _biometricHardwareGuidanceText; private set { if (_biometricHardwareGuidanceText != value) { _biometricHardwareGuidanceText = value; OnPropertyChanged(); } } }
+        public string BiometricHardwareDiagnosticText { get => _biometricHardwareDiagnosticText; private set { if (_biometricHardwareDiagnosticText != value) { _biometricHardwareDiagnosticText = value; OnPropertyChanged(); } } }
         public Brush BiometricHardwareStatusBrush { get => _biometricHardwareStatusBrush; private set { if (!Equals(_biometricHardwareStatusBrush, value)) { _biometricHardwareStatusBrush = value; OnPropertyChanged(); } } }
         public bool HasConnectedBiometricReaders { get => _hasConnectedBiometricReaders; private set { if (_hasConnectedBiometricReaders != value) { _hasConnectedBiometricReaders = value; OnPropertyChanged(); OnPropertyChanged(nameof(CanRegisterConnectedReaders)); } } }
         public bool CanRegisterConnectedReaders => IsAdminOrHrMode && HasConnectedBiometricReaders;
@@ -1188,7 +1191,17 @@ namespace HRMS.ViewModel
 
                 if (!probe.HasConnectedReaders)
                 {
-                    SetMessage("No connected fingerprint reader was detected.", ErrorBrush);
+                    var registeredActiveDevice = BiometricDevices.FirstOrDefault(x => x.IsActive);
+                    if (registeredActiveDevice != null)
+                    {
+                        SetMessage(
+                            $"Live reader probe returned zero devices, but {registeredActiveDevice.DeviceName} is already registered and active in HRMS.",
+                            WarningBrush);
+                    }
+                    else
+                    {
+                        SetMessage($"No connected fingerprint reader was detected. {probe.DiagnosticText}", ErrorBrush);
+                    }
                     return;
                 }
 
@@ -1373,20 +1386,36 @@ namespace HRMS.ViewModel
             var probe = await _biometricHardwareService.ProbeAsync();
             ApplyBiometricHardwareProbe(probe, autoPopulateDeviceDraft: false);
 
+            var registeredActiveDevice = BiometricDevices.FirstOrDefault(x => x.IsActive);
+            var readerName = probe.HasConnectedReaders
+                ? probe.Readers[0].DeviceName
+                : registeredActiveDevice?.DeviceName ?? "Fingerprint Reader";
+            var readerDetail = probe.HasConnectedReaders
+                ? probe.Readers[0].DetailText
+                : registeredActiveDevice is null
+                    ? "No connected fingerprint reader detected."
+                    : $"{registeredActiveDevice.DeviceName} | {registeredActiveDevice.Location}";
+
             if (!probe.HasConnectedReaders)
             {
-                EnrollmentResultText = "No connected fingerprint reader detected.";
-                AddEnrollmentAudit("Capture blocked: no supported fingerprint reader is connected.");
-                SetMessage("No connected fingerprint reader detected.", ErrorBrush);
-                return;
+                if (registeredActiveDevice == null)
+                {
+                    EnrollmentResultText = "No connected fingerprint reader detected.";
+                    AddEnrollmentAudit("Capture blocked: no supported fingerprint reader is connected.");
+                    SetMessage("No connected fingerprint reader detected.", ErrorBrush);
+                    return;
+                }
+
+                EnrollmentQualityResult = registeredActiveDevice.DeviceName;
+                EnrollmentResultText = "Using the active registered fingerprint device in HRMS even though the live probe returned zero readers.";
+                AddEnrollmentAudit($"Live hardware probe returned zero readers. Continuing with active registered device {registeredActiveDevice.DeviceName}.");
             }
 
-            var reader = probe.Readers[0];
             if (!probe.HasDigitalPersonaSdkRuntime)
             {
-                EnrollmentQualityResult = reader.DetailText;
+                EnrollmentQualityResult = readerDetail;
                 EnrollmentResultText = "Reader detected, but the HID DigitalPersona SDK/runtime is not installed on this PC. HRMS cannot capture fingerprints yet.";
-                AddEnrollmentAudit($"Capture blocked: reader detected ({reader.DeviceName}) but DigitalPersona SDK/runtime files were not found.");
+                AddEnrollmentAudit($"Capture blocked: reader detected ({readerName}) but DigitalPersona SDK/runtime files were not found.");
                 SetMessage("Reader detected, but fingerprint capture runtime is not installed.", ErrorBrush);
                 return;
             }
@@ -1394,28 +1423,60 @@ namespace HRMS.ViewModel
             try
             {
                 EnrollmentInstructionText = "Place the employee finger on the reader now.";
-                EnrollmentProgressText = "Waiting for scan";
-                EnrollmentQualityResult = reader.DetailText;
-                EnrollmentResultText = "Waiting for a clear fingerprint capture...";
-                AddEnrollmentAudit($"Capture started on {reader.DeviceName}.");
+                EnrollmentProgressText = "Scan 0 of 1";
+                EnrollmentQualityResult = readerDetail;
+                EnrollmentResultText = "Waiting for one clear fingerprint scan...";
+                AddEnrollmentAudit($"Capture started on {readerName}.");
                 SetMessage("Waiting for biometric enrollment scan...", InfoBrush);
 
-                var capture = await _digitalPersonaRuntimeService.CaptureTemplateAsync();
+                var lastLoggedProgressMessage = string.Empty;
+                var capture = await _digitalPersonaRuntimeService.CaptureTemplateAsync(progress =>
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        var completed = Math.Max(0, progress.CompletedSamples);
+                        var target = Math.Max(1, progress.TargetSamples);
+                        EnrollmentProgressText = $"Scan {Math.Min(completed, target)} of {target}";
+                        EnrollmentQualityResult = string.IsNullOrWhiteSpace(progress.ReaderDetail)
+                            ? readerDetail
+                            : progress.ReaderDetail;
+
+                        if (completed < target)
+                        {
+                            EnrollmentInstructionText = "Place the employee finger on the reader now.";
+                            EnrollmentResultText = progress.Message;
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(progress.Message) &&
+                            !string.Equals(lastLoggedProgressMessage, progress.Message, StringComparison.Ordinal))
+                        {
+                            lastLoggedProgressMessage = progress.Message;
+                            AddEnrollmentAudit(progress.Message);
+                        }
+                    });
+                });
                 _pendingEnrollmentTemplateData = capture.TemplateData;
                 _pendingEnrollmentTemplateFormat = capture.TemplateFormat;
                 _pendingEnrollmentTemplateEncoding = capture.TemplateEncoding;
                 _pendingEnrollmentTemplateQuality = capture.QualityScore;
-                _enrollmentCaptureCompleted = 3;
+                _enrollmentCaptureCompleted = 1;
                 OnPropertyChanged(nameof(IsEnrollmentReadyToSave));
 
                 EnrollmentInstructionText = "Fingerprint captured. Review the details, then click Complete Enrollment.";
-                EnrollmentProgressText = "Template ready";
+                EnrollmentProgressText = "Scan 1 of 1";
                 EnrollmentQualityResult = capture.QualityScore.HasValue
                     ? $"Quality score: {capture.QualityScore.Value}"
                     : capture.ReaderDetail;
-                EnrollmentResultText = "Fingerprint template captured successfully.";
+                EnrollmentResultText = "Fingerprint capture complete. Click Complete Enrollment to save it.";
                 AddEnrollmentAudit($"Fingerprint template captured from {capture.ReaderName}.");
                 SetMessage("Fingerprint captured. Complete the enrollment to save it.", SuccessBrush);
+            }
+            catch (OperationCanceledException ex)
+            {
+                EnrollmentProgressText = "Capture cancelled";
+                EnrollmentResultText = ex.Message;
+                AddEnrollmentAudit(ex.Message);
+                SetMessage(ex.Message, WarningBrush);
             }
             catch (Exception ex)
             {
@@ -1445,7 +1506,7 @@ namespace HRMS.ViewModel
                 return;
             }
 
-            if (_enrollmentCaptureCompleted < 3)
+            if (_enrollmentCaptureCompleted < 1)
             {
                 SetMessage("Capture a fingerprint first before saving enrollment.", ErrorBrush);
                 return;
@@ -1530,7 +1591,9 @@ namespace HRMS.ViewModel
 
         private void ApplyBiometricHardwareProbe(BiometricHardwareProbeResult probe, bool autoPopulateDeviceDraft)
         {
-            _lastBiometricHardwareProbe = probe ?? new BiometricHardwareProbeResult(Array.Empty<ConnectedBiometricReaderInfo>(), 0, false);
+            _lastBiometricHardwareProbe = probe ?? new BiometricHardwareProbeResult(Array.Empty<ConnectedBiometricReaderInfo>(), 0, false, string.Empty);
+            var registeredActiveDevice = BiometricDevices.FirstOrDefault(x => x.IsActive);
+            var hasRegisteredActiveDevice = registeredActiveDevice is not null;
 
             ConnectedBiometricReaders.Clear();
             foreach (var reader in _lastBiometricHardwareProbe.Readers)
@@ -1539,15 +1602,37 @@ namespace HRMS.ViewModel
             }
 
             HasConnectedBiometricReaders = _lastBiometricHardwareProbe.HasConnectedReaders;
-            BiometricHardwareStatusTitle = _lastBiometricHardwareProbe.StatusTitle;
-            BiometricHardwareStatusText = _lastBiometricHardwareProbe.StatusText;
-            BiometricHardwareGuidanceText = _lastBiometricHardwareProbe.GuidanceText;
-            BiometricHardwareStatusBrush = !_lastBiometricHardwareProbe.HasConnectedReaders
+            if (_lastBiometricHardwareProbe.HasConnectedReaders)
+            {
+                BiometricHardwareStatusTitle = _lastBiometricHardwareProbe.StatusTitle;
+                BiometricHardwareStatusText = _lastBiometricHardwareProbe.StatusText;
+                BiometricHardwareGuidanceText = _lastBiometricHardwareProbe.GuidanceText;
+            }
+            else if (hasRegisteredActiveDevice)
+            {
+                BiometricHardwareStatusTitle = "Registered fingerprint reader";
+                BiometricHardwareStatusText = $"{registeredActiveDevice!.DeviceName} is already registered in HRMS and marked active.";
+                BiometricHardwareGuidanceText = "You can use the registered device for enrollments and attendance scanning. Use Detect Reader only to refresh the live hardware probe.";
+            }
+            else
+            {
+                BiometricHardwareStatusTitle = _lastBiometricHardwareProbe.StatusTitle;
+                BiometricHardwareStatusText = _lastBiometricHardwareProbe.StatusText;
+                BiometricHardwareGuidanceText = _lastBiometricHardwareProbe.GuidanceText;
+            }
+
+            BiometricHardwareDiagnosticText = _lastBiometricHardwareProbe.DiagnosticText;
+            BiometricHardwareStatusBrush = (!_lastBiometricHardwareProbe.HasConnectedReaders && !hasRegisteredActiveDevice)
                 ? ErrorBrush
-                : _lastBiometricHardwareProbe.HasDigitalPersonaSdkRuntime || _lastBiometricHardwareProbe.IsWbfReady
+                : _lastBiometricHardwareProbe.HasConnectedReaders &&
+                  (_lastBiometricHardwareProbe.HasDigitalPersonaSdkRuntime || _lastBiometricHardwareProbe.IsWbfReady)
                     ? SuccessBrush
-                    : WarningBrush;
-            EnrollmentFlowSubtitle = _lastBiometricHardwareProbe.GuidanceText;
+                    : hasRegisteredActiveDevice
+                        ? SuccessBrush
+                        : WarningBrush;
+            EnrollmentFlowSubtitle = hasRegisteredActiveDevice && !_lastBiometricHardwareProbe.HasConnectedReaders
+                ? "Registered biometric device is available in HRMS."
+                : _lastBiometricHardwareProbe.GuidanceText;
 
             if (autoPopulateDeviceDraft && _lastBiometricHardwareProbe.Readers.Count > 0)
             {
@@ -1579,12 +1664,24 @@ namespace HRMS.ViewModel
                 return;
             }
 
+            var registeredActiveDevice = BiometricDevices.FirstOrDefault(x => x.IsActive);
+
             if (!probe.HasConnectedReaders)
             {
-                EnrollmentInstructionText = "Connect the HID DigitalPersona U.are.U 4500 reader before attempting enrollment.";
-                EnrollmentProgressText = "Capture unavailable";
-                EnrollmentQualityResult = "No connected fingerprint reader detected.";
-                EnrollmentResultText = "Device capture is unavailable until a supported reader is connected.";
+                if (registeredActiveDevice != null)
+                {
+                    EnrollmentInstructionText = "Use the active registered fingerprint reader for enrollment.";
+                    EnrollmentProgressText = "Ready to capture";
+                    EnrollmentQualityResult = registeredActiveDevice.DeviceName;
+                    EnrollmentResultText = "Registered fingerprint reader is available in HRMS. Click Capture Fingerprint, then scan one clear fingerprint.";
+                }
+                else
+                {
+                    EnrollmentInstructionText = "Connect the HID DigitalPersona U.are.U 4500 reader before attempting enrollment.";
+                    EnrollmentProgressText = "Capture unavailable";
+                    EnrollmentQualityResult = "No connected fingerprint reader detected.";
+                    EnrollmentResultText = "Device capture is unavailable until a supported reader is connected.";
+                }
                 return;
             }
 
@@ -1601,7 +1698,7 @@ namespace HRMS.ViewModel
             EnrollmentInstructionText = "Reader and DigitalPersona runtime are ready. Capture one clear fingerprint, then save the enrollment.";
             EnrollmentProgressText = "Ready to capture";
             EnrollmentQualityResult = reader.DetailText;
-            EnrollmentResultText = "The fingerprint reader is ready for employee enrollment.";
+            EnrollmentResultText = "The fingerprint reader is ready. Click Capture Fingerprint, then scan one clear fingerprint.";
         }
 
         private void ResetEnrollmentCaptureState(bool clearAuditLogs)

@@ -139,11 +139,21 @@ namespace HRMS.ViewModel
 
         private void ApplyLiveScannerHardwareState(BiometricHardwareProbeResult probe)
         {
+            var registeredActiveDevice = BiometricDevices.FirstOrDefault(x => x.IsActive);
             if (!probe.HasConnectedReaders)
             {
-                LiveScannerTitle = "No connected scanner";
-                LiveScannerStatusText = "Plug in the U.are.U 4500 reader to start live attendance logging.";
-                LiveScannerBrush = ErrorBrush;
+                if (registeredActiveDevice != null)
+                {
+                    LiveScannerTitle = "Registered scanner ready";
+                    LiveScannerStatusText = $"{registeredActiveDevice.DeviceName} is active in HRMS. You can use it for enrollment and attendance scanning.";
+                    LiveScannerBrush = SuccessBrush;
+                }
+                else
+                {
+                    LiveScannerTitle = "No connected scanner";
+                    LiveScannerStatusText = "Plug in the U.are.U 4500 reader to start live attendance logging.";
+                    LiveScannerBrush = ErrorBrush;
+                }
                 return;
             }
 

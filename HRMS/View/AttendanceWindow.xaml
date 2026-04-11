@@ -196,6 +196,17 @@
                                                Foreground="#6E7C8C"
                                                TextWrapping="Wrap"
                                                Text="{Binding BiometricHardwareGuidanceText}" />
+                                    <Border Margin="0,8,0,0"
+                                            Padding="8"
+                                            Background="#F3F6FA"
+                                            BorderBrush="#D8E1EC"
+                                            BorderThickness="1"
+                                            CornerRadius="8">
+                                        <TextBlock Foreground="#617386"
+                                                   FontSize="11"
+                                                   TextWrapping="Wrap"
+                                                   Text="{Binding BiometricHardwareDiagnosticText}" />
+                                    </Border>
 
                                     <ItemsControl Margin="0,8,0,0"
                                                   ItemsSource="{Binding ConnectedBiometricReaders}"
@@ -485,7 +496,7 @@
                                             Margin="8,0,0,0"
                                             MinWidth="140"
                                             Command="{Binding CaptureEnrollmentCommand}"
-                                            Content="Capture Finger" />
+                                            Content="Capture Fingerprint" />
                                     <Button Grid.Row="1" Grid.Column="4"
                                             Style="{StaticResource SmallButtonStyle}"
                                             Margin="8,0,0,0"

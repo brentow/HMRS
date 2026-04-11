@@ -1,0 +1,15 @@
+# Brevo OTP settings for login-page database setup protection.
+# Use either these file values or the matching HRMS_BREVO_* environment variables.
+# SenderEmail must be a verified Brevo sender.
+# RecipientEmail is optional and only used as the default email prefilled in the OTP window.
+
+ApiKey=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
+SenderName=HRMS Security
+SenderEmail=nuggetbrent6@gmail.com
+RecipientName=HRMS Administrator
+RecipientEmail=nuggetbrent6@gmail.com
+OtpLength=6
+OtpTtlMinutes=5
+AccessWindowMinutes=10
+ResendCooldownSeconds=45
+SandboxMode=false
