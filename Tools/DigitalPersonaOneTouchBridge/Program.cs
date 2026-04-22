@@ -496,10 +496,9 @@ namespace DigitalPersonaOneTouchBridge
         private readonly System.Windows.Forms.Timer _timeoutTimer;
         private readonly Label _statusLabel;
         private readonly Label _instructionLabel;
+        private readonly Label _requirementLabel;
         private readonly Label _statusCaptionLabel;
         private readonly Panel _statusPanel;
-        private readonly Button _primaryButton;
-        private System.EventHandler? _primaryButtonHandler;
         private Capture? _capturer;
         private bool _completed;
         private string _selectedReaderSerialNumber = string.Empty;
@@ -511,8 +510,8 @@ namespace DigitalPersonaOneTouchBridge
             Text = "HRMS Fingerprint Capture";
             ShowInTaskbar = true;
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(520, 248);
-            MinimumSize = new Size(520, 248);
+            ClientSize = new Size(520, 244);
+            MinimumSize = new Size(520, 244);
             MaximizeBox = false;
             MinimizeBox = false;
             TopMost = true;
@@ -555,18 +554,29 @@ namespace DigitalPersonaOneTouchBridge
                 Text = "Place one finger flat on the scanner and hold it steady until capture completes."
             };
 
+            _requirementLabel = new Label
+            {
+                AutoSize = false,
+                Location = new Point(20, 112),
+                Size = new Size(480, 18),
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(90, 108, 128),
+                Text = string.Empty,
+                Visible = false
+            };
+
             _statusPanel = new Panel
             {
-                Location = new Point(20, 118),
-                Size = new Size(480, 42),
-                BackColor = Color.FromArgb(237, 244, 255),
+                Location = new Point(20, 138),
+                Size = new Size(480, 48),
+                BackColor = Color.FromArgb(247, 250, 253),
                 BorderStyle = BorderStyle.FixedSingle
             };
 
             _statusCaptionLabel = new Label
             {
                 AutoSize = true,
-                Location = new Point(12, 12),
+                Location = new Point(18, 15),
                 Font = new Font("Segoe UI", 8F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(90, 108, 128),
                 Text = "STATUS"
@@ -575,35 +585,23 @@ namespace DigitalPersonaOneTouchBridge
             _statusLabel = new Label
             {
                 AutoSize = false,
-                Location = new Point(80, 10),
-                Size = new Size(384, 22),
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(24, 119, 242),
+                Location = new Point(110, 10),
+                Size = new Size(352, 24),
+                Font = new Font("Segoe UI", 9.25F, FontStyle.Regular),
+                ForeColor = Color.FromArgb(28, 52, 84),
+                TextAlign = ContentAlignment.MiddleLeft,
                 Text = "Initializing fingerprint capture..."
             };
 
             var footerLabel = new Label
             {
                 AutoSize = false,
-                Location = new Point(20, 166),
-                Size = new Size(300, 16),
+                Location = new Point(20, 192),
+                Size = new Size(480, 16),
                 Font = new Font("Segoe UI", 8F),
                 ForeColor = Color.FromArgb(112, 128, 144),
                 Text = "Tip: use one clear finger press and keep it steady for a moment."
             };
-
-            _primaryButton = new Button
-            {
-                Location = new Point(332, 192),
-                Size = new Size(168, 32),
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(46, 157, 91),
-                ForeColor = Color.White,
-                Text = "Complete Enrollment",
-                Enabled = false,
-                Visible = true
-            };
-            _primaryButton.FlatAppearance.BorderSize = 0;
 
             headerPanel.Controls.Add(titleLabel);
             headerPanel.Controls.Add(subTitleLabel);
@@ -612,9 +610,9 @@ namespace DigitalPersonaOneTouchBridge
 
             Controls.Add(headerPanel);
             Controls.Add(_instructionLabel);
+            Controls.Add(_requirementLabel);
             Controls.Add(_statusPanel);
             Controls.Add(footerLabel);
-            Controls.Add(_primaryButton);
 
             ApplyStatusStyle("Initializing fingerprint capture...");
             _timeoutTimer = new System.Windows.Forms.Timer { Interval = Math.Max(1000, timeoutMs) };
@@ -744,28 +742,16 @@ namespace DigitalPersonaOneTouchBridge
             ApplyStatusStyle(message);
         }
 
-        protected void SetPrimaryAction(string text, bool visible, bool enabled, System.EventHandler? handler)
+        protected void SetRequirementText(string text)
         {
             if (InvokeRequired)
             {
-                BeginInvoke(new Action(() => SetPrimaryAction(text, visible, enabled, handler)));
+                BeginInvoke(new Action(() => SetRequirementText(text)));
                 return;
             }
 
-            if (_primaryButtonHandler != null)
-            {
-                _primaryButton.Click -= _primaryButtonHandler;
-            }
-
-            _primaryButton.Text = text;
-            _primaryButton.Visible = visible;
-            _primaryButton.Enabled = enabled;
-            _primaryButtonHandler = handler ?? PrimaryButtonNoOp;
-            _primaryButton.Click += _primaryButtonHandler;
-        }
-
-        private void PrimaryButtonNoOp(object? sender, EventArgs e)
-        {
+            _requirementLabel.Text = text ?? string.Empty;
+            _requirementLabel.Visible = !string.IsNullOrWhiteSpace(_requirementLabel.Text);
         }
 
         private void ApplyStatusStyle(string message)
@@ -776,7 +762,7 @@ namespace DigitalPersonaOneTouchBridge
                 text.IndexOf("ready", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 text.IndexOf("captured", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                _statusPanel.BackColor = Color.FromArgb(235, 248, 239);
+                _statusPanel.BackColor = Color.FromArgb(236, 247, 239);
                 _statusLabel.ForeColor = Color.FromArgb(34, 120, 72);
                 return;
             }
@@ -787,13 +773,13 @@ namespace DigitalPersonaOneTouchBridge
                 text.IndexOf("disconnected", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 text.IndexOf("cancel", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                _statusPanel.BackColor = Color.FromArgb(255, 243, 243);
+                _statusPanel.BackColor = Color.FromArgb(255, 244, 244);
                 _statusLabel.ForeColor = Color.FromArgb(198, 63, 63);
                 return;
             }
 
-            _statusPanel.BackColor = Color.FromArgb(237, 244, 255);
-            _statusLabel.ForeColor = Color.FromArgb(24, 119, 242);
+            _statusPanel.BackColor = Color.FromArgb(247, 250, 253);
+            _statusLabel.ForeColor = Color.FromArgb(28, 52, 84);
         }
 
         private static string ResolveFirstReaderSerialNumber()
@@ -891,8 +877,7 @@ namespace DigitalPersonaOneTouchBridge
         private string _readerSerialNumber = string.Empty;
         private int? _qualityScore;
         private int _successfulCaptureCount;
-        private string[]? _pendingSuccessLines;
-        private const int TargetCaptureCount = 1;
+        private const int TargetCaptureCount = 4;
 
         public CaptureTemplateForm(string outputPath, int timeoutMs)
             : base(outputPath, timeoutMs)
@@ -901,9 +886,9 @@ namespace DigitalPersonaOneTouchBridge
 
         protected override void OnCaptureStarted()
         {
-            SetPrimaryAction("Complete Enrollment", visible: true, enabled: false, handler: null);
-            UpdateWindowStatus("Waiting for one clear fingerprint scan...");
-            WriteProgress("Waiting for one clear fingerprint scan...", _successfulCaptureCount);
+            SetRequirementText($"Required scans: {TargetCaptureCount} clear fingerprint scans");
+            UpdateWindowStatus(BuildRemainingMessage("Waiting for the first clear fingerprint scan."));
+            WriteProgress(BuildRemainingMessage("Waiting for the first clear fingerprint scan."), _successfulCaptureCount);
         }
 
         protected override void HandleSample(string readerSerialNumber, Sample sample)
@@ -922,13 +907,21 @@ namespace DigitalPersonaOneTouchBridge
             {
                 _enrollment.AddFeatures(features);
                 _successfulCaptureCount++;
-                WriteProgress(
-                    "Fingerprint captured successfully.",
-                    Math.Min(_successfulCaptureCount, TargetCaptureCount));
             }
             catch (Exception ex)
             {
                 CompleteError($"Unable to add fingerprint features: {ex.Message}");
+                return;
+            }
+
+            var capturedCount = Math.Min(_successfulCaptureCount, TargetCaptureCount);
+            SetRequirementText($"Required scans completed: {capturedCount} of {TargetCaptureCount}");
+
+            if (capturedCount < TargetCaptureCount)
+            {
+                var remainingMessage = BuildRemainingMessage($"Scan {capturedCount} captured successfully.");
+                UpdateWindowStatus(remainingMessage);
+                WriteProgress(remainingMessage, capturedCount);
                 return;
             }
 
@@ -937,10 +930,11 @@ namespace DigitalPersonaOneTouchBridge
                 case Enrollment.Status.Ready:
                     using (var stream = new MemoryStream())
                     {
-                        StopCaptureForReview();
+                        StopTimeout();
+                        StopCapture();
                         _enrollment.Template.Serialize(stream);
-                        _pendingSuccessLines =
-                        [
+                        CompleteSuccess(new[]
+                        {
                             "status=ok",
                             $"reader={Escape(_readerSerialNumber)}",
                             $"detail={Escape(_readerSerialNumber)}",
@@ -948,17 +942,19 @@ namespace DigitalPersonaOneTouchBridge
                             "format=DPFP.Template",
                             "encoding=Base64",
                             $"template={Convert.ToBase64String(stream.ToArray())}"
-                        ];
-
-                        UpdateWindowStatus("Fingerprint captured successfully. Click Complete Enrollment.");
-                        WriteProgress("Fingerprint captured successfully. Click Complete Enrollment.", TargetCaptureCount);
-                        SetPrimaryAction("Complete Enrollment", visible: true, enabled: true, handler: ConfirmEnrollment);
+                        });
                     }
                     break;
 
                 case Enrollment.Status.Failed:
                     _enrollment.Clear();
                     CompleteError("Fingerprint enrollment failed. Try scanning the same finger again.");
+                    break;
+
+                default:
+                    var templatePendingMessage = BuildRemainingMessage($"Scan {capturedCount} captured successfully.");
+                    UpdateWindowStatus(templatePendingMessage);
+                    WriteProgress(templatePendingMessage, capturedCount);
                     break;
             }
         }
@@ -976,30 +972,12 @@ namespace DigitalPersonaOneTouchBridge
             });
         }
 
-        private void StopCaptureForReview()
-        {
-            StopTimeout();
-            StopCapture();
-            SetPrimaryAction("Complete Enrollment", visible: true, enabled: true, handler: ConfirmEnrollment);
-        }
-
-        private void ConfirmEnrollment(object? sender, EventArgs e)
-        {
-            if (_pendingSuccessLines == null)
-            {
-                CompleteError("No captured fingerprint is ready to save.");
-                return;
-            }
-
-            CompleteSuccess(_pendingSuccessLines);
-        }
-
         protected override void HandleFingerTouch(string readerSerialNumber)
         {
             _readerSerialNumber = readerSerialNumber ?? _readerSerialNumber;
-            UpdateWindowStatus("Finger detected. Hold steady for capture.");
+            UpdateWindowStatus(BuildRemainingMessage("Finger detected. Hold steady for capture."));
                 WriteProgress(
-                    "Finger detected. Hold steady for capture.",
+                    BuildRemainingMessage("Finger detected. Hold steady for capture."),
                     _successfulCaptureCount);
         }
 
@@ -1008,9 +986,9 @@ namespace DigitalPersonaOneTouchBridge
             _readerSerialNumber = readerSerialNumber ?? _readerSerialNumber;
             if (_successfulCaptureCount < TargetCaptureCount)
             {
-                UpdateWindowStatus("Finger removed before capture completed. Place the finger again.");
+                UpdateWindowStatus(BuildRemainingMessage("Finger removed before capture completed. Place the finger again."));
                 WriteProgress(
-                    "Finger removed before capture completed. Place the finger again.",
+                    BuildRemainingMessage("Finger removed before capture completed. Place the finger again."),
                     _successfulCaptureCount);
             }
         }
@@ -1018,8 +996,8 @@ namespace DigitalPersonaOneTouchBridge
         protected override void HandleReaderConnect(string readerSerialNumber)
         {
             _readerSerialNumber = readerSerialNumber ?? _readerSerialNumber;
-            UpdateWindowStatus("Fingerprint reader connected and ready.");
-            WriteProgress("Fingerprint reader connected and ready.", _successfulCaptureCount);
+            UpdateWindowStatus(BuildRemainingMessage("Fingerprint reader connected and ready."));
+            WriteProgress(BuildRemainingMessage("Fingerprint reader connected and ready."), _successfulCaptureCount);
         }
 
         protected override void HandleReaderDisconnect(string readerSerialNumber)
@@ -1034,18 +1012,30 @@ namespace DigitalPersonaOneTouchBridge
             _readerSerialNumber = readerSerialNumber ?? _readerSerialNumber;
             if (captureFeedback == CaptureFeedback.Good)
             {
-                UpdateWindowStatus("Good quality fingerprint detected.");
+                UpdateWindowStatus(BuildRemainingMessage("Good quality fingerprint detected."));
                 WriteProgress(
-                    "Good quality fingerprint detected.",
+                    BuildRemainingMessage("Good quality fingerprint detected."),
                     _successfulCaptureCount);
             }
             else
             {
-                UpdateWindowStatus("Poor sample quality. Reposition the finger and try again.");
+                UpdateWindowStatus(BuildRemainingMessage("Poor sample quality. Reposition the finger and try again."));
                 WriteProgress(
-                    "Poor sample quality. Reposition the finger and try again.",
+                    BuildRemainingMessage("Poor sample quality. Reposition the finger and try again."),
                     _successfulCaptureCount);
             }
+        }
+
+        private string BuildRemainingMessage(string prefix)
+        {
+            var completed = Math.Min(TargetCaptureCount, Math.Max(0, _successfulCaptureCount));
+            var remaining = Math.Max(0, TargetCaptureCount - completed);
+            if (remaining == 0)
+            {
+                return $"{prefix} All {TargetCaptureCount} scans are complete.";
+            }
+
+            return $"{prefix} {completed} done, {remaining} more remaining.";
         }
     }
 

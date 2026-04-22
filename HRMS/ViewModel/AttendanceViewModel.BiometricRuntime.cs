@@ -13,7 +13,7 @@ namespace HRMS.ViewModel
 
         private int? _selectedLivePunchDeviceId;
         private string _liveScannerTitle = "Live attendance scanner";
-        private string _liveScannerStatusText = "Select a registered device, then scan a fingerprint to log attendance.";
+        private string _liveScannerStatusText = "Select a registered device, then scan a fingerprint. HRMS will auto-detect IN or OUT and save it directly to the database.";
         private string _lastLivePunchEmployee = "-";
         private string _lastLivePunchSummary = "No biometric tap has been captured in this session.";
         private Brush _liveScannerBrush = InfoBrush;
@@ -145,7 +145,7 @@ namespace HRMS.ViewModel
                 if (registeredActiveDevice != null)
                 {
                     LiveScannerTitle = "Registered scanner ready";
-                    LiveScannerStatusText = $"{registeredActiveDevice.DeviceName} is active in HRMS. You can use it for enrollment and attendance scanning.";
+                    LiveScannerStatusText = $"{registeredActiveDevice.DeviceName} is active in HRMS. You can use it for enrollment and attendance scanning with automatic IN/OUT logging.";
                     LiveScannerBrush = SuccessBrush;
                 }
                 else
@@ -166,7 +166,7 @@ namespace HRMS.ViewModel
             }
 
             LiveScannerTitle = "Scanner ready";
-            LiveScannerStatusText = "Select the registered device, then click Scan Attendance and place a finger on the reader.";
+            LiveScannerStatusText = "Select the registered device, then click Scan Attendance. HRMS will auto-detect IN or OUT and save it directly to attendance logs.";
             LiveScannerBrush = SuccessBrush;
         }
 
@@ -209,9 +209,9 @@ namespace HRMS.ViewModel
             try
             {
                 LiveScannerTitle = "Waiting for fingerprint";
-                LiveScannerStatusText = "Place a finger on the reader now.";
+                LiveScannerStatusText = "Place a finger on the reader now. HRMS will auto-detect whether this should be IN or OUT.";
                 LiveScannerBrush = InfoBrush;
-                SetMessage("Waiting for biometric fingerprint scan...", InfoBrush);
+                SetMessage("Waiting for biometric fingerprint scan. IN/OUT will be detected automatically.", InfoBrush);
 
                 var match = await _digitalPersonaRuntimeService.IdentifyAsync(
                     gallery.Select(x => new BiometricStoredTemplate(
@@ -250,12 +250,12 @@ namespace HRMS.ViewModel
                 await _dataService.MarkDeviceSyncedNowAsync(SelectedLivePunchDeviceId.Value);
 
                 LastLivePunchEmployee = $"{match.Enrollment.EmployeeNo} - {match.Enrollment.EmployeeName}";
-                LastLivePunchSummary = $"{nextLogType} logged at {punchTime:MMM dd, yyyy hh:mm tt} via {selectedDevice.DeviceName}.";
+                LastLivePunchSummary = $"{nextLogType} logged at {punchTime:MMM dd, yyyy hh:mm tt} via {selectedDevice.DeviceName} and saved to attendance_logs.";
                 await RefreshAsync();
                 LiveScannerTitle = "Attendance logged";
-                LiveScannerStatusText = $"Matched {match.Enrollment.EmployeeName} ({match.Enrollment.BiometricUserId}) with score {match.MatchScore}.";
+                LiveScannerStatusText = $"Matched {match.Enrollment.EmployeeName} ({match.Enrollment.BiometricUserId}). Auto-detected {nextLogType} and saved it to the database.";
                 LiveScannerBrush = SuccessBrush;
-                SetMessage($"Biometric {nextLogType} logged for {match.Enrollment.EmployeeName}.", SuccessBrush);
+                SetMessage($"Biometric {nextLogType} logged for {match.Enrollment.EmployeeName} and saved to the database.", SuccessBrush);
             }
             catch (Exception ex)
             {

@@ -402,7 +402,7 @@ namespace HRMS.ViewModel
         public string EnrollmentProgressText { get => _enrollmentProgressText; private set { if (_enrollmentProgressText != value) { _enrollmentProgressText = value; OnPropertyChanged(); } } }
         public string EnrollmentQualityResult { get => _enrollmentQualityResult; private set { if (_enrollmentQualityResult != value) { _enrollmentQualityResult = value; OnPropertyChanged(); } } }
         public string EnrollmentResultText { get => _enrollmentResultText; private set { if (_enrollmentResultText != value) { _enrollmentResultText = value; OnPropertyChanged(); } } }
-        public bool IsEnrollmentReadyToSave => _enrollmentCaptureCompleted >= 3;
+        public bool IsEnrollmentReadyToSave => _pendingEnrollmentTemplateData != null && _pendingEnrollmentTemplateData.Length > 0;
 
         public string NewShiftName
         {
@@ -1423,19 +1423,21 @@ namespace HRMS.ViewModel
             try
             {
                 EnrollmentInstructionText = "Place the employee finger on the reader now.";
-                EnrollmentProgressText = "Scan 0 of 1";
+                EnrollmentProgressText = "Scan 0 of 4";
                 EnrollmentQualityResult = readerDetail;
-                EnrollmentResultText = "Waiting for one clear fingerprint scan...";
+                EnrollmentResultText = "Waiting for the first clear fingerprint scan. 0 done, 4 more remaining.";
                 AddEnrollmentAudit($"Capture started on {readerName}.");
                 SetMessage("Waiting for biometric enrollment scan...", InfoBrush);
 
                 var lastLoggedProgressMessage = string.Empty;
+                var lastTargetSamples = 4;
                 var capture = await _digitalPersonaRuntimeService.CaptureTemplateAsync(progress =>
                 {
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         var completed = Math.Max(0, progress.CompletedSamples);
                         var target = Math.Max(1, progress.TargetSamples);
+                        lastTargetSamples = target;
                         EnrollmentProgressText = $"Scan {Math.Min(completed, target)} of {target}";
                         EnrollmentQualityResult = string.IsNullOrWhiteSpace(progress.ReaderDetail)
                             ? readerDetail
@@ -1459,17 +1461,17 @@ namespace HRMS.ViewModel
                 _pendingEnrollmentTemplateFormat = capture.TemplateFormat;
                 _pendingEnrollmentTemplateEncoding = capture.TemplateEncoding;
                 _pendingEnrollmentTemplateQuality = capture.QualityScore;
-                _enrollmentCaptureCompleted = 1;
+                _enrollmentCaptureCompleted = lastTargetSamples;
                 OnPropertyChanged(nameof(IsEnrollmentReadyToSave));
 
-                EnrollmentInstructionText = "Fingerprint captured. Review the details, then click Complete Enrollment.";
-                EnrollmentProgressText = "Scan 1 of 1";
+                EnrollmentInstructionText = "Fingerprint captured. Review the details, then click Complete Enrollment in the main window.";
+                EnrollmentProgressText = $"Scan {lastTargetSamples} of {lastTargetSamples}";
                 EnrollmentQualityResult = capture.QualityScore.HasValue
                     ? $"Quality score: {capture.QualityScore.Value}"
                     : capture.ReaderDetail;
-                EnrollmentResultText = "Fingerprint capture complete. Click Complete Enrollment to save it.";
+                EnrollmentResultText = "Fingerprint capture complete. Click Complete Enrollment in the main window to save it to the database.";
                 AddEnrollmentAudit($"Fingerprint template captured from {capture.ReaderName}.");
-                SetMessage("Fingerprint captured. Complete the enrollment to save it.", SuccessBrush);
+                SetMessage("Fingerprint captured. Click Complete Enrollment in the main window to save it.", SuccessBrush);
             }
             catch (OperationCanceledException ex)
             {

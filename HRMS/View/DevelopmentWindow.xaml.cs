@@ -80,6 +80,32 @@ namespace HRMS.View
             RenderReviewStatusChart();
         }
 
+        public void ShowTrainingTab()
+        {
+            if (DevelopmentTabs != null)
+            {
+                DevelopmentTabs.SelectedIndex = 0;
+            }
+
+            if (PerformanceAdminHost != null)
+            {
+                PerformanceAdminHost.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        public void ShowPerformanceTab()
+        {
+            if (DevelopmentTabs != null)
+            {
+                DevelopmentTabs.SelectedIndex = 1;
+            }
+
+            if (PerformanceAdminHost != null)
+            {
+                PerformanceAdminHost.Visibility = Visibility.Collapsed;
+            }
+        }
+
         private async void DevelopmentWindow_Loaded(object sender, RoutedEventArgs e)
         {
             try

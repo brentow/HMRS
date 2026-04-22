@@ -232,7 +232,7 @@
     </UserControl.Resources>
 
     <Grid Background="White" Margin="4">
-        <TabControl Background="White" BorderThickness="0">
+        <TabControl x:Name="DevelopmentTabs" Background="White" BorderThickness="0">
             <TabItem>
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal" Margin="4,2">

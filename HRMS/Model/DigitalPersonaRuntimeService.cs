@@ -168,7 +168,7 @@ namespace HRMS.Model
                     {
                         var signature = string.Join("|",
                             GetOptionalBridgeValue(progressData, "scanCount") ?? "0",
-                            GetOptionalBridgeValue(progressData, "scanTarget") ?? "3",
+                            GetOptionalBridgeValue(progressData, "scanTarget") ?? "4",
                             GetOptionalBridgeValue(progressData, "message") ?? string.Empty);
 
                         if (!string.Equals(signature, lastProgressSignature, StringComparison.Ordinal))
@@ -176,7 +176,7 @@ namespace HRMS.Model
                             lastProgressSignature = signature;
                             progressCallback?.Invoke(new BiometricCaptureProgress(
                                 CompletedSamples: int.TryParse(GetOptionalBridgeValue(progressData, "scanCount"), out var completed) ? completed : 0,
-                                TargetSamples: int.TryParse(GetOptionalBridgeValue(progressData, "scanTarget"), out var target) ? target : 3,
+                                TargetSamples: int.TryParse(GetOptionalBridgeValue(progressData, "scanTarget"), out var target) ? target : 4,
                                 Message: GetOptionalBridgeValue(progressData, "message") ?? "Waiting for fingerprint scan...",
                                 ReaderName: GetOptionalBridgeValue(progressData, "reader") ?? "Fingerprint Reader",
                                 ReaderDetail: GetOptionalBridgeValue(progressData, "detail") ?? "One Touch SDK"));

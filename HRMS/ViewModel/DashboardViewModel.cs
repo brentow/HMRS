@@ -181,6 +181,20 @@ namespace HRMS.ViewModel
             ? "Your attendance, leave, payroll, and development status"
             : "Live HR operations and approval workload";
 
+        public string CurrentUserDisplay =>
+            string.IsNullOrWhiteSpace(_authenticatedUser?.FullName)
+                ? string.IsNullOrWhiteSpace(_authenticatedUser?.Username) ? "System User" : _authenticatedUser!.Username.Trim()
+                : _authenticatedUser!.FullName.Trim();
+
+        public string CurrentRoleDisplay =>
+            string.IsNullOrWhiteSpace(_authenticatedUser?.RoleName)
+                ? "User"
+                : _authenticatedUser!.RoleName.Trim();
+
+        public string TodayDayDisplay => DateTime.Now.ToString("dddd");
+
+        public string TodayDateDisplay => DateTime.Now.ToString("MMMM dd, yyyy");
+
         private bool IsAdminAccess =>
             string.Equals(_authenticatedUser?.RoleName?.Trim(), "Admin", StringComparison.OrdinalIgnoreCase);
 

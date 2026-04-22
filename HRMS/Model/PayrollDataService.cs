@@ -2,6 +2,7 @@ using MySqlConnector;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace HRMS.Model
@@ -98,11 +99,13 @@ namespace HRMS.Model
     {
         private readonly string _connectionString;
         private readonly AuditLogWriter _auditLogWriter;
+        private readonly ConsolidatedTransactionSyncService _consolidatedTransactionSyncService;
 
         public PayrollDataService(string connectionString)
         {
             _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
             _auditLogWriter = new AuditLogWriter(_connectionString);
+            _consolidatedTransactionSyncService = new ConsolidatedTransactionSyncService(GgmsConfig.ConnectionString);
         }
 
         public async Task<PayrollStatsDto> GetStatsAsync(int? employeeId = null)
@@ -957,6 +960,8 @@ WHERE payroll_run_id = @payroll_run_id;";
                 var releasedByEmployeeId = actingUserId.HasValue && actingUserId.Value > 0
                     ? await ResolveEmployeeIdByUserIdAsync(connection, transaction, actingUserId.Value)
                     : null;
+                var consolidatedDetails = await GetConsolidatedReleaseDetailsAsync(connection, transaction, payrollRunId);
+                long payslipReleaseId = 0;
 
                 await using (var insertCommand = new MySqlCommand(insertSql, connection, transaction))
                 {
@@ -964,6 +969,7 @@ WHERE payroll_run_id = @payroll_run_id;";
                     insertCommand.Parameters.AddWithValue("@released_by_employee_id", releasedByEmployeeId.HasValue && releasedByEmployeeId.Value > 0 ? releasedByEmployeeId.Value : DBNull.Value);
                     insertCommand.Parameters.AddWithValue("@remarks", string.IsNullOrWhiteSpace(remarks) ? DBNull.Value : remarks.Trim());
                     await insertCommand.ExecuteNonQueryAsync();
+                    payslipReleaseId = insertCommand.LastInsertedId;
                 }
 
                 await using (var updateCommand = new MySqlCommand(updateStatusSql, connection, transaction))
@@ -991,6 +997,15 @@ WHERE payroll_run_id = @payroll_run_id;";
                     targetId,
                     "SUCCESS",
                     "Payslip released.");
+
+                if (payslipReleaseId > 0 && consolidatedDetails != null)
+                {
+                    _ = Task.Run(() => TryWriteConsolidatedTransactionAsync(
+                        actingUserId,
+                        payrollRunId,
+                        payslipReleaseId,
+                        consolidatedDetails));
+                }
             }
             catch (Exception ex)
             {
@@ -1106,6 +1121,142 @@ SELECT LAST_INSERT_ID();";
                     ex.Message);
                 throw;
             }
+        }
+
+        private async Task TryWriteConsolidatedTransactionAsync(
+            int? actingUserId,
+            long payrollRunId,
+            long payslipReleaseId,
+            ConsolidatedReleaseDetails details)
+        {
+            try
+            {
+                var profileService = new CompanyProfileDataService(_connectionString);
+                var profile = await profileService.GetCompanyProfileAsync();
+
+                var officeCode = ResolveOfficeCode(profile.SerialNumber);
+                var officeName = string.IsNullOrWhiteSpace(profile.CompanyName)
+                    ? "Human Resources Management System"
+                    : profile.CompanyName.Trim();
+
+                var firstName = string.IsNullOrWhiteSpace(details.FirstName) ? "Unknown" : details.FirstName.Trim();
+                var lastName = string.IsNullOrWhiteSpace(details.LastName) ? "Unknown" : details.LastName.Trim();
+                var middleName = string.IsNullOrWhiteSpace(details.MiddleName) ? null : details.MiddleName.Trim();
+                var fullName = BuildFullName(firstName, middleName, lastName);
+
+                var payload = new ConsolidatedTransactionPayload(
+                    BeneficiaryId: Truncate45(string.IsNullOrWhiteSpace(details.EmployeeNo) ? $"EMP-{details.EmployeeId}" : details.EmployeeNo),
+                    CivilRegistryId: null,
+                    ProjectCode: Truncate45($"HRMS-PRL-{payslipReleaseId:D6}"),
+                    OfficeId: Truncate45(officeCode),
+                    FullName: Truncate45(fullName),
+                    FirstName: Truncate45(firstName),
+                    MiddleName: Truncate45OrNull(middleName),
+                    LastName: Truncate45(lastName),
+                    OfficeName: Truncate45(officeName),
+                    TransactionType: "Payroll Release",
+                    Amount: details.NetPay,
+                    TransactionDate: details.PayDate.Date,
+                    Status: "Released");
+
+                await _consolidatedTransactionSyncService.InsertAsync(payload);
+                await _auditLogWriter.TryWriteAsync(
+                    actingUserId,
+                    "CONSOLIDATED_TRANSACTION_INSERT",
+                    "payslip_releases",
+                    payslipReleaseId.ToString(CultureInfo.InvariantCulture),
+                    "SUCCESS",
+                    $"GGMS consolidated transaction inserted for payroll run #{payrollRunId}.");
+            }
+            catch (Exception ex)
+            {
+                await _auditLogWriter.TryWriteAsync(
+                    actingUserId,
+                    "CONSOLIDATED_TRANSACTION_INSERT",
+                    "payslip_releases",
+                    payslipReleaseId.ToString(CultureInfo.InvariantCulture),
+                    "FAILED",
+                    $"Payslip was released but GGMS consolidated insert failed: {ex.Message}");
+            }
+        }
+
+        private static async Task<ConsolidatedReleaseDetails?> GetConsolidatedReleaseDetailsAsync(
+            MySqlConnection connection,
+            MySqlTransaction transaction,
+            long payrollRunId)
+        {
+            const string sql = @"
+SELECT
+    pr.employee_id,
+    COALESCE(e.employee_no, '') AS employee_no,
+    COALESCE(e.first_name, '') AS first_name,
+    e.middle_name,
+    COALESCE(e.last_name, '') AS last_name,
+    COALESCE(pr.net_pay, 0) AS net_pay,
+    COALESCE(pp.pay_date, CURDATE()) AS pay_date
+FROM payroll_runs pr
+INNER JOIN employees e ON e.employee_id = pr.employee_id
+LEFT JOIN payroll_periods pp ON pp.payroll_period_id = pr.payroll_period_id
+WHERE pr.payroll_run_id = @payroll_run_id
+LIMIT 1;";
+
+            await using var command = new MySqlCommand(sql, connection, transaction);
+            command.Parameters.AddWithValue("@payroll_run_id", payrollRunId);
+            await using var reader = await command.ExecuteReaderAsync();
+            if (!await reader.ReadAsync())
+            {
+                return null;
+            }
+
+            return new ConsolidatedReleaseDetails(
+                EmployeeId: ToInt(reader["employee_id"]),
+                EmployeeNo: reader["employee_no"]?.ToString() ?? string.Empty,
+                FirstName: reader["first_name"]?.ToString() ?? string.Empty,
+                MiddleName: reader["middle_name"] == DBNull.Value ? null : reader["middle_name"]?.ToString(),
+                LastName: reader["last_name"]?.ToString() ?? string.Empty,
+                NetPay: ToDecimal(reader["net_pay"]),
+                PayDate: reader["pay_date"] == DBNull.Value
+                    ? DateTime.Today
+                    : Convert.ToDateTime(reader["pay_date"], CultureInfo.InvariantCulture));
+        }
+
+        private static string ResolveOfficeCode(string? serialNumber)
+        {
+            const string fallback = "OFF-2026-0007";
+            if (string.IsNullOrWhiteSpace(serialNumber))
+            {
+                return fallback;
+            }
+
+            var match = Regex.Match(serialNumber, @"OFF-\d{4}-\d{4,}", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            return match.Success ? match.Value.ToUpperInvariant() : fallback;
+        }
+
+        private static string BuildFullName(string firstName, string? middleName, string lastName)
+        {
+            if (string.IsNullOrWhiteSpace(middleName))
+            {
+                return $"{firstName} {lastName}".Trim();
+            }
+
+            return $"{firstName} {middleName.Trim()} {lastName}".Trim();
+        }
+
+        private static string Truncate45(string? value)
+        {
+            var normalized = string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
+            return normalized.Length <= 45 ? normalized : normalized.Substring(0, 45);
+        }
+
+        private static string? Truncate45OrNull(string? value)
+        {
+            var normalized = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+            if (normalized == null)
+            {
+                return null;
+            }
+
+            return normalized.Length <= 45 ? normalized : normalized.Substring(0, 45);
         }
 
         public async Task<IReadOnlyList<PayrollReleaseDto>> GetReleaseLogsAsync(string? search = null, int limit = 500, int? employeeId = null)
@@ -1698,5 +1849,14 @@ VALUES (@payroll_run_id, @item_type, @code, @description, @amount);";
 
         private static bool IsMissingObjectError(MySqlException ex) =>
             ex.Number == 1109 || ex.Number == 1146 || ex.Number == 1356;
+
+        private sealed record ConsolidatedReleaseDetails(
+            int EmployeeId,
+            string EmployeeNo,
+            string FirstName,
+            string? MiddleName,
+            string LastName,
+            decimal NetPay,
+            DateTime PayDate);
     }
 }

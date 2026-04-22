@@ -202,7 +202,7 @@ namespace HRMS.View
                         "Password change is required to proceed. Please try logging in again.",
                         "Password Change Required",
                         MessageBoxButton.OK,
-                        MessageBoxImage.Warning);
+                    MessageBoxImage.Warning);
                     return;
                 }
             }

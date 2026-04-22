@@ -17,11 +17,11 @@ namespace HRMS.View
 {
     public partial class DashboardWindow : Window
     {
-        private bool _navCollapsed = false;
+        private bool _navCollapsed = true;
         private readonly GridLength _expandedWidth = new GridLength(270);
-        private readonly GridLength _collapsedWidth = new GridLength(70);
+        private readonly GridLength _collapsedWidth = new GridLength(0);
         private readonly Thickness _expandedNavMargin = new Thickness(18, 22, 18, 0);
-        private readonly Thickness _collapsedNavMargin = new Thickness(18, 130, 18, 0);
+        private readonly Thickness _collapsedNavMargin = new Thickness(0);
         private readonly DashboardDataService _dashboardDataService = new(DbConfig.ConnectionString);
         private readonly AuthenticatedUser? _authenticatedUser;
         private readonly NotificationsViewModel _notificationsViewModel = new();
@@ -93,6 +93,7 @@ namespace HRMS.View
             vm.PropertyChanged += DashboardViewModel_PropertyChanged;
             Loaded += DashboardWindow_Loaded;
             Unloaded += DashboardWindow_Unloaded;
+            ApplyNavigationLayout();
             ApplyCurrentUserCard();
             ApplyRoleBasedNavigation();
         }
@@ -101,6 +102,8 @@ namespace HRMS.View
         {
             SystemRefreshBus.DataChanged += SystemRefreshBus_DataChanged;
             await RenderDashboardChartsAsync();
+            await _notificationsViewModel.RefreshAsync();
+            DashboardNotificationsPopup.IsOpen = true;
         }
 
         private void DashboardWindow_Unloaded(object sender, RoutedEventArgs e)
@@ -215,7 +218,7 @@ namespace HRMS.View
                     {
                         await RecruitmentModule.RefreshAsync();
                     }
-                    else if (vm.IsTrainingVisible && DevelopmentModule != null)
+                    else if ((vm.IsTrainingVisible || vm.IsPerformanceVisible) && DevelopmentModule != null)
                     {
                         await DevelopmentModule.RefreshAsync();
                     }
@@ -501,22 +504,21 @@ namespace HRMS.View
                 QuickDevelopmentButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Development));
             }
 
+            if (QuickPerformanceButton != null)
+            {
+                QuickPerformanceButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Development));
+            }
+
             if (QuickDocumentsButton != null)
             {
                 QuickDocumentsButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Documents) && CanOpenDocumentsModule());
             }
 
-            if (QuickActionsGrid != null)
+            if (QuickProfileButton != null)
             {
-                var quickVisibleCount = 1; // Refresh is always visible
-                if (QuickEmployeesButton?.Visibility == Visibility.Visible) quickVisibleCount++;
-                if (QuickAttendanceButton?.Visibility == Visibility.Visible) quickVisibleCount++;
-                if (QuickLeaveButton?.Visibility == Visibility.Visible) quickVisibleCount++;
-                if (QuickPayrollButton?.Visibility == Visibility.Visible) quickVisibleCount++;
-                if (QuickDevelopmentButton?.Visibility == Visibility.Visible) quickVisibleCount++;
-                if (QuickDocumentsButton?.Visibility == Visibility.Visible) quickVisibleCount++;
-                QuickActionsGrid.Columns = Math.Max(1, quickVisibleCount);
+                QuickProfileButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Users));
             }
+
         }
 
         private bool CanAccessModule(ModuleKey module)
@@ -739,21 +741,75 @@ namespace HRMS.View
         private void ToggleNavButton_OnClick(object sender, RoutedEventArgs e)
         {
             _navCollapsed = !_navCollapsed;
+            ApplyNavigationLayout();
+        }
+
+        private void ApplyNavigationLayout()
+        {
             NavColumn.Width = _navCollapsed ? _collapsedWidth : _expandedWidth;
+            SidebarHost.Visibility = _navCollapsed ? Visibility.Collapsed : Visibility.Visible;
 
             UpdateToggleButtons();
             SetNavLabelsVisibility(_navCollapsed ? Visibility.Collapsed : Visibility.Visible);
 
-            // Hide header and account card when collapsed
             NavHeaderPanel.Visibility = _navCollapsed ? Visibility.Collapsed : Visibility.Visible;
             UserAccountCard.Visibility = _navCollapsed ? Visibility.Collapsed : Visibility.Visible;
-
-            // Adjust icon stack margin for balanced spacing when collapsed
             NavStack.Margin = _navCollapsed ? _collapsedNavMargin : _expandedNavMargin;
+            UpdateNavChevronVisibility();
+            UpdateNavigationButtonVisuals();
 
             if (_navCollapsed)
             {
                 CollapseSidebarGroups();
+            }
+        }
+
+        private void UpdateNavChevronVisibility()
+        {
+            var chevronVisibility = _navCollapsed ? Visibility.Collapsed : Visibility.Visible;
+
+            if (EmployeesNavChevronIcon != null)
+            {
+                EmployeesNavChevronIcon.Visibility = chevronVisibility;
+            }
+
+            if (AttendanceNavChevronIcon != null)
+            {
+                AttendanceNavChevronIcon.Visibility = IsEmployeeAccess ? Visibility.Collapsed : chevronVisibility;
+            }
+
+            if (RecordsReportsNavChevronIcon != null)
+            {
+                RecordsReportsNavChevronIcon.Visibility = chevronVisibility;
+            }
+        }
+
+        private void UpdateNavigationButtonVisuals()
+        {
+            var subNavStyle = TryFindResource("SubNavButtonStyle") as System.Windows.Style;
+
+            foreach (var button in FindVisualChildren<Button>(NavStack))
+            {
+                button.HorizontalContentAlignment = _navCollapsed ? System.Windows.HorizontalAlignment.Center : System.Windows.HorizontalAlignment.Left;
+                button.HorizontalAlignment = _navCollapsed ? System.Windows.HorizontalAlignment.Center : System.Windows.HorizontalAlignment.Stretch;
+                button.Width = _navCollapsed ? 44 : double.NaN;
+                button.MinWidth = _navCollapsed ? 44 : 0;
+
+                if (_navCollapsed)
+                {
+                    button.Padding = new Thickness(0);
+                }
+                else
+                {
+                    button.Padding = ReferenceEquals(button.Style, subNavStyle)
+                        ? new Thickness(16, 10, 12, 10)
+                        : new Thickness(14, 12, 14, 12);
+                }
+            }
+
+            foreach (var icon in FindVisualChildren<MaterialDesignThemes.Wpf.PackIcon>(NavStack))
+            {
+                icon.Margin = _navCollapsed ? new Thickness(0) : new Thickness(0, 0, 10, 0);
             }
         }
 
@@ -772,7 +828,7 @@ namespace HRMS.View
 
         private void UpdateToggleButtons()
         {
-            var kind = _navCollapsed ? MaterialDesignThemes.Wpf.PackIconKind.ChevronRight : MaterialDesignThemes.Wpf.PackIconKind.ChevronLeft;
+            var kind = _navCollapsed ? MaterialDesignThemes.Wpf.PackIconKind.Menu : MaterialDesignThemes.Wpf.PackIconKind.MenuOpen;
 
             ToggleNavButton.Content = new MaterialDesignThemes.Wpf.PackIcon
             {
@@ -787,6 +843,15 @@ namespace HRMS.View
                 Width = 18,
                 Height = 18
             };
+        }
+
+        private void HelpHeaderButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show(
+                "Use the sidebar menu button to open modules. Use Admin Tools for account and system actions, and use the notification bell to review recent activity.",
+                "Dashboard Help",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
         }
 
         private static void SetLabelVisibilityInPanel(UIElement? element, Visibility visibility)
@@ -830,6 +895,7 @@ namespace HRMS.View
             if (DataContext is DashboardViewModel vm)
             {
                 vm.ShowTraining();
+                DevelopmentModule?.ShowTrainingTab();
             }
         }
 
@@ -865,6 +931,7 @@ namespace HRMS.View
             if (DataContext is DashboardViewModel vm)
             {
                 vm.ShowPerformance();
+                DevelopmentModule?.ShowPerformanceTab();
             }
         }
 
@@ -1178,29 +1245,29 @@ namespace HRMS.View
             }
         }
 
-        private void ExecuteDashboardSearch()
+        private void ExecuteDashboardSearch(string? query = null)
         {
             if (DataContext is not DashboardViewModel vm)
             {
                 return;
             }
 
-            var query = DashboardSearchTextBox.Text?.Trim() ?? string.Empty;
+            query = (query ?? string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(query))
             {
                 vm.ShowDashboard();
                 return;
             }
 
-            var q = query.ToLowerInvariant();
+            var normalizedQuery = query.ToLowerInvariant();
 
-            if (q.Contains("dashboard"))
+            if (normalizedQuery.Contains("dashboard"))
             {
                 vm.ShowDashboard();
                 return;
             }
 
-            if (q.Contains("employee") || q.Contains("staff"))
+            if (normalizedQuery.Contains("employee") || normalizedQuery.Contains("staff"))
             {
                 if (EnsureModuleAccess(ModuleKey.Employees, "Employees"))
                 {
@@ -1209,7 +1276,7 @@ namespace HRMS.View
                 return;
             }
 
-            if (q.Contains("department") || q.Contains("position"))
+            if (normalizedQuery.Contains("department") || normalizedQuery.Contains("position"))
             {
                 if (IsEmployeeAccess && EnsureModuleAccess(ModuleKey.Employees, "My Department / Position"))
                 {
@@ -1224,7 +1291,7 @@ namespace HRMS.View
                 return;
             }
 
-            if (q.Contains("adjust") || q.Contains("correction"))
+            if (normalizedQuery.Contains("adjust") || normalizedQuery.Contains("correction"))
             {
                 if (EnsureModuleAccess(ModuleKey.Adjustments, "Adjustments"))
                 {
@@ -1233,7 +1300,7 @@ namespace HRMS.View
                 return;
             }
 
-            if (q.Contains("log"))
+            if (normalizedQuery.Contains("log"))
             {
                 if (EnsureModuleAccess(ModuleKey.AttendanceLogs, "Attendance Logs"))
                 {
@@ -1242,7 +1309,7 @@ namespace HRMS.View
                 return;
             }
 
-            if (q.Contains("attendance") || q.Contains("biometric") || q.Contains("dtr"))
+            if (normalizedQuery.Contains("attendance") || normalizedQuery.Contains("biometric") || normalizedQuery.Contains("dtr"))
             {
                 if (EnsureModuleAccess(ModuleKey.Attendance, "Attendance"))
                 {
@@ -1251,7 +1318,7 @@ namespace HRMS.View
                 return;
             }
 
-            if (q.Contains("leave"))
+            if (normalizedQuery.Contains("leave"))
             {
                 if (EnsureModuleAccess(ModuleKey.Leave, "Leave"))
                 {
@@ -1260,7 +1327,7 @@ namespace HRMS.View
                 return;
             }
 
-            if (q.Contains("payroll") || q.Contains("payslip"))
+            if (normalizedQuery.Contains("payroll") || normalizedQuery.Contains("payslip"))
             {
                 if (EnsureModuleAccess(ModuleKey.Payroll, "Payroll"))
                 {
@@ -1269,7 +1336,7 @@ namespace HRMS.View
                 return;
             }
 
-            if (q.Contains("transaction") || q.Contains("payment") || q.Contains("receipt"))
+            if (normalizedQuery.Contains("transaction") || normalizedQuery.Contains("payment") || normalizedQuery.Contains("receipt"))
             {
                 if (EnsureModuleAccess(ModuleKey.Transactions, "Transactions"))
                 {
@@ -1278,7 +1345,7 @@ namespace HRMS.View
                 return;
             }
 
-            if (q.Contains("report") || q.Contains("export") || q.Contains("analytics"))
+            if (normalizedQuery.Contains("report") || normalizedQuery.Contains("export") || normalizedQuery.Contains("analytics"))
             {
                 if (EnsureModuleAccess(ModuleKey.Reports, "Reports"))
                 {
@@ -1287,7 +1354,7 @@ namespace HRMS.View
                 return;
             }
 
-            if (q.Contains("document") || q.Contains("certificate") || q.Contains("attachment"))
+            if (normalizedQuery.Contains("document") || normalizedQuery.Contains("certificate") || normalizedQuery.Contains("attachment"))
             {
                 if (EnsureModuleAccess(ModuleKey.Documents, IsEmployeeAccess ? "My Documents" : "Documents"))
                 {
@@ -1296,7 +1363,7 @@ namespace HRMS.View
                 return;
             }
 
-            if (q.Contains("verifier") || q.Contains("checklist") || q.Contains("compliance"))
+            if (normalizedQuery.Contains("verifier") || normalizedQuery.Contains("checklist") || normalizedQuery.Contains("compliance"))
             {
                 if (EnsureModuleAccess(ModuleKey.DocumentVerification, "System Verifier"))
                 {
@@ -1305,7 +1372,7 @@ namespace HRMS.View
                 return;
             }
 
-            if (q.Contains("recruit") || q.Contains("job") || q.Contains("applicant"))
+            if (normalizedQuery.Contains("recruit") || normalizedQuery.Contains("job") || normalizedQuery.Contains("applicant"))
             {
                 if (EnsureModuleAccess(ModuleKey.Recruitment, "Recruitment"))
                 {
@@ -1314,7 +1381,7 @@ namespace HRMS.View
                 return;
             }
 
-            if (q.Contains("development") || q.Contains("training") || q.Contains("performance"))
+            if (normalizedQuery.Contains("development") || normalizedQuery.Contains("training") || normalizedQuery.Contains("performance"))
             {
                 if (EnsureModuleAccess(ModuleKey.Development, "Development"))
                 {

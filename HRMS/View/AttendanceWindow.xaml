@@ -372,6 +372,10 @@
                                                 Content="Scan Attendance" />
                                     </Grid>
                                     <TextBlock Margin="0,8,0,0"
+                                               Foreground="#5B6A7A"
+                                               FontWeight="SemiBold"
+                                               Text="Mode: Auto Detect IN / OUT" />
+                                    <TextBlock Margin="0,8,0,0"
                                                FontWeight="SemiBold"
                                                Foreground="{StaticResource PrimaryBrush}"
                                                Text="{Binding LastLivePunchEmployee}" />
