@@ -45,6 +45,11 @@ namespace HRMS.ViewModel
             _dataService = new DashboardDataService(DbConfig.ConnectionString);
             _companyProfileDataService = new CompanyProfileDataService(DbConfig.ConnectionString);
             RefreshCommand = new AsyncRelayCommand(_ => LoadStatsAsync());
+            ShowDashboardCommand = new AsyncRelayCommand(_ =>
+            {
+                ShowDashboard();
+                return Task.CompletedTask;
+            });
 
             _ = LoadCompanyProfileAsync();
 
@@ -53,6 +58,7 @@ namespace HRMS.ViewModel
         }
 
         public ICommand RefreshCommand { get; }
+        public ICommand ShowDashboardCommand { get; }
         public Task RefreshAsync() => LoadStatsAsync();
 
         public DashboardStats Stats
@@ -178,7 +184,7 @@ namespace HRMS.ViewModel
         public string SnapshotTitle => ShowEmployeeDashboard ? "My Workday Snapshot" : "Organization Snapshot";
 
         public string SnapshotSubtitle => ShowEmployeeDashboard
-            ? "Your attendance, leave, payroll, and development status"
+            ? "Your attendance, leave, payroll, and payslip status"
             : "Live HR operations and approval workload";
 
         public string CurrentUserDisplay =>

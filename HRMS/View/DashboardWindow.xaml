@@ -196,6 +196,47 @@
             </Setter>
         </Style>
 
+        <Style x:Key="ReferenceDashboardTileStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="#2B5AA8" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="24" />
+            <Setter Property="Margin" Value="4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="TileSurface"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="#1AFFFFFF"
+                                BorderThickness="1"
+                                CornerRadius="14"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter Margin="{TemplateBinding Padding}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="TileSurface" Property="Opacity" Value="0.94" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="TileSurface" Property="Opacity" Value="0.88" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="TileSurface" Property="Opacity" Value="0.5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ReferenceDashboardMiniTileStyle" TargetType="Button" BasedOn="{StaticResource ReferenceDashboardTileStyle}">
+            <Setter Property="Padding" Value="14,12" />
+            <Setter Property="Margin" Value="4,0,4,0" />
+        </Style>
+
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <Style x:Key="NavSelectableButtonStyleLocal" BasedOn="{StaticResource NavButtonStyle}" TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
@@ -466,8 +507,14 @@
                                 <ContextMenu x:Name="AttendanceNavigationMenu"
                                              Placement="Right">
                                     <MenuItem x:Name="AttendanceMenuItem"
-                                              Header="Attendance / DTR"
+                                              Header="Attendance"
                                               Click="AttendanceMenuItem_OnClick" />
+                                    <MenuItem x:Name="TravelOrderMenuItem"
+                                              Header="Travel Order"
+                                              Click="TravelOrderNavButton_OnClick" />
+                                    <MenuItem x:Name="HolidaysMenuItem"
+                                              Header="Holidays"
+                                              Click="HolidaysNavButton_OnClick" />
                                     <MenuItem x:Name="AttendanceLogsMenuItem"
                                               Header="Attendance Logs"
                                               Click="AttendanceLogsMenuItem_OnClick" />
@@ -492,7 +539,7 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <materialDesign:PackIcon Kind="ClockOutline" Style="{StaticResource SidebarNavIconStyle}" />
-                                <TextBlock x:Name="AttendanceNavLabelText" Grid.Column="1" Text="Attendance / DTR" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
+                                <TextBlock x:Name="AttendanceNavLabelText" Grid.Column="1" Text="Attendance" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
                                 <materialDesign:PackIcon x:Name="AttendanceNavChevronIcon"
                                                          Grid.Column="2"
                                                          Kind="ChevronDown"
@@ -523,7 +570,41 @@
                                     </Button.Style>
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <materialDesign:PackIcon Kind="ClockOutline" Width="18" Height="18" Margin="0,0,10,0" Foreground="White" VerticalAlignment="Center" />
-                                        <TextBlock Text="Attendance / DTR" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
+                                        <TextBlock Text="Attendance" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
+                                    </StackPanel>
+                                </Button>
+
+                                <Button x:Name="TravelOrderNavButton"
+                                        Click="TravelOrderNavButton_OnClick">
+                                    <Button.Style>
+                                        <Style BasedOn="{StaticResource SubNavButtonStyle}" TargetType="Button">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsAttendanceVisible}" Value="True">
+                                                    <Setter Property="Background" Value="#2D5783"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <materialDesign:PackIcon Kind="FileEditOutline" Width="18" Height="18" Margin="0,0,10,0" Foreground="White" VerticalAlignment="Center" />
+                                        <TextBlock Text="Travel Order" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
+                                    </StackPanel>
+                                </Button>
+
+                                <Button x:Name="HolidaysNavButton"
+                                        Click="HolidaysNavButton_OnClick">
+                                    <Button.Style>
+                                        <Style BasedOn="{StaticResource SubNavButtonStyle}" TargetType="Button">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsAttendanceVisible}" Value="True">
+                                                    <Setter Property="Background" Value="#2D5783"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <materialDesign:PackIcon Kind="CalendarMonthOutline" Width="18" Height="18" Margin="0,0,10,0" Foreground="White" VerticalAlignment="Center" />
+                                        <TextBlock Text="Holidays" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
                                     </StackPanel>
                                 </Button>
 
@@ -618,6 +699,20 @@
 
                         <Button x:Name="PayrollNavButton"
                                 Click="PayrollNavButton_OnClick">
+                            <Button.ContextMenu>
+                                <ContextMenu x:Name="PayrollNavigationMenu"
+                                             Placement="Right">
+                                    <MenuItem x:Name="PayrollRunsMenuItem"
+                                              Header="Payroll"
+                                              Click="PayrollRunsMenuItem_OnClick" />
+                                    <MenuItem x:Name="DeductionsMenuItem"
+                                              Header="Deductions"
+                                              Click="DeductionsNavButton_OnClick" />
+                                    <MenuItem x:Name="PayslipMenuItem"
+                                              Header="Payslip"
+                                              Click="PayslipNavButton_OnClick" />
+                                </ContextMenu>
+                            </Button.ContextMenu>
                             <Button.Style>
                                 <Style BasedOn="{StaticResource NavSelectableButtonStyleLocal}" TargetType="Button">
                                     <Style.Triggers>
@@ -627,11 +722,83 @@
                                     </Style.Triggers>
                                 </Style>
                             </Button.Style>
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Grid VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
                                 <materialDesign:PackIcon Kind="CashMultiple" Style="{StaticResource SidebarNavIconStyle}" />
-                                <TextBlock x:Name="PayrollNavLabelText" Text="Payroll" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
-                            </StackPanel>
+                                <TextBlock x:Name="PayrollNavLabelText" Grid.Column="1" Text="Payroll" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
+                                <materialDesign:PackIcon x:Name="PayrollNavChevronIcon"
+                                                         Grid.Column="2"
+                                                         Kind="ChevronDown"
+                                                         Width="18"
+                                                         Height="18"
+                                                         Foreground="#D7E7F8"
+                                                         VerticalAlignment="Center" />
+                            </Grid>
                         </Button>
+
+                        <Border x:Name="PayrollSubmenuPanel"
+                                Visibility="Collapsed"
+                                Margin="14,0,0,6"
+                                Padding="8"
+                                Background="#183A5C"
+                                CornerRadius="10">
+                            <StackPanel>
+                                <Button x:Name="PayrollRunsNavButton"
+                                        Click="PayrollRunsMenuItem_OnClick">
+                                    <Button.Style>
+                                        <Style BasedOn="{StaticResource SubNavButtonStyle}" TargetType="Button">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsPayrollVisible}" Value="True">
+                                                    <Setter Property="Background" Value="#2D5783"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <materialDesign:PackIcon Kind="CashMultiple" Width="18" Height="18" Margin="0,0,10,0" Foreground="White" VerticalAlignment="Center" />
+                                        <TextBlock Text="Payroll" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
+                                    </StackPanel>
+                                </Button>
+
+                                <Button x:Name="DeductionsNavButton"
+                                        Click="DeductionsNavButton_OnClick">
+                                    <Button.Style>
+                                        <Style BasedOn="{StaticResource SubNavButtonStyle}" TargetType="Button">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsPayrollVisible}" Value="True">
+                                                    <Setter Property="Background" Value="#2D5783"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <materialDesign:PackIcon Kind="CalculatorVariantOutline" Width="18" Height="18" Margin="0,0,10,0" Foreground="White" VerticalAlignment="Center" />
+                                        <TextBlock Text="Deductions" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
+                                    </StackPanel>
+                                </Button>
+
+                                <Button x:Name="PayslipNavButton"
+                                        Click="PayslipNavButton_OnClick">
+                                    <Button.Style>
+                                        <Style BasedOn="{StaticResource SubNavButtonStyle}" TargetType="Button">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsPayrollVisible}" Value="True">
+                                                    <Setter Property="Background" Value="#2D5783"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <materialDesign:PackIcon Kind="ReceiptTextOutline" Width="18" Height="18" Margin="0,0,10,0" Foreground="White" VerticalAlignment="Center" />
+                                        <TextBlock Text="Payslip" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Border>
 
                         <Button x:Name="RecordsReportsNavButton"
                                 Click="RecordsReportsNavButton_OnClick">
@@ -777,7 +944,8 @@
                         </Button>
 
                         <Button x:Name="DevelopmentNavButton"
-                                Click="TrainingNavButton_OnClick">
+                                Click="TrainingNavButton_OnClick"
+                                Visibility="Collapsed">
                             <Button.Style>
                                 <Style BasedOn="{StaticResource NavSelectableButtonStyleLocal}" TargetType="Button">
                                     <Style.Triggers>
@@ -994,10 +1162,11 @@
 
                         <Grid Grid.Column="2"
                               VerticalAlignment="Center"
-                              HorizontalAlignment="Center">
+                              HorizontalAlignment="Stretch"
+                              Margin="16,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Border Width="44"
                                     Height="44"
@@ -1011,7 +1180,7 @@
                             </Border>
                             <StackPanel Grid.Column="1"
                                         VerticalAlignment="Center"
-                                        HorizontalAlignment="Center">
+                                        HorizontalAlignment="Stretch">
                                 <TextBlock Text="{Binding CompanyName}"
                                            FontSize="22"
                                            FontWeight="Bold"
@@ -1147,7 +1316,7 @@
                                Placement="Center"
                                HorizontalOffset="0"
                                VerticalOffset="0"
-                               StaysOpen="False"
+                               StaysOpen="True"
                                AllowsTransparency="True"
                                PopupAnimation="Fade"
                                IsOpen="False">
@@ -1353,227 +1522,561 @@
                     </Grid>
                 </Border>
 
-                <!-- Dashboard body replaced below -->
+                <!-- Employee Dashboard (clean layout for Employee role) -->
+                <Grid x:Name="EmployeeDashboardPanel"
+                      Grid.Row="1"
+                      Margin="0,8,0,0"
+                      Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                <Grid Grid.Row="1"
+                    <!-- Welcome / Date header -->
+                    <Border Grid.Row="0"
+                            Margin="4"
+                            Padding="28,22"
+                            Background="#0F1D3A"
+                            BorderBrush="#243C67"
+                            BorderThickness="1"
+                            CornerRadius="14">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{Binding EmployeeGreeting}" FontSize="26" FontWeight="SemiBold" Foreground="White" />
+                                <TextBlock Margin="0,6,0,0" FontSize="16" Foreground="#B0C4DE">
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{}{0} — {1}">
+                                            <Binding Path="TodayDayDisplay" />
+                                            <Binding Path="TodayDateDisplay" />
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                                <TextBlock Text="SYSTEM READY" Margin="0,12,0,0" FontSize="16" FontWeight="Bold" Foreground="#1ED760" />
+                            </StackPanel>
+                            <Border Grid.Column="1"
+                                    Width="72"
+                                    Height="72"
+                                    Background="White"
+                                    CornerRadius="36"
+                                    VerticalAlignment="Center">
+                                <Image Source="{Binding CompanyLogoPath}" Stretch="Uniform" Margin="8" />
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- Main tiles for employee -->
+                    <UniformGrid Grid.Row="1" Columns="3" Rows="2" Margin="0,4,0,4">
+                        <Button x:Name="EmpQuickAttendanceButton"
+                                Style="{StaticResource ReferenceDashboardTileStyle}"
+                                Background="#F59E0B"
+                                Click="AttendanceNavButton_OnClick">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <materialDesign:PackIcon Kind="CalendarCheckOutline" Width="44" Height="44" Foreground="White" HorizontalAlignment="Center" />
+                                <TextBlock Text="MY ATTENDANCE" Margin="0,14,0,0" FontSize="18" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" />
+                                <TextBlock Text="View your daily time record and clock-in history." Margin="0,8,0,0" FontSize="13" Foreground="#FFF5DE" TextWrapping="Wrap" TextAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="EmpQuickLeaveButton"
+                                Style="{StaticResource ReferenceDashboardTileStyle}"
+                                Background="#14B8A6"
+                                Click="LeaveNavButton_OnClick">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <materialDesign:PackIcon Kind="CalendarMonthOutline" Width="44" Height="44" Foreground="White" HorizontalAlignment="Center" />
+                                <TextBlock Text="MY LEAVE" Margin="0,14,0,0" FontSize="18" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" />
+                                <TextBlock Text="File leave requests and check your balances." Margin="0,8,0,0" FontSize="13" Foreground="#E4FFFC" TextWrapping="Wrap" TextAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="EmpQuickPayrollButton"
+                                Style="{StaticResource ReferenceDashboardTileStyle}"
+                                Background="#22C55E"
+                                Click="PayrollNavButton_OnClick">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <materialDesign:PackIcon Kind="CashMultiple" Width="44" Height="44" Foreground="White" HorizontalAlignment="Center" />
+                                <TextBlock Text="MY PAYROLL" Margin="0,14,0,0" FontSize="18" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" />
+                                <TextBlock Text="View your payslip and compensation details." Margin="0,8,0,0" FontSize="13" Foreground="#E4FFE9" TextWrapping="Wrap" TextAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="EmpQuickAdjustmentsButton"
+                                Style="{StaticResource ReferenceDashboardTileStyle}"
+                                Background="#F97316"
+                                Click="AdjustmentsNavButton_OnClick">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <materialDesign:PackIcon Kind="FileEditOutline" Width="44" Height="44" Foreground="White" HorizontalAlignment="Center" />
+                                <TextBlock Text="MY ADJUSTMENTS" Margin="0,14,0,0" FontSize="18" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" />
+                                <TextBlock Text="File DTR corrections and view adjustment status." Margin="0,8,0,0" FontSize="13" Foreground="#FFF0E6" TextWrapping="Wrap" TextAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="EmpQuickProfileButton"
+                                Style="{StaticResource ReferenceDashboardTileStyle}"
+                                Background="#6366F1"
+                                Click="UserAccountSettingsButton_OnClick">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <materialDesign:PackIcon Kind="AccountCircleOutline" Width="44" Height="44" Foreground="White" HorizontalAlignment="Center" />
+                                <TextBlock Text="MY PROFILE" Margin="0,14,0,0" FontSize="18" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" />
+                                <TextBlock Text="View and update your personal information." Margin="0,8,0,0" FontSize="13" Foreground="#E8EAFF" TextWrapping="Wrap" TextAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="EmpQuickNotificationsButton"
+                                Style="{StaticResource ReferenceDashboardTileStyle}"
+                                Background="#3B82F6"
+                                Click="NotificationButton_OnClick">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <materialDesign:PackIcon Kind="BellOutline" Width="44" Height="44" Foreground="White" HorizontalAlignment="Center" />
+                                <TextBlock Text="NOTIFICATIONS" Margin="0,14,0,0" FontSize="18" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" />
+                                <TextBlock Text="Check alerts and important updates." Margin="0,8,0,0" FontSize="13" Foreground="#E1EDFF" TextWrapping="Wrap" TextAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </UniformGrid>
+
+                    <!-- Bottom quick actions -->
+                    <Border Grid.Row="2"
+                            Margin="4,2,4,0"
+                            Padding="6"
+                            Background="#111827"
+                            CornerRadius="12">
+                        <UniformGrid Columns="4">
+                            <Button Style="{StaticResource ReferenceDashboardMiniTileStyle}"
+                                    Background="#0F5A86"
+                                    Click="AttendanceNavButton_OnClick">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="ClockOutline" Width="18" Height="18" Foreground="White" />
+                                    <TextBlock Text="Attendance" Margin="8,0,0,0" FontSize="13" FontWeight="SemiBold" Foreground="White" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Style="{StaticResource ReferenceDashboardMiniTileStyle}"
+                                    Background="#13735B"
+                                    Click="LeaveNavButton_OnClick">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="CalendarClock" Width="18" Height="18" Foreground="White" />
+                                    <TextBlock Text="Leave" Margin="8,0,0,0" FontSize="13" FontWeight="SemiBold" Foreground="White" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Style="{StaticResource ReferenceDashboardMiniTileStyle}"
+                                    Background="#475569"
+                                    Click="HelpHeaderButton_OnClick">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="HelpCircleOutline" Width="18" Height="18" Foreground="White" />
+                                    <TextBlock Text="Help" Margin="8,0,0,0" FontSize="13" FontWeight="SemiBold" Foreground="White" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Style="{StaticResource ReferenceDashboardMiniTileStyle}"
+                                    Background="#13735B"
+                                    Command="{Binding RefreshCommand}"
+                                    Click="Button_Click">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18" Foreground="White" />
+                                    <TextBlock Text="Refresh" Margin="8,0,0,0" FontSize="13" FontWeight="SemiBold" Foreground="White" />
+                                </StackPanel>
+                            </Button>
+                        </UniformGrid>
+                    </Border>
+                </Grid>
+
+                <!-- Admin Dashboard body inspired by the provided municipality tile dashboard -->
+                <Grid x:Name="AdminDashboardPanel"
+                      Grid.Row="1"
                       Margin="0,8,0,0">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
+                        <RowDefinition Height="1.12*" />
+                        <RowDefinition Height="1.12*" />
+                        <RowDefinition Height="1.08*" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="2.8*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Button x:Name="QuickEmployeesButton"
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Style="{StaticResource ReferenceDashboardTileStyle}"
+                            Background="#6366F1"
+                            Click="EmployeesNavButton_OnClick">
+                        <StackPanel VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="ViewDashboardOutline" Width="38" Height="38" Foreground="White" />
+                            <TextBlock Text="EMPLOYEE MANAGEMENT" Margin="0,16,0,0" FontSize="20" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
+                            <TextBlock Text="Employee records and workspace overview." Margin="0,8,0,0" FontSize="13" Foreground="#E8EAFF" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button x:Name="QuickDocumentsButton"
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Style="{StaticResource ReferenceDashboardTileStyle}"
+                            Background="#0EA5E9"
+                            Click="DocumentsNavButton_OnClick">
+                        <StackPanel VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="FolderAccountOutline" Width="38" Height="38" Foreground="White" />
+                            <TextBlock Text="{Binding DocumentsNavLabel, StringFormat={}{0}}" Margin="0,16,0,0" FontSize="20" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
+                            <TextBlock Text="Browse records, files, and employee requirements." Margin="0,8,0,0" FontSize="13" Foreground="#E0F6FF" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Grid.Row="0"
+                            Grid.Column="2"
+                            Style="{StaticResource ReferenceDashboardTileStyle}"
+                            Background="#10B981"
+                            Click="RecruitmentNavButton_OnClick">
+                        <StackPanel VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="AccountPlusOutline" Width="38" Height="38" Foreground="White" />
+                            <TextBlock Text="RECRUITMENT" Margin="0,16,0,0" FontSize="20" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
+                            <TextBlock Text="Create new hiring entries and track applicants fast." Margin="0,8,0,0" FontSize="13" Foreground="#DFFFEF" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button x:Name="QuickAttendanceButton"
+                            Grid.Row="0"
+                            Grid.Column="3"
+                            Style="{StaticResource ReferenceDashboardTileStyle}"
+                            Background="#F59E0B"
+                            Click="AttendanceNavButton_OnClick">
+                        <StackPanel VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="CalendarCheckOutline" Width="38" Height="38" Foreground="White" />
+                            <TextBlock Text="ATTENDANCE / DTR" Margin="0,16,0,0" FontSize="20" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
+                            <TextBlock Text="Track attendance logs, scans, and shift records." Margin="0,8,0,0" FontSize="13" Foreground="#FFF5DE" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button>
+
                     <Border Grid.Row="0"
-                            Background="#0D6E66">
-                        <UniformGrid Rows="4"
-                                     Columns="5">
-                            <Button x:Name="QuickEmployeesButton"
-                                    Style="{StaticResource DashboardCompactTileStyle}"
-                                    Background="#158073"
-                                    Click="EmployeesNavButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="AccountGroupOutline" Width="38" Height="38" Foreground="White" />
-                                    <TextBlock Text="EMPLOYEE MANAGEMENT" Margin="0,16,0,0" FontSize="18" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="Manage employee records, departments, and positions" Margin="0,8,0,0" FontSize="13" Foreground="#D9FFF8" TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Button>
+                            Grid.Column="4"
+                            Margin="4"
+                            Padding="18,14"
+                            Background="White"
+                            BorderBrush="#E7EDF5"
+                            BorderThickness="1"
+                            CornerRadius="14">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
 
-                            <Button x:Name="QuickDocumentsButton"
-                                    Style="{StaticResource DashboardCompactTileStyle}"
-                                    Background="#167E72"
-                                    Click="DocumentsNavButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="FolderOutline" Width="38" Height="38" Foreground="White" />
-                                    <TextBlock Text="{Binding DocumentsNavLabel}" Margin="0,16,0,0" FontSize="18" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="Track files, requirements, and document history" Margin="0,8,0,0" FontSize="13" Foreground="#D9FFF8" TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Button>
+                            <Image Grid.Row="0"
+                                   Source="{Binding CompanyLogoPath}"
+                                   MaxWidth="164"
+                                   MaxHeight="86"
+                                   Stretch="Uniform"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="1"
+                                       Text="{Binding CompanyAddress}"
+                                       Margin="0,8,0,0"
+                                       HorizontalAlignment="Center"
+                                       FontSize="13"
+                                       Foreground="#6B7B8D"
+                                       TextAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Row="2"
+                                       Text="{Binding CompanyName}"
+                                       Margin="0,4,0,0"
+                                       HorizontalAlignment="Center"
+                                       FontSize="20"
+                                       FontWeight="Bold"
+                                       Foreground="#20354D"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       LineHeight="22" />
+                            <TextBlock Grid.Row="3"
+                                       Text="Official Human Resource Management System"
+                                       Margin="0,5,0,0"
+                                       HorizontalAlignment="Center"
+                                       FontSize="13"
+                                       Foreground="#6B7B8D"
+                                       TextAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                    </Border>
 
-                            <Button Style="{StaticResource DashboardCompactTileStyle}"
-                                    Background="#1B7E9C"
-                                    Click="ReportsNavButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="ChartBoxOutline" Width="38" Height="38" Foreground="White" />
-                                    <TextBlock Text="REPORTS" Margin="0,16,0,0" FontSize="18" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="Generate clean HR reports and export them with branding" Margin="0,8,0,0" FontSize="13" Foreground="#D7F5FF" TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Button>
+                    <Border Grid.Row="1"
+                            Grid.Column="0"
+                            Grid.ColumnSpan="2"
+                            Margin="4"
+                            Padding="34,26"
+                            Background="#0F1D3A"
+                            BorderBrush="#243C67"
+                            BorderThickness="1"
+                            CornerRadius="14">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{Binding TodayDayDisplay}" FontSize="34" FontWeight="Light" Foreground="White" />
+                            <TextBlock Text="{Binding TodayDateDisplay}" Margin="0,6,0,0" FontSize="30" FontWeight="SemiBold" Foreground="White" />
+                            <TextBlock Text="SYSTEM READY" Margin="0,16,0,0" FontSize="22" FontWeight="Bold" Foreground="#1ED760" />
+                        </StackPanel>
+                    </Border>
 
-                            <Button Style="{StaticResource DashboardCompactTileStyle}"
-                                    Background="#12213C"
+                    <Button Grid.Row="1"
+                            Grid.Column="2"
+                            Style="{StaticResource ReferenceDashboardTileStyle}"
+                            Background="#8B5CF6"
+                            Click="ReportsNavButton_OnClick">
+                        <StackPanel VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="ChartBoxOutline" Width="38" Height="38" Foreground="White" />
+                            <TextBlock Text="REPORTS" Margin="0,16,0,0" FontSize="20" FontWeight="Bold" Foreground="White" />
+                            <TextBlock Text="Export summaries and printable reports." Margin="0,8,0,0" FontSize="13" Foreground="#ECE4FF" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Grid.Row="1"
+                            Grid.Column="3"
+                            Style="{StaticResource ReferenceDashboardTileStyle}"
+                            Background="#64748B"
+                            Click="UsersNavButton_OnClick">
+                        <StackPanel VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="AccountCogOutline" Width="38" Height="38" Foreground="White" />
+                            <TextBlock Text="USERS" Margin="0,16,0,0" FontSize="20" FontWeight="Bold" Foreground="White" />
+                            <TextBlock Text="Manage access, roles, and account health." Margin="0,8,0,0" FontSize="13" Foreground="#ECF2FA" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button>
+
+                    <Border Grid.Row="1"
+                            Grid.Column="4"
+                            Grid.RowSpan="2"
+                            Margin="4"
+                            Padding="18"
+                            Background="#0F746D"
+                            BorderBrush="#1B8A83"
+                            BorderThickness="1"
+                            CornerRadius="14">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                <Image Source="{Binding CompanyLogoPath}" Width="88" Height="64" Stretch="Uniform" />
+                                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="Software Name and Trademark" FontSize="13" Foreground="#B1EDE8" />
+                                    <TextBlock Text="{Binding CompanyAbbreviation}" Margin="0,3,0,0" FontSize="20" FontWeight="Bold" Foreground="White" />
+                                    <TextBlock Text="Human Resources Management System" Margin="0,3,0,0" FontSize="13" Foreground="#D4FBF8" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <UniformGrid Grid.Row="1" Columns="3" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock Text="Employees" FontSize="12" Foreground="#B9ECE9" />
+                                    <TextBlock Text="{Binding Stats.TotalEmployees}" FontSize="38" FontWeight="Bold" Foreground="White" />
+                                </StackPanel>
+                                <StackPanel Margin="12,0,0,0">
+                                    <TextBlock Text="Present" FontSize="12" Foreground="#B9ECE9" />
+                                    <TextBlock Text="{Binding Stats.PresentToday}" FontSize="38" FontWeight="Bold" Foreground="White" />
+                                </StackPanel>
+                                <StackPanel Margin="12,0,0,0">
+                                    <TextBlock Text="Open Jobs" FontSize="12" Foreground="#B9ECE9" />
+                                    <TextBlock Text="{Binding Stats.OpenJobs}" FontSize="38" FontWeight="Bold" Foreground="White" />
+                                </StackPanel>
+                            </UniformGrid>
+
+                            <Button Grid.Row="2"
+                                    Style="{StaticResource ReferenceDashboardTileStyle}"
+                                    Margin="0,0,0,10"
+                                    Padding="16,14"
+                                    Background="#0C224B"
                                     Click="TransactionsNavButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="DatabaseCheckOutline" Width="38" Height="38" Foreground="#52DAC6" />
-                                    <TextBlock Text="TRANSACTIONS" Margin="0,16,0,0" FontSize="18" FontWeight="Bold" Foreground="#9BC2F8" TextWrapping="Wrap" />
-                                    <TextBlock Text="Review transaction history and recent system activity" Margin="0,8,0,0" FontSize="13" Foreground="#DCE8FF" TextWrapping="Wrap" />
-                                </StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="TRANSACTIONS" FontSize="18" FontWeight="Bold" Foreground="#BFD4FF" />
+                                        <TextBlock Text="Review transaction history and recent system activity." Margin="0,4,0,0" FontSize="12" Foreground="White" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <materialDesign:PackIcon Grid.Column="1" Kind="DatabaseCheckOutline" Width="34" Height="34" Foreground="#5CE1CF" VerticalAlignment="Center" Margin="12,0,0,0" />
+                                </Grid>
                             </Button>
 
-                            <Button Style="{StaticResource DashboardCompactTileStyle}"
-                                    Background="#1B2237"
-                                    Click="UsersNavButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="ShieldAccountOutline" Width="38" Height="38" Foreground="White" />
-                                    <TextBlock Text="USERS &amp; ROLES" Margin="0,16,0,0" FontSize="18" FontWeight="Bold" Foreground="#B5CAEC" TextWrapping="Wrap" />
-                                    <TextBlock Text="Accounts, roles, and profile settings" Margin="0,8,0,0" FontSize="13" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="{Binding CurrentRoleDisplay, StringFormat='Current role: {0}'}" Margin="0,4,0,0" FontSize="12" Foreground="#B5CAEC" TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Button>
+                            <Grid Grid.Row="3" Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
 
-                            <Button x:Name="QuickAttendanceButton"
-                                    Style="{StaticResource DashboardCompactTileStyle}"
-                                    Background="#176638"
-                                    Click="AttendanceNavButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="ClockTimeFourOutline" Width="38" Height="38" Foreground="White" />
-                                    <TextBlock Text="ATTENDANCE / DTR" Margin="0,16,0,0" FontSize="18" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="Monitor shifts, biometric activity, and daily time records" Margin="0,8,0,0" FontSize="13" Foreground="#DFFFE7" TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Button>
+                                <Button x:Name="QuickTravelOrderButton"
+                                        Grid.Column="0"
+                                        Style="{StaticResource ReferenceDashboardTileStyle}"
+                                        Margin="0,0,5,0"
+                                        Padding="14"
+                                        Background="#2D61AF"
+                                        Click="TravelOrderNavButton_OnClick">
+                                    <StackPanel>
+                                        <materialDesign:PackIcon Kind="FileEditOutline" Width="28" Height="28" Foreground="White" />
+                                        <TextBlock Text="TRAVEL ORDER" Margin="0,8,0,0" FontSize="16" FontWeight="Bold" Foreground="White" />
+                                        <TextBlock Text="Record official travel and OB remarks." Margin="0,3,0,0" FontSize="12" Foreground="#DDE7FF" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Button>
 
-                            <Button x:Name="QuickPayrollButton"
-                                    Style="{StaticResource DashboardCompactTileStyle}"
-                                    Background="#A84311"
-                                    Click="PayrollNavButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="CashMultiple" Width="38" Height="38" Foreground="White" />
-                                    <TextBlock Text="PAYROLL" Margin="0,16,0,0" FontSize="18" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="Prepare payroll, releases, and government deductions" Margin="0,8,0,0" FontSize="13" Foreground="#FFE7D8" TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Button>
+                                <Border Grid.Column="1"
+                                        Margin="5,0,0,0"
+                                        Padding="14"
+                                        Background="#15203F"
+                                        BorderBrush="#2B436C"
+                                        BorderThickness="1"
+                                        CornerRadius="12">
+                                    <StackPanel>
+                                        <materialDesign:PackIcon Kind="DatabaseCogOutline" Width="28" Height="28" Foreground="White" />
+                                        <TextBlock Text="DATABASE STATUS" Margin="0,8,0,0" FontSize="16" FontWeight="Bold" Foreground="White" />
+                                        <TextBlock Text="{Binding SerialNumber}" Margin="0,3,0,0" FontSize="11" Foreground="#CFDAEB" TextWrapping="Wrap" />
+                                        <TextBlock Text="{Binding LastUpdated, StringFormat='Updated {0:MMM dd, yyyy h:mm tt}'}" Margin="0,3,0,0" FontSize="11" Foreground="#CFDAEB" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Grid>
+                    </Border>
 
-                            <Button x:Name="QuickLeaveButton"
-                                    Style="{StaticResource DashboardCompactTileStyle}"
-                                    Background="#6C22CB"
-                                    Click="LeaveNavButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="Beach" Width="38" Height="38" Foreground="White" />
-                                    <TextBlock Text="LEAVE" Margin="0,16,0,0" FontSize="18" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="Approve applications, balances, and employee leave history" Margin="0,8,0,0" FontSize="13" Foreground="#F1E4FF" TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Button>
+                    <Button Grid.Row="2"
+                            Grid.Column="0"
+                            Style="{StaticResource ReferenceDashboardTileStyle}"
+                            Background="#F97316"
+                            Click="AttendanceLogsNavButton_OnClick">
+                        <StackPanel VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="History" Width="38" Height="38" Foreground="White" />
+                            <TextBlock Text="LOGS" Margin="0,16,0,0" FontSize="20" FontWeight="Bold" Foreground="White" />
+                            <TextBlock Text="Review check-in and check-out history." Margin="0,8,0,0" FontSize="13" Foreground="#FFF0E6" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button>
 
-                            <Button Style="{StaticResource DashboardCompactTileStyle}"
-                                    Background="#225DA8"
-                                    Click="BeneficiariesNavButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="AccountMultiplePlus" Width="38" Height="38" Foreground="White" />
-                                    <TextBlock Text="BENEFICIARIES" Margin="0,16,0,0" FontSize="18" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="Verification and beneficiary records" Margin="0,8,0,0" FontSize="13" Foreground="#D7E6FF" TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Button>
+                    <Button x:Name="QuickLeaveButton"
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Style="{StaticResource ReferenceDashboardTileStyle}"
+                            Background="#14B8A6"
+                            Click="LeaveNavButton_OnClick">
+                        <StackPanel VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="CalendarMonthOutline" Width="38" Height="38" Foreground="White" />
+                            <TextBlock Text="LEAVE" Margin="0,16,0,0" FontSize="20" FontWeight="Bold" Foreground="White" />
+                            <TextBlock Text="Manage leave requests, balances, and schedules." Margin="0,8,0,0" FontSize="13" Foreground="#E4FFFC" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button>
 
-                            <Button Style="{StaticResource DashboardCompactTileStyle}"
+                    <Button x:Name="QuickPayrollButton"
+                            Grid.Row="2"
+                            Grid.Column="2"
+                            Style="{StaticResource ReferenceDashboardTileStyle}"
+                            Background="#22C55E"
+                            Click="PayrollNavButton_OnClick">
+                        <StackPanel VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="CashMultiple" Width="38" Height="38" Foreground="White" />
+                            <TextBlock Text="PAYROLL" Margin="0,16,0,0" FontSize="20" FontWeight="Bold" Foreground="White" />
+                            <TextBlock Text="Handle releases, deductions, and payroll periods." Margin="0,8,0,0" FontSize="13" Foreground="#E4FFE9" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Grid.Row="2"
+                            Grid.Column="3"
+                            Style="{StaticResource ReferenceDashboardTileStyle}"
+                            Background="#3B82F6"
+                            Click="DocumentVerificationNavButton_OnClick">
+                        <StackPanel VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="ShieldCheckOutline" Width="38" Height="38" Foreground="White" />
+                            <TextBlock Text="VERIFY" Margin="0,16,0,0" FontSize="20" FontWeight="Bold" Foreground="White" />
+                            <TextBlock Text="Approve pending records and document checks." Margin="0,8,0,0" FontSize="13" Foreground="#E1EDFF" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button>
+
+                    <Border Grid.Row="3"
+                            Grid.ColumnSpan="5"
+                            Margin="4,6,4,0"
+                            Padding="6"
+                            Background="#111827"
+                            CornerRadius="12">
+                        <UniformGrid Columns="8">
+                            <Button Style="{StaticResource ReferenceDashboardMiniTileStyle}"
                                     Background="#0F5A86"
                                     Click="DepartmentsNavButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="Domain" Width="36" Height="36" Foreground="White" />
-                                    <TextBlock Text="DEPARTMENTS" Margin="0,14,0,0" FontSize="17" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="Office units and positions" Margin="0,8,0,0" FontSize="13" Foreground="#D9EEFF" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="Domain" Width="18" Height="18" Foreground="White" />
+                                    <TextBlock Text="Departments" Margin="8,0,0,0" FontSize="13" FontWeight="SemiBold" Foreground="White" />
                                 </StackPanel>
                             </Button>
 
-                            <Button Style="{StaticResource DashboardCompactTileStyle}"
-                                    Background="#2E6A2B"
-                                    Click="AttendanceLogsNavButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="ClipboardTextClockOutline" Width="36" Height="36" Foreground="White" />
-                                    <TextBlock Text="ATTENDANCE LOGS" Margin="0,14,0,0" FontSize="17" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="Review IN/OUT records and logs" Margin="0,8,0,0" FontSize="13" Foreground="#E4FFE0" TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Button>
-
-                            <Button Style="{StaticResource DashboardCompactTileStyle}"
+                            <Button Style="{StaticResource ReferenceDashboardMiniTileStyle}"
                                     Background="#83420B"
                                     Click="AdjustmentsNavButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="FileEditOutline" Width="36" Height="36" Foreground="White" />
-                                    <TextBlock Text="ADJUSTMENTS" Margin="0,14,0,0" FontSize="17" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="Process DTR correction requests" Margin="0,8,0,0" FontSize="13" Foreground="#FFEBD7" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="FileEditOutline" Width="18" Height="18" Foreground="White" />
+                                    <TextBlock Text="Adjustments" Margin="8,0,0,0" FontSize="13" FontWeight="SemiBold" Foreground="White" />
                                 </StackPanel>
                             </Button>
 
-                            <Button Style="{StaticResource DashboardCompactTileStyle}"
-                                    Background="#2863B2"
-                                    Click="RecruitmentNavButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="BriefcaseAccountOutline" Width="36" Height="36" Foreground="White" />
-                                    <TextBlock Text="RECRUITMENT" Margin="0,14,0,0" FontSize="17" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="Manage jobs and applicants" Margin="0,8,0,0" FontSize="13" Foreground="#DDEBFF" TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Button>
-
-                            <Button x:Name="QuickDevelopmentButton"
-                                    Style="{StaticResource DashboardCompactTileStyle}"
+                            <Button Style="{StaticResource ReferenceDashboardMiniTileStyle}"
                                     Background="#2558A6"
-                                    Click="TrainingNavButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="SchoolOutline" Width="36" Height="36" Foreground="White" />
-                                    <TextBlock Text="DEVELOPMENT" Margin="0,14,0,0" FontSize="17" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="Training and performance modules" Margin="0,8,0,0" FontSize="13" Foreground="#DDEAFF" TextWrapping="Wrap" />
+                                    Click="BeneficiariesNavButton_OnClick">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="AccountMultiplePlus" Width="18" Height="18" Foreground="White" />
+                                    <TextBlock Text="Beneficiaries" Margin="8,0,0,0" FontSize="13" FontWeight="SemiBold" Foreground="White" />
                                 </StackPanel>
                             </Button>
 
-                            <Button Style="{StaticResource DashboardCompactTileStyle}"
-                                    Background="#1D4D75"
-                                    Click="DocumentVerificationNavButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="ClipboardCheckOutline" Width="36" Height="36" Foreground="White" />
-                                    <TextBlock Text="SYSTEM VERIFIER" Margin="0,14,0,0" FontSize="17" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="Verification and compliance checks" Margin="0,8,0,0" FontSize="13" Foreground="#D7EEFF" TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Button>
-
-                            <Button x:Name="QuickPerformanceButton"
-                                    Style="{StaticResource DashboardCompactTileStyle}"
+                            <Button x:Name="QuickHolidaysButton"
+                                    Style="{StaticResource ReferenceDashboardMiniTileStyle}"
                                     Background="#3158A5"
-                                    Click="PerformanceNavButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="ChartLineVariant" Width="36" Height="36" Foreground="White" />
-                                    <TextBlock Text="PERFORMANCE" Margin="0,14,0,0" FontSize="17" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="Reviews, goals, ratings, and evaluation cycles" Margin="0,8,0,0" FontSize="13" Foreground="#DDE7FF" TextWrapping="Wrap" />
+                                    Click="HolidaysNavButton_OnClick">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="CalendarMonthOutline" Width="18" Height="18" Foreground="White" />
+                                    <TextBlock Text="Holidays" Margin="8,0,0,0" FontSize="13" FontWeight="SemiBold" Foreground="White" />
                                 </StackPanel>
                             </Button>
 
                             <Button x:Name="QuickProfileButton"
-                                    Style="{StaticResource DashboardCompactTileStyle}"
-                                    Background="#233D66"
+                                    Style="{StaticResource ReferenceDashboardMiniTileStyle}"
+                                    Background="#475569"
                                     Click="UserAccountSettingsButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="AccountCogOutline" Width="36" Height="36" Foreground="White" />
-                                    <TextBlock Text="ACCOUNT PROFILE" Margin="0,14,0,0" FontSize="17" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="Open your profile, account settings, and personal tools" Margin="0,8,0,0" FontSize="13" Foreground="#DCE7F8" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="CogOutline" Width="18" Height="18" Foreground="White" />
+                                    <TextBlock Text="Settings" Margin="8,0,0,0" FontSize="13" FontWeight="SemiBold" Foreground="White" />
                                 </StackPanel>
                             </Button>
 
                             <Button x:Name="QuickNotificationsButton"
-                                    Style="{StaticResource DashboardCompactTileStyle}"
+                                    Style="{StaticResource ReferenceDashboardMiniTileStyle}"
                                     Background="#275767"
                                     Click="NotificationButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="BellOutline" Width="36" Height="36" Foreground="#70F0E0" />
-                                    <TextBlock Text="NOTIFICATIONS" Margin="0,14,0,0" FontSize="17" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="Review unread alerts and recent system activity" Margin="0,8,0,0" FontSize="13" Foreground="#D7F9F5" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="BellOutline" Width="18" Height="18" Foreground="#7AF3E4" />
+                                    <TextBlock Text="Notifications" Margin="8,0,0,0" FontSize="13" FontWeight="SemiBold" Foreground="White" />
                                 </StackPanel>
                             </Button>
 
                             <Button x:Name="QuickHelpButton"
-                                    Style="{StaticResource DashboardCompactTileStyle}"
+                                    Style="{StaticResource ReferenceDashboardMiniTileStyle}"
                                     Background="#4C5A6A"
                                     Click="HelpHeaderButton_OnClick">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="HelpCircleOutline" Width="36" Height="36" Foreground="White" />
-                                    <TextBlock Text="HELP" Margin="0,14,0,0" FontSize="17" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="View usage guidance and dashboard shortcuts" Margin="0,8,0,0" FontSize="13" Foreground="#E7EDF3" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="HelpCircleOutline" Width="18" Height="18" Foreground="White" />
+                                    <TextBlock Text="Help" Margin="8,0,0,0" FontSize="13" FontWeight="SemiBold" Foreground="White" />
                                 </StackPanel>
                             </Button>
 
                             <Button x:Name="QuickRefreshButton"
-                                    Style="{StaticResource DashboardCompactTileStyle}"
+                                    Style="{StaticResource ReferenceDashboardMiniTileStyle}"
                                     Background="#13735B"
                                     Command="{Binding RefreshCommand}"
                                     Click="Button_Click">
-                                <StackPanel VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="Refresh" Width="36" Height="36" Foreground="White" />
-                                    <TextBlock Text="REFRESH" Margin="0,14,0,0" FontSize="17" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
-                                    <TextBlock Text="Reload dashboard metrics and module summaries" Margin="0,8,0,0" FontSize="13" Foreground="#D8FFF4" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18" Foreground="White" />
+                                    <TextBlock Text="Refresh" Margin="8,0,0,0" FontSize="13" FontWeight="SemiBold" Foreground="White" />
                                 </StackPanel>
                             </Button>
                         </UniformGrid>
@@ -1586,33 +2089,6 @@
                                        IsHitTestVisible="False" />
                 </Grid>
             </Grid>
-
-            <Button Grid.Row="1"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Top"
-                    Margin="0,12,22,0"
-                    Padding="16,9"
-                    Background="#1E4368"
-                    Foreground="White"
-                    BorderThickness="0"
-                    Click="DashboardNavButton_OnClick"
-                    materialDesign:ButtonAssist.CornerRadius="10"
-                    Panel.ZIndex="1000">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsDashboardVisible}" Value="False">
-                                <Setter Property="Visibility" Value="Visible" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-                <StackPanel Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="ArrowLeft" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center" />
-                    <TextBlock Text="Back to Dashboard" FontWeight="SemiBold" VerticalAlignment="Center" />
-                </StackPanel>
-            </Button>
 
             <!-- Development (Training + Performance) -->
             <Grid Grid.Row="2" Margin="20">

@@ -24,6 +24,7 @@ namespace HRMS.ViewModel
         {
             "OB",
             "TO",
+            "HOLIDAY",
             "WFH",
             "CTO",
             "OTHER"

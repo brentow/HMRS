@@ -106,498 +106,40 @@
                 </StackPanel>
                 <TextBlock Text="{Binding AttendancePageSubtitle}" Margin="0,2,0,0" Foreground="#5B6A7A" />
             </StackPanel>
-            <Button Grid.Column="1"
-                    Width="140"
-                    Height="42"
-                    Style="{StaticResource ButtonStyle}"
-                    Command="{Binding RefreshCommand}"
-                    VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <materialDesign:PackIcon Kind="Refresh"
-                                             Width="16"
-                                             Height="16"
-                                             Margin="0,0,8,0" />
-                    <TextBlock Text="Refresh" VerticalAlignment="Center" />
-                </StackPanel>
-            </Button>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Width="190"
+                        Height="42"
+                        Margin="0,0,8,0"
+                        Style="{StaticResource ButtonStyle}"
+                        Command="{Binding DataContext.ShowDashboardCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <materialDesign:PackIcon Kind="ArrowLeft"
+                                                 Width="16"
+                                                 Height="16"
+                                                 Margin="0,0,8,0" />
+                        <TextBlock Text="Back to Dashboard" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+
+                <Button Width="140"
+                        Height="42"
+                        Style="{StaticResource ButtonStyle}"
+                        Command="{Binding RefreshCommand}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <materialDesign:PackIcon Kind="Refresh"
+                                                 Width="16"
+                                                 Height="16"
+                                                 Margin="0,0,8,0" />
+                        <TextBlock Text="Refresh" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
         </Grid>
 
-        <UniformGrid Grid.Row="1" Columns="6" Margin="0,0,0,10">
-            <Border Style="{StaticResource CardStyle}" Margin="6" Background="#F5FBFF">
-                <StackPanel>
-                    <TextBlock Text="{Binding TotalLogsCardLabel}"/>
-                    <TextBlock Text="{Binding TotalLogs}" FontSize="22" FontWeight="Bold"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource CardStyle}" Margin="6" Background="#F5FBFF">
-                <StackPanel>
-                    <TextBlock Text="{Binding TodayLogsCardLabel}"/>
-                    <TextBlock Text="{Binding TodayLogs}" FontSize="22" FontWeight="Bold"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource CardStyle}" Margin="6" Background="#F2FBF5">
-                <StackPanel>
-                    <TextBlock Text="{Binding PresentCardLabel}"/>
-                    <TextBlock Text="{Binding PresentToday}" FontSize="22" FontWeight="Bold" Foreground="#2E9D5B"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource CardStyle}" Margin="6" Background="#FFF9EE">
-                <StackPanel>
-                    <TextBlock Text="{Binding IncompleteCardLabel}"/>
-                    <TextBlock Text="{Binding IncompleteLogs}" FontSize="22" FontWeight="Bold" Foreground="#B9831A"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource CardStyle}" Margin="6" Background="#FFF5F5">
-                <StackPanel>
-                    <TextBlock Text="{Binding PendingAdjCardLabel}"/>
-                    <TextBlock Text="{Binding PendingAdjustments}" FontSize="22" FontWeight="Bold" Foreground="#D84343"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource CardStyle}" Margin="6" Background="#F6F2FF">
-                <StackPanel>
-                    <TextBlock Text="{Binding ActiveDevicesCardLabel}"/>
-                    <TextBlock Text="{Binding ActiveDevices}" FontSize="22" FontWeight="Bold" Foreground="#7353BB"/>
-                </StackPanel>
-            </Border>
-        </UniformGrid>
+
 
         <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="6,0,6,8" Padding="10">
             <TabControl x:Name="AttendanceTabControl">
-                <TabItem x:Name="BiometricDevicesTab"
-                         Header="Biometric Devices"
-                         Visibility="{Binding IsAdminOrHrMode, Converter={StaticResource BoolToVis}}">
-                    <Grid Margin="8">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
-                        <Border Grid.Row="0"
-                                Margin="0,0,0,8"
-                                Padding="12"
-                                Style="{StaticResource CardStyle}"
-                                Background="#F8FBFF">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <StackPanel Margin="0,0,16,0">
-                                    <TextBlock Text="{Binding BiometricHardwareStatusTitle}"
-                                               FontSize="16"
-                                               FontWeight="Bold"
-                                               Foreground="{Binding BiometricHardwareStatusBrush}" />
-                                    <TextBlock Margin="0,4,0,0"
-                                               Foreground="#4A5B6C"
-                                               TextWrapping="Wrap"
-                                               Text="{Binding BiometricHardwareStatusText}" />
-                                    <TextBlock Margin="0,4,0,0"
-                                               Foreground="#6E7C8C"
-                                               TextWrapping="Wrap"
-                                               Text="{Binding BiometricHardwareGuidanceText}" />
-                                    <Border Margin="0,8,0,0"
-                                            Padding="8"
-                                            Background="#F3F6FA"
-                                            BorderBrush="#D8E1EC"
-                                            BorderThickness="1"
-                                            CornerRadius="8">
-                                        <TextBlock Foreground="#617386"
-                                                   FontSize="11"
-                                                   TextWrapping="Wrap"
-                                                   Text="{Binding BiometricHardwareDiagnosticText}" />
-                                    </Border>
-
-                                    <ItemsControl Margin="0,8,0,0"
-                                                  ItemsSource="{Binding ConnectedBiometricReaders}"
-                                                  Visibility="{Binding HasConnectedBiometricReaders, Converter={StaticResource BoolToVis}}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <StackPanel Margin="0,0,0,6">
-                                                    <TextBlock Text="{Binding SummaryText}"
-                                                               FontWeight="SemiBold"
-                                                               Foreground="{StaticResource PrimaryBrush}" />
-                                                    <TextBlock Text="{Binding DetailText}"
-                                                               FontSize="12"
-                                                               Foreground="#6E7C8C"
-                                                               TextWrapping="Wrap" />
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel>
-
-                                <StackPanel Grid.Column="1"
-                                            Orientation="Vertical"
-                                            VerticalAlignment="Top">
-                                    <Button Style="{StaticResource ButtonStyle}"
-                                            MinWidth="160"
-                                            Margin="0,0,0,8"
-                                            Command="{Binding DetectConnectedReaderCommand}"
-                                            Content="Detect Reader" />
-                                    <Button Style="{StaticResource ButtonStyle}"
-                                            MinWidth="160"
-                                            Background="#2E9D5B"
-                                            IsEnabled="{Binding CanRegisterConnectedReaders}"
-                                            Command="{Binding RegisterConnectedReaderCommand}"
-                                            Content="Register Connected Reader" />
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-
-                        <Grid Grid.Row="1" Margin="0,0,0,8">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="170" />
-                                <ColumnDefinition Width="130" />
-                                <ColumnDefinition Width="140" />
-                                <ColumnDefinition Width="130" />
-                                <ColumnDefinition Width="70" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Device name" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="Serial no." Foreground="#5B6A7A" FontWeight="SemiBold" Margin="8,0,0,6" />
-                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Location" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="8,0,0,6" />
-                            <TextBlock Grid.Row="0" Grid.Column="3" Text="IP address" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="8,0,0,6" />
-                            <TextBlock Grid.Row="0" Grid.Column="4" Text="Active" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="8,0,0,6" />
-
-                            <TextBox Grid.Row="1" Grid.Column="0" Height="36" Text="{Binding NewDeviceName}" ToolTip="Device Name" />
-                            <TextBox Grid.Row="1" Grid.Column="1" Height="36" Margin="8,0,0,0" Text="{Binding NewDeviceSerial}" ToolTip="Serial" />
-                            <TextBox Grid.Row="1" Grid.Column="2" Height="36" Margin="8,0,0,0" Text="{Binding NewDeviceLocation}" ToolTip="Location" />
-                            <TextBox Grid.Row="1" Grid.Column="3" Height="36" Margin="8,0,0,0" Text="{Binding NewDeviceIp}" ToolTip="IP" />
-                            <CheckBox Grid.Row="1" Grid.Column="4" Height="36" VerticalAlignment="Center" Margin="8,0,0,0" IsChecked="{Binding NewDeviceIsActive}" />
-                            <Button Grid.Row="1" Grid.Column="5" Style="{StaticResource ButtonStyle}" Margin="8,0,0,0" Command="{Binding AddDeviceCommand}" Content="Add Device" />
-                        </Grid>
-                        <DataGrid Grid.Row="2"
-                                  Margin="0,2,0,0"
-                                  ItemsSource="{Binding BiometricDevices}"
-                                  AutoGenerateColumns="False"
-                                  IsReadOnly="True"
-                                  CanUserAddRows="False"
-                                  CanUserDeleteRows="False"
-                                  RowHeaderWidth="0"
-                                  ColumnHeaderHeight="38"
-                                  RowHeight="44"
-                                  GridLinesVisibility="Horizontal"
-                                  HorizontalGridLinesBrush="#E9F0FA"
-                                  VerticalGridLinesBrush="#E9F0FA"
-                                  AlternatingRowBackground="#F8FBFF"
-                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
-                            <DataGrid.ColumnHeaderStyle>
-                                <Style BasedOn="{StaticResource HeaderStyle}" TargetType="DataGridColumnHeader"/>
-                            </DataGrid.ColumnHeaderStyle>
-                            <DataGrid.CellStyle>
-                                <Style BasedOn="{StaticResource GridCellStyle}" TargetType="DataGridCell" />
-                            </DataGrid.CellStyle>
-                            <DataGrid.RowStyle>
-                                <Style BasedOn="{StaticResource GridRowStyle}" TargetType="DataGridRow" />
-                            </DataGrid.RowStyle>
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Device" Binding="{Binding DeviceName}" Width="1.6*" />
-                                <DataGridTextColumn Header="Serial" Binding="{Binding SerialNo}" Width="1.1*" />
-                                <DataGridTextColumn Header="Location" Binding="{Binding Location}" Width="1.2*" />
-                                <DataGridTextColumn Header="IP" Binding="{Binding IpAddress}" Width="1.1*" />
-                                <DataGridTextColumn Header="Last Sync" Binding="{Binding LastSyncText}" Width="1.4*" />
-                                <DataGridTextColumn Header="Status" Binding="{Binding StatusText}" Width="0.9*" />
-                                <DataGridTemplateColumn Header="Actions" Width="1.8*">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="4,0">
-                                                <Button Style="{StaticResource SmallButtonStyle}" Background="#2E9D5B" Content="Sync" VerticalAlignment="Center" Margin="0,0,6,0"
-                                                        Command="{Binding DataContext.SyncDeviceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        CommandParameter="{Binding}" />
-                                                <Button Style="{StaticResource SmallButtonStyle}" Background="#EAF2FB" Foreground="{StaticResource PrimaryBrush}" BorderBrush="#D2E2F6" BorderThickness="1" VerticalAlignment="Center"
-                                                        Content="{Binding ToggleStatusText}"
-                                                        Command="{Binding DataContext.ToggleDeviceActiveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        CommandParameter="{Binding}" />
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </Grid>
-                </TabItem>
-
-                <TabItem x:Name="BiometricEnrollmentsTab"
-                         Header="Biometric Enrollments"
-                         Visibility="{Binding IsAdminOrHrMode, Converter={StaticResource BoolToVis}}">
-                    <Grid Margin="8">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
-                        <Grid Grid.Row="0"
-                              Margin="0,0,0,8"
-                              Visibility="{Binding IsEnrollmentLauncherVisible, Converter={StaticResource BoolToVis}}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <Border Grid.Column="0"
-                                    Margin="0,0,12,0"
-                                    Padding="12"
-                                    Style="{StaticResource CardStyle}"
-                                    Background="#F8FBFF">
-                                <StackPanel>
-                                    <TextBlock Text="{Binding LiveScannerTitle}"
-                                               FontSize="16"
-                                               FontWeight="Bold"
-                                               Foreground="{Binding LiveScannerBrush}" />
-                                    <TextBlock Margin="0,4,0,0"
-                                               Foreground="#5B6A7A"
-                                               TextWrapping="Wrap"
-                                               Text="{Binding LiveScannerStatusText}" />
-                                    <Grid Margin="0,10,0,0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="1.5*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-
-                                        <ComboBox Height="36"
-                                                  ItemsSource="{Binding DeviceOptions}"
-                                                  DisplayMemberPath="Label"
-                                                  SelectedValuePath="Id"
-                                                  SelectedValue="{Binding SelectedLivePunchDeviceId}" />
-                                        <Button Grid.Column="1"
-                                                Style="{StaticResource ButtonStyle}"
-                                                Margin="8,0,0,0"
-                                                MinWidth="160"
-                                                Command="{Binding ScanAttendanceCommand}"
-                                                Content="Scan Attendance" />
-                                    </Grid>
-                                    <TextBlock Margin="0,8,0,0"
-                                               Foreground="#5B6A7A"
-                                               FontWeight="SemiBold"
-                                               Text="Mode: Auto Detect IN / OUT" />
-                                    <TextBlock Margin="0,8,0,0"
-                                               FontWeight="SemiBold"
-                                               Foreground="{StaticResource PrimaryBrush}"
-                                               Text="{Binding LastLivePunchEmployee}" />
-                                    <TextBlock Margin="0,2,0,0"
-                                               Foreground="#5B6A7A"
-                                               TextWrapping="Wrap"
-                                               Text="{Binding LastLivePunchSummary}" />
-                                </StackPanel>
-                            </Border>
-
-                            <Button Grid.Column="1"
-                                    Style="{StaticResource ButtonStyle}"
-                                    MinWidth="170"
-                                    Height="42"
-                                    VerticalAlignment="Top"
-                                    Command="{Binding OpenEnrollmentFlowCommand}"
-                                    Content="Enroll Employee" />
-                        </Grid>
-
-                        <Border Margin="0,0,0,8"
-                                Padding="12"
-                                Style="{StaticResource CardStyle}"
-                                Visibility="{Binding IsEnrollmentFlowVisible, Converter={StaticResource BoolToVis}}">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-
-                                <Grid Grid.Row="0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                     <StackPanel>
-                                         <TextBlock Text="Employee Biometric Enrollment" FontWeight="Bold" FontSize="18" Foreground="{StaticResource PrimaryBrush}" />
-                                         <TextBlock Margin="0,2,0,0" Foreground="#5B6A7A" Text="{Binding EnrollmentFlowSubtitle}" TextWrapping="Wrap" />
-                                     </StackPanel>
-                                    <Button Grid.Column="1"
-                                            Style="{StaticResource SmallButtonStyle}"
-                                            MinWidth="90"
-                                            Background="#EAF2FB"
-                                            Foreground="{StaticResource PrimaryBrush}"
-                                            BorderBrush="#D2E2F6"
-                                            BorderThickness="1"
-                                            Command="{Binding BackFromEnrollmentFlowCommand}"
-                                            Content="Back" />
-                                </Grid>
-
-                                <UniformGrid Grid.Row="1" Columns="5" Margin="0,10,0,0">
-                                    <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0" Padding="10" Background="#F8FBFF">
-                                        <StackPanel>
-                                            <TextBlock Text="Emp No" Foreground="#5B6A7A" />
-                                            <TextBlock Text="{Binding EnrollmentEmployeeNo}" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0" Padding="10" Background="#F8FBFF">
-                                        <StackPanel>
-                                            <TextBlock Text="Employee" Foreground="#5B6A7A" />
-                                            <TextBlock Text="{Binding EnrollmentEmployeeName}" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0" Padding="10" Background="#F8FBFF">
-                                        <StackPanel>
-                                            <TextBlock Text="Department" Foreground="#5B6A7A" />
-                                            <TextBlock Text="{Binding EnrollmentDepartment}" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0" Padding="10" Background="#F8FBFF">
-                                        <StackPanel>
-                                            <TextBlock Text="Position" Foreground="#5B6A7A" />
-                                            <TextBlock Text="{Binding EnrollmentPosition}" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource CardStyle}" Padding="10" Background="#F8FBFF">
-                                        <StackPanel>
-                                            <TextBlock Text="Current Status" Foreground="#5B6A7A" />
-                                            <TextBlock Text="{Binding EnrollmentCurrentStatus}" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
-                                        </StackPanel>
-                                    </Border>
-                                </UniformGrid>
-
-                                <Grid Grid.Row="2" Margin="0,10,0,0">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="2.4*" />
-                                        <ColumnDefinition Width="1.6*" />
-                                        <ColumnDefinition Width="1.4*" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Employee" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Device" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="8,0,0,6" />
-                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Biometric User ID" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="8,0,0,6" />
-
-                                    <ComboBox Grid.Row="1" Grid.Column="0"
-                                              Height="36"
-                                              ItemsSource="{Binding EmployeeOptions}"
-                                              DisplayMemberPath="Label"
-                                              SelectedValuePath="Id"
-                                              SelectedValue="{Binding SelectedEnrollmentEmployeeId}" />
-                                    <ComboBox Grid.Row="1" Grid.Column="1"
-                                              Height="36"
-                                              Margin="8,0,0,0"
-                                              ItemsSource="{Binding DeviceOptions}"
-                                              DisplayMemberPath="Label"
-                                              SelectedValuePath="Id"
-                                              SelectedValue="{Binding SelectedEnrollmentDeviceId}" />
-                                    <TextBox Grid.Row="1" Grid.Column="2"
-                                             Height="36"
-                                             Margin="8,0,0,0"
-                                             Text="{Binding NewBiometricUserId}" />
-                                    <Button Grid.Row="1" Grid.Column="3"
-                                            Style="{StaticResource SmallButtonStyle}"
-                                            Margin="8,0,0,0"
-                                            MinWidth="140"
-                                            Command="{Binding CaptureEnrollmentCommand}"
-                                            Content="Capture Fingerprint" />
-                                    <Button Grid.Row="1" Grid.Column="4"
-                                            Style="{StaticResource SmallButtonStyle}"
-                                            Margin="8,0,0,0"
-                                            MinWidth="165"
-                                            Background="#2E9D5B"
-                                            IsEnabled="{Binding IsEnrollmentReadyToSave}"
-                                            Command="{Binding AddEnrollmentCommand}"
-                                            Content="Complete Enrollment" />
-                                </Grid>
-
-                                <Border Grid.Row="3" Margin="0,10,0,0" Style="{StaticResource CardStyle}" Background="#F8FBFF">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="1.3*" />
-                                            <ColumnDefinition Width="1.2*" />
-                                            <ColumnDefinition Width="2.5*" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Margin="0,0,8,0">
-                                            <TextBlock Text="Instruction" Foreground="#5B6A7A" />
-                                            <TextBlock Text="{Binding EnrollmentInstructionText}" FontWeight="SemiBold" TextWrapping="Wrap" Foreground="{StaticResource PrimaryBrush}" />
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="1" Margin="8,0">
-                                            <TextBlock Text="Capture Progress" Foreground="#5B6A7A" />
-                                            <TextBlock Text="{Binding EnrollmentProgressText}" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="2" Margin="8,0,0,0">
-                                            <TextBlock Text="Reader / Capture Status" Foreground="#5B6A7A" />
-                                            <TextBlock Text="{Binding EnrollmentQualityResult}" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" TextWrapping="Wrap" />
-                                            <TextBlock Text="{Binding EnrollmentResultText}" Margin="0,4,0,0" Foreground="#2E9D5B" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
-
-                                <StackPanel Grid.Row="4" Margin="0,10,0,0">
-                                    <TextBlock Text="Enrollment Audit Log" Foreground="#5B6A7A" FontWeight="SemiBold" />
-                                    <Border Style="{StaticResource CardStyle}" Margin="0,6,0,0" Padding="8" Background="#FAFDFF">
-                                        <ListBox ItemsSource="{Binding EnrollmentAuditLogs}"
-                                                 Height="120"
-                                                 BorderThickness="0"
-                                                 Background="Transparent" />
-                                    </Border>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-                        <DataGrid Grid.Row="1"
-                                  Margin="0,2,0,0"
-                                  Visibility="{Binding IsEnrollmentLauncherVisible, Converter={StaticResource BoolToVis}}"
-                                  ItemsSource="{Binding BiometricEnrollments}"
-                                  AutoGenerateColumns="False"
-                                  IsReadOnly="True"
-                                  CanUserAddRows="False"
-                                  CanUserDeleteRows="False"
-                                  RowHeaderWidth="0"
-                                  ColumnHeaderHeight="38"
-                                  RowHeight="44"
-                                  GridLinesVisibility="Horizontal"
-                                  HorizontalGridLinesBrush="#E9F0FA"
-                                  VerticalGridLinesBrush="#E9F0FA"
-                                  AlternatingRowBackground="#F8FBFF"
-                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
-                            <DataGrid.ColumnHeaderStyle>
-                                <Style BasedOn="{StaticResource HeaderStyle}" TargetType="DataGridColumnHeader"/>
-                            </DataGrid.ColumnHeaderStyle>
-                            <DataGrid.CellStyle>
-                                <Style BasedOn="{StaticResource GridCellStyle}" TargetType="DataGridCell" />
-                            </DataGrid.CellStyle>
-                            <DataGrid.RowStyle>
-                                <Style BasedOn="{StaticResource GridRowStyle}" TargetType="DataGridRow" />
-                            </DataGrid.RowStyle>
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Emp No" Binding="{Binding EmployeeNo}" Width="1*" />
-                                <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName}" Width="2.1*" />
-                                <DataGridTextColumn Header="Biometric ID" Binding="{Binding BiometricUserId}" Width="1.5*" />
-                                <DataGridTextColumn Header="Device" Binding="{Binding DeviceName}" Width="1.4*" />
-                                <DataGridTextColumn Header="Template" Binding="{Binding TemplateStatusText}" Width="1.1*" />
-                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="0.9*" />
-                                <DataGridTextColumn Header="Created" Binding="{Binding CreatedAtText}" Width="1.6*" />
-                                <DataGridTemplateColumn Header="Actions" Width="2.4*">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="4,0">
-                                                <Button Style="{StaticResource SmallButtonStyle}" Background="#EAF2FB" Foreground="{StaticResource PrimaryBrush}" BorderBrush="#D2E2F6" BorderThickness="1" VerticalAlignment="Center" Margin="0,0,6,0"
-                                                        Content="{Binding ToggleStatusText}"
-                                                        Command="{Binding DataContext.ToggleEnrollmentStatusCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        CommandParameter="{Binding}" />
-                                                <Button Style="{StaticResource SmallButtonStyle}" Background="#D84343" Content="Delete" VerticalAlignment="Center"
-                                                        Command="{Binding DataContext.DeleteEnrollmentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        CommandParameter="{Binding}" />
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </Grid>
-                </TabItem>
-
                 <TabItem x:Name="ShiftsTab"
                          Header="Shifts"
                          Visibility="{Binding IsAdminOrHrMode, Converter={StaticResource BoolToVis}}">
@@ -822,7 +364,7 @@
                     </Grid>
                 </TabItem>
 
-                <TabItem Header="{Binding AttendanceRemarksTabHeader}">
+                <TabItem x:Name="AttendanceRemarksTab" Header="{Binding AttendanceRemarksTabHeader}">
                     <Grid Margin="8">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -938,7 +480,7 @@
                                            Grid.ColumnSpan="6"
                                            Margin="0,10,0,0"
                                            Foreground="#5B6A7A"
-                                           Text="Use TO for travel/time-off style remarks and OB for official business. These entries are reflected in DTR remarks." />
+                                           Text="Use TO for travel order, OB for official business, and HOLIDAY for holiday remarks. These entries are reflected in DTR remarks." />
                             </Grid>
                         </Border>
 

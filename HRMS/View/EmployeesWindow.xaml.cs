@@ -16,11 +16,6 @@ namespace HRMS.View
 {
     public partial class EmployeesWindow : UserControl
     {
-        private static readonly GridLength MasterlistExpandedWidth = new(0.62, GridUnitType.Star);
-        private static readonly GridLength DetailsExpandedWidth = new(1.38, GridUnitType.Star);
-        private static readonly GridLength MasterlistCollapsedWidth = new(0);
-        private static readonly GridLength DetailsCollapsedWidth = new(1, GridUnitType.Star);
-
         public static readonly DependencyProperty IsEditModeProperty =
             DependencyProperty.Register(
                 nameof(IsEditMode),
@@ -49,6 +44,9 @@ namespace HRMS.View
         {
             InitializeComponent();
             DataContext = new EmployeesViewModel();
+            EmployeeSearchPopup.DataContext = DataContext;
+            EmployeeSearchTextBox.DataContext = DataContext;
+            EmployeeSearchResultsListBox.DataContext = DataContext;
             SetEditMode(false);
             ApplyAccessScope(null);
         }
@@ -100,6 +98,67 @@ namespace HRMS.View
         {
             await AddEmployeeForm.PrepareForCreateAsync();
             AddEmployeeHost.Visibility = Visibility.Visible;
+        }
+
+        private void SearchEmployeeButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            EmployeeSearchPopup.IsOpen = true;
+        }
+
+        private void EmployeeSearchPopup_OnOpened(object sender, EventArgs e)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                EmployeeSearchTextBox.Focus();
+                EmployeeSearchTextBox.SelectAll();
+            }), DispatcherPriority.Input);
+        }
+
+        private void EmployeeSearchTextBox_OnKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter && e.Key != Key.Escape)
+            {
+                return;
+            }
+
+            EmployeeSearchPopup.IsOpen = false;
+            e.Handled = true;
+        }
+
+        private void ClearEmployeeSearchButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is EmployeesViewModel vm)
+            {
+                vm.SearchText = string.Empty;
+            }
+
+            EmployeeSearchTextBox.Focus();
+        }
+
+        private void CloseEmployeeSearchButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            EmployeeSearchPopup.IsOpen = false;
+        }
+
+        private void EmployeeSearchResultsListBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is not ListBox listBox || listBox.SelectedItem is not EmployeeRowVm employee)
+            {
+                return;
+            }
+
+            if (DataContext is EmployeesViewModel vm)
+            {
+                vm.SelectEmployee(employee);
+                _editingEmployeeNo = employee.EmployeeNo;
+                if (_isEditMode)
+                {
+                    SyncProfileEditorsToSelectedEmployee();
+                }
+            }
+
+            EmployeeSearchPopup.IsOpen = false;
+            listBox.SelectedItem = null;
         }
 
         private async void AddEmployeeForm_EmployeeSaved(object sender, System.EventArgs e)
@@ -262,6 +321,24 @@ namespace HRMS.View
                 AddEmployeeButton.Visibility = _isEmployeeSelfMode ? Visibility.Collapsed : Visibility.Visible;
             }
 
+            if (SearchEmployeeButton != null)
+            {
+                SearchEmployeeButton.Visibility = _isEmployeeSelfMode ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            if (_isEmployeeSelfMode)
+            {
+                if (EmployeeSearchPopup != null)
+                {
+                    EmployeeSearchPopup.IsOpen = false;
+                }
+
+                if (DataContext is EmployeesViewModel vm)
+                {
+                    vm.SearchText = string.Empty;
+                }
+            }
+
             if (EditProfileButton != null)
             {
                 EditProfileButton.Visibility = _isEmployeeSelfMode ? Visibility.Collapsed : Visibility.Visible;
@@ -270,26 +347,6 @@ namespace HRMS.View
             if (SaveProfileButton != null)
             {
                 SaveProfileButton.Visibility = _isEmployeeSelfMode ? Visibility.Collapsed : SaveProfileButton.Visibility;
-            }
-
-            if (EmployeeStatsPanel != null)
-            {
-                EmployeeStatsPanel.Visibility = _isEmployeeSelfMode ? Visibility.Collapsed : Visibility.Visible;
-            }
-
-            if (EmployeeMasterlistPanel != null)
-            {
-                EmployeeMasterlistPanel.Visibility = _isEmployeeSelfMode ? Visibility.Collapsed : Visibility.Visible;
-            }
-
-            if (MasterlistColumn != null)
-            {
-                MasterlistColumn.Width = _isEmployeeSelfMode ? MasterlistCollapsedWidth : MasterlistExpandedWidth;
-            }
-
-            if (DetailsColumn != null)
-            {
-                DetailsColumn.Width = _isEmployeeSelfMode ? DetailsCollapsedWidth : DetailsExpandedWidth;
             }
 
             if (PageTitleText != null)

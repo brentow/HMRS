@@ -131,12 +131,19 @@ namespace HRMS.ViewModel
 
         private async Task LoadCompanyProfileAsync()
         {
-            var profile = await _companyProfileDataService.GetCompanyProfileAsync();
-            CompanyName = profile.CompanyName;
-            CompanyAddress = profile.Address;
-            CompanyOwner = profile.OwnerName;
-            SerialNumber = profile.SerialNumber;
-            CompanyLogoPath = NormalizeLogoPath(profile.LogoPath);
+            try
+            {
+                var profile = await _companyProfileDataService.GetCompanyProfileAsync();
+                CompanyName = profile.CompanyName;
+                CompanyAddress = profile.Address;
+                CompanyOwner = profile.OwnerName;
+                SerialNumber = profile.SerialNumber;
+                CompanyLogoPath = NormalizeLogoPath(profile.LogoPath);
+            }
+            catch
+            {
+                CompanyLogoPath = NormalizeLogoPath(null);
+            }
         }
 
         private static string NormalizeLogoPath(string? rawPath)

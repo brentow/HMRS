@@ -31,5 +31,22 @@ namespace HRMS.View
         {
             await _viewModel.RefreshAsync();
         }
+
+        public void ShowPayrollTab()
+        {
+            PayrollTabControl.SelectedItem = PayrollRunsTab;
+        }
+
+        public void ShowDeductionsTab()
+        {
+            PayrollTabControl.SelectedItem = DeductionsTab.Visibility == System.Windows.Visibility.Visible
+                ? DeductionsTab
+                : PayrollRunsTab;
+        }
+
+        public void ShowPayslipTab()
+        {
+            PayrollTabControl.SelectedItem = PayslipReleasesTab;
+        }
     }
 }

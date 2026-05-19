@@ -187,6 +187,19 @@ namespace HRMS.View
 
         private async void AddEmployee_Click(object sender, RoutedEventArgs e)
         {
+            var result = await SaveEmployeeAsync();
+            if (result.HasValue)
+            {
+                EmployeeSaved?.Invoke(this, EventArgs.Empty);
+                await ResetFormAsync();
+            }
+        }
+
+        /// <summary>
+        /// Validates and saves the employee. Returns the new employee ID on success, null on failure.
+        /// </summary>
+        private async Task<int?> SaveEmployeeAsync()
+        {
             ShowError(string.Empty);
 
             var employeeNo = (EmployeeNoBox.Text ?? string.Empty).Trim();
@@ -197,14 +210,14 @@ namespace HRMS.View
             {
                 ShowError("Employee No is required.");
                 EmployeeNoBox.Focus();
-                return;
+                return null;
             }
 
             if (string.IsNullOrWhiteSpace(lastName) || string.IsNullOrWhiteSpace(firstName))
             {
                 ShowError("First Name and Last Name are required.");
                 FirstNameBox.Focus();
-                return;
+                return null;
             }
 
             var departmentId = ToNullableInt(DepartmentBox.SelectedValue);
@@ -214,14 +227,14 @@ namespace HRMS.View
             if (!departmentId.HasValue || !positionId.HasValue || !appointmentTypeId.HasValue)
             {
                 ShowError("Department, Position, and Appointment Type are required.");
-                return;
+                return null;
             }
 
             if (!HireDatePicker.SelectedDate.HasValue)
             {
                 ShowError("Hire Date is required.");
                 HireDatePicker.Focus();
-                return;
+                return null;
             }
 
             var sex = (SexBox.SelectedItem as ComboBoxItem)?.Content?.ToString();
@@ -261,16 +274,17 @@ namespace HRMS.View
                     dto.LastName,
                     dto.Email);
                 SystemRefreshBus.Raise("EmployeeAdded");
-                EmployeeSaved?.Invoke(this, EventArgs.Empty);
-                await ResetFormAsync();
+                return employeeId;
             }
             catch (MySqlException ex) when (ex.Number == 1062)
             {
                 ShowError("Employee No already exists. Please use a unique Employee No.");
+                return null;
             }
             catch (Exception ex)
             {
                 ShowError($"Failed to add employee: {ex.Message}");
+                return null;
             }
         }
 
@@ -278,6 +292,42 @@ namespace HRMS.View
         {
             Cancelled?.Invoke(this, EventArgs.Empty);
         }
+
+        private void AddBiometricDeviceButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new BiometricDeviceDialog();
+            dialog.Owner = Window.GetWindow(this);
+            dialog.ShowDialog();
+        }
+
+        private async void EnrollBiometricButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Save the employee first
+            var employeeId = await SaveEmployeeAsync();
+            if (!employeeId.HasValue)
+            {
+                // Validation or save failed — error already shown
+                return;
+            }
+
+            var employeeNo = (EmployeeNoBox.Text ?? string.Empty).Trim();
+            var firstName = (FirstNameBox.Text ?? string.Empty).Trim();
+            var lastName = (LastNameBox.Text ?? string.Empty).Trim();
+            var employeeName = $"{lastName}, {firstName}";
+
+            // Open enrollment dialog with the newly saved employee
+            var dialog = new BiometricEnrollmentDialog();
+            dialog.SetEmployee(employeeId.Value, employeeNo, employeeName);
+            dialog.Owner = Window.GetWindow(this);
+            dialog.ShowDialog();
+
+            // After enrollment, notify parent and reset
+            EmployeeSaved?.Invoke(this, EventArgs.Empty);
+            await ResetFormAsync();
+        }
+
+        public event EventHandler? OpenBiometricDeviceRequested;
+        public event EventHandler? OpenBiometricEnrollmentRequested;
 
         public void ResetForm()
         {

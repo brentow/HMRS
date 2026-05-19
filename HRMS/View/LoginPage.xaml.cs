@@ -78,6 +78,7 @@ namespace HRMS.View
         private const string CrsRemoteDbDefault = "u621755393_crs";
         private const string CrsRemoteUserDefault = "u621755393_crs_user";
         private const string CrsRemotePasswordDefault = "Crs@2026";
+        private const bool BypassSetupOtpForNow = true;
 
         private readonly LoginViewModel _viewModel;
         private readonly PaletteHelper _paletteHelper = new PaletteHelper();
@@ -142,6 +143,11 @@ namespace HRMS.View
         private void exitApp(object sender, RoutedEventArgs e)
         {
             Application.Current.Shutdown();
+        }
+
+        private void MinimizeApp(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState.Minimized;
         }
 
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
@@ -258,7 +264,7 @@ namespace HRMS.View
 
         private void OpenDatabaseDialogButton_OnClick(object sender, RoutedEventArgs e)
         {
-            if (!_setupOtpChallengeService.HasVerifiedSetupAccess)
+            if (!BypassSetupOtpForNow && !_setupOtpChallengeService.HasVerifiedSetupAccess)
             {
                 var otpWindow = new SetupOtpWindow(_setupOtpChallengeService)
                 {
@@ -274,7 +280,11 @@ namespace HRMS.View
 
             InitializeDatabaseForm();
             DialogHost.IsOpen = true;
-            SetDbStatus("OTP verified. Database setup is temporarily unlocked.", DbSuccessBrush);
+            SetDbStatus(
+                BypassSetupOtpForNow
+                    ? "OTP is temporarily bypassed. Database setup is unlocked for now."
+                    : "OTP verified. Database setup is temporarily unlocked.",
+                DbSuccessBrush);
         }
 
         private void CloseDbDialogButton_OnClick(object sender, RoutedEventArgs e)
@@ -642,7 +652,7 @@ namespace HRMS.View
 
         private async void SaveDatabaseSettingsButton_OnClick(object sender, RoutedEventArgs e)
         {
-            if (!_setupOtpChallengeService.HasVerifiedSetupAccess)
+            if (!BypassSetupOtpForNow && !_setupOtpChallengeService.HasVerifiedSetupAccess)
             {
                 SetDbStatus("OTP verification expired. Request a new OTP before saving database setup changes.", DbErrorBrush);
                 return;

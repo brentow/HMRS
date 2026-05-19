@@ -108,150 +108,33 @@
                 <TextBlock Text="Audit attendance punches and remove invalid logs." Foreground="#5B6A7A" Margin="0,2,0,0" />
             </StackPanel>
 
-            <Button Grid.Column="1"
-                    Width="140"
-                    Height="42"
-                    Style="{StaticResource PrimaryActionButtonStyle}"
-                    Command="{Binding RefreshCommand}"
-                    VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" Margin="0,0,8,0" />
-                    <TextBlock Text="Refresh" VerticalAlignment="Center" />
-                </StackPanel>
-            </Button>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Width="190"
+                        Height="42"
+                        Margin="0,0,8,0"
+                        Style="{StaticResource PrimaryActionButtonStyle}"
+                        Command="{Binding DataContext.ShowDashboardCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="ArrowLeft" Width="16" Height="16" Margin="0,0,8,0" />
+                        <TextBlock Text="Back to Dashboard" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+
+                <Button Width="140"
+                        Height="42"
+                        Style="{StaticResource PrimaryActionButtonStyle}"
+                        Command="{Binding RefreshCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" Margin="0,0,8,0" />
+                        <TextBlock Text="Refresh" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
         </Grid>
 
-        <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,12">
-            <Border CornerRadius="14" BorderBrush="#E5EDF7" BorderThickness="1" Padding="14" Margin="6" Background="#F5FBFF">
-                <StackPanel>
-                    <TextBlock Text="Total Logs" Foreground="#6A7684" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding TotalLogs}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
-                </StackPanel>
-            </Border>
-            <Border CornerRadius="14" BorderBrush="#E5EDF7" BorderThickness="1" Padding="14" Margin="6" Background="#F5FBFF">
-                <StackPanel>
-                    <TextBlock Text="Today Logs" Foreground="#6A7684" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding TodayLogs}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
-                </StackPanel>
-            </Border>
-            <Border CornerRadius="14" BorderBrush="#E5EDF7" BorderThickness="1" Padding="14" Margin="6" Background="#FFF9EE">
-                <StackPanel>
-                    <TextBlock Text="Incomplete Logs" Foreground="#6A7684" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding IncompleteLogs}" FontSize="28" FontWeight="Bold" Foreground="#B9831A"/>
-                </StackPanel>
-            </Border>
-            <Border CornerRadius="14" BorderBrush="#E5EDF7" BorderThickness="1" Padding="14" Margin="6" Background="#F2FBF5">
-                <StackPanel>
-                    <TextBlock Text="Present Today" Foreground="#6A7684" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding PresentToday}" FontSize="28" FontWeight="Bold" Foreground="#2E9D5B"/>
-                </StackPanel>
-            </Border>
-        </UniformGrid>
 
-        <Border Grid.Row="2" Margin="6,0,6,12" Padding="12" BorderBrush="#E5EDF7" BorderThickness="1" Background="White" CornerRadius="12">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
 
-                <Grid Grid.Column="0" Margin="0,0,8,0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="250" />
-                        <ColumnDefinition Width="130" />
-                        <ColumnDefinition Width="95" />
-                        <ColumnDefinition Width="120" />
-                        <ColumnDefinition Width="120" />
-                    </Grid.ColumnDefinitions>
 
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Employee" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Date" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,6" />
-                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Time" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,6" />
-                    <TextBlock Grid.Row="0" Grid.Column="3" Text="Type" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,6" />
-                    <TextBlock Grid.Row="0" Grid.Column="4" Text="Source" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,6" />
-
-                    <ComboBox Grid.Row="1"
-                              Grid.Column="0"
-                              Height="40"
-                              ItemsSource="{Binding EmployeeOptions}"
-                              DisplayMemberPath="Label"
-                              SelectedValuePath="Id"
-                              SelectedValue="{Binding SelectedManualLogEmployeeId}" />
-                    <Border Grid.Row="1"
-                            Grid.Column="1"
-                            Height="40"
-                            Margin="10,0,0,0"
-                            BorderBrush="#D5E3F5"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Background="#F8FBFF">
-                        <DatePicker BorderThickness="0"
-                                    Padding="8,0"
-                                    VerticalContentAlignment="Center"
-                                    Background="Transparent"
-                                    SelectedDate="{Binding ManualLogDate}" />
-                    </Border>
-                    <TextBox Grid.Row="1"
-                             Grid.Column="2"
-                             Height="40"
-                             Margin="10,0,0,0"
-                             VerticalContentAlignment="Center"
-                             Text="{Binding ManualLogTime, UpdateSourceTrigger=PropertyChanged}" />
-                    <ComboBox Grid.Row="1"
-                              Grid.Column="3"
-                              Height="40"
-                              Margin="10,0,0,0"
-                              ItemsSource="{Binding ManualLogTypes}"
-                              SelectedItem="{Binding ManualLogType}" />
-                    <ComboBox Grid.Row="1"
-                              Grid.Column="4"
-                              Height="40"
-                              Margin="10,0,0,0"
-                              ItemsSource="{Binding ManualLogSources}"
-                              SelectedItem="{Binding ManualLogSource}" />
-
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Device (Optional)" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,8,0,6" />
-                    <ComboBox Grid.Row="3"
-                              Grid.Column="0"
-                              Height="40"
-                              ItemsSource="{Binding DeviceOptions}"
-                              DisplayMemberPath="Label"
-                              SelectedValuePath="Id"
-                              SelectedValue="{Binding SelectedManualLogDeviceId}" />
-                </Grid>
-
-                <StackPanel Grid.Column="1"
-                            Orientation="Horizontal"
-                            VerticalAlignment="Top"
-                            Margin="0,24,0,0"
-                            HorizontalAlignment="Right">
-                    <Button Style="{StaticResource PrimaryActionButtonStyle}" Margin="0,0,8,0" MinWidth="140" Command="{Binding AddManualLogCommand}">
-                        <TextBlock Text="Add Manual Log" />
-                    </Button>
-                    <Button Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0" MinWidth="140" Command="{Binding UpdateSelectedLogCommand}">
-                        <TextBlock Text="Update Selected" />
-                    </Button>
-                    <Button Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0" MinWidth="120" Command="{Binding ClearLogEditorCommand}">
-                        <TextBlock Text="Clear Editor" />
-                    </Button>
-                    <Button Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0" MinWidth="130" Command="{Binding ImportLogsCsvCommand}">
-                        <TextBlock Text="Import CSV" />
-                    </Button>
-                    <Button Style="{StaticResource SecondaryActionButtonStyle}" Margin="0,0,8,0" MinWidth="120" Command="{Binding PrintLogsReportCommand}">
-                        <TextBlock Text="Print Report" />
-                    </Button>
-                    <Button Style="{StaticResource SecondaryActionButtonStyle}" MinWidth="130" Command="{Binding ExportLogsCsvCommand}">
-                        <TextBlock Text="Export CSV" />
-                    </Button>
-                </StackPanel>
-            </Grid>
-        </Border>
 
         <Border Grid.Row="3"
                 Margin="6,0,6,12"

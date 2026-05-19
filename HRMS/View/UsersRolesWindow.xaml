@@ -116,6 +116,15 @@
                             <TextBlock Text="Manage your account details and password." Foreground="#5B6A7A" Margin="0,2,0,0"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Style="{StaticResource ProfilePrimaryButtonStyle}"
+                                    Width="190"
+                                    Margin="0,0,8,0"
+                                    Command="{Binding DataContext.ShowDashboardCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="ArrowLeft" Width="16" Height="16" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Back to Dashboard"/>
+                                </StackPanel>
+                            </Button>
                             <Button Style="{StaticResource ProfileSecondaryButtonStyle}"
                                     Width="110"
                                     Margin="0,0,8,0"
@@ -333,7 +342,22 @@
                             <TextBlock Text="Users &amp; Roles Administration" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
                             <TextBlock Text="Manage role, status, and password resets for user accounts." Foreground="#5B6A7A"/>
                         </StackPanel>
-                        <Button Grid.Column="1" Width="120" Height="34" Content="Refresh" Command="{Binding RefreshCommand}" Background="{StaticResource PrimaryBrush}" Foreground="White" BorderThickness="0"/>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Width="190"
+                                    Height="34"
+                                    Margin="0,0,8,0"
+                                    Command="{Binding DataContext.ShowDashboardCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
+                                    Background="{StaticResource PrimaryBrush}"
+                                    Foreground="White"
+                                    BorderThickness="0"
+                                    FontWeight="SemiBold">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="ArrowLeft" Width="16" Height="16" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Back to Dashboard"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Width="120" Height="34" Content="Refresh" Command="{Binding RefreshCommand}" Background="{StaticResource PrimaryBrush}" Foreground="White" BorderThickness="0"/>
+                        </StackPanel>
                     </Grid>
 
                     <Grid Grid.Row="1" Margin="0,0,0,12">
@@ -507,6 +531,27 @@
                 </TabItem.Header>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="8">
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="System Settings" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
+                                <TextBlock Text="Manage database, company profile, storage, backups, and maintenance tools." Foreground="#5B6A7A"/>
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    Width="190"
+                                    Height="36"
+                                    Style="{StaticResource ProfilePrimaryButtonStyle}"
+                                    Command="{Binding DataContext.ShowDashboardCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="ArrowLeft" Width="16" Height="16" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Back to Dashboard"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
                         <Border Style="{StaticResource SettingsCardStyle}">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">

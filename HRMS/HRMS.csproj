@@ -13,6 +13,8 @@
   <ItemGroup>
     <None Remove="Images\ePRIME_logo.ico" />
     <None Remove="Images\ePRIME_logo.png" />
+    <None Remove="Images\sulop_municipal_hall.jpg" />
+    <None Remove="Images\sulop_seal.jpg" />
   </ItemGroup>
 
   <ItemGroup>
@@ -58,6 +60,12 @@
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Images\ePRIME_logo.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Images\sulop_municipal_hall.jpg">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Images\sulop_seal.jpg">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
   </ItemGroup>

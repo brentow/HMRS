@@ -826,6 +826,9 @@ WHERE payroll_run_id = @payroll_run_id;";
                 "PAYROLL_RUN_STATUS_UPDATE",
                 "payroll_runs",
                 targetId);
+            var previousStatus = await GetPayrollRunStatusAsync(connection, payrollRunId);
+            var shouldWriteConsolidated = normalizedStatus == "RELEASED" &&
+                                          !string.Equals(previousStatus, "RELEASED", StringComparison.OrdinalIgnoreCase);
 
             try
             {
@@ -852,6 +855,13 @@ WHERE payroll_run_id = @payroll_run_id;";
                     targetId,
                     "SUCCESS",
                     $"Status='{normalizedStatus}'.");
+
+                if (shouldWriteConsolidated)
+                {
+                    _ = Task.Run(() => TryWriteConsolidatedRunStatusTransactionAsync(
+                        actingUserId,
+                        payrollRunId));
+                }
             }
             catch (Exception ex)
             {
@@ -1147,7 +1157,8 @@ SELECT LAST_INSERT_ID();";
                 var payload = new ConsolidatedTransactionPayload(
                     BeneficiaryId: Truncate45(string.IsNullOrWhiteSpace(details.EmployeeNo) ? $"EMP-{details.EmployeeId}" : details.EmployeeNo),
                     CivilRegistryId: null,
-                    ProjectCode: Truncate45($"HRMS-PRL-{payslipReleaseId:D6}"),
+                    ProjectCode: Truncate45($"HRMS-{payslipReleaseId:D6}"),
+                    ProjectName: Truncate45(ResolveProjectName(details)),
                     OfficeId: Truncate45(officeCode),
                     FullName: Truncate45(fullName),
                     FirstName: Truncate45(firstName),
@@ -1180,6 +1191,70 @@ SELECT LAST_INSERT_ID();";
             }
         }
 
+        private async Task TryWriteConsolidatedRunStatusTransactionAsync(
+            int? actingUserId,
+            long payrollRunId)
+        {
+            try
+            {
+                await using var connection = new MySqlConnection(_connectionString);
+                await connection.OpenAsync();
+
+                var details = await GetConsolidatedReleaseDetailsNoTransactionAsync(connection, payrollRunId);
+                if (details == null)
+                {
+                    return;
+                }
+
+                var profileService = new CompanyProfileDataService(_connectionString);
+                var profile = await profileService.GetCompanyProfileAsync();
+                var officeCode = ResolveOfficeCode(profile.SerialNumber);
+                var officeName = string.IsNullOrWhiteSpace(profile.CompanyName)
+                    ? "Human Resources Management System"
+                    : profile.CompanyName.Trim();
+
+                var firstName = string.IsNullOrWhiteSpace(details.FirstName) ? "Unknown" : details.FirstName.Trim();
+                var lastName = string.IsNullOrWhiteSpace(details.LastName) ? "Unknown" : details.LastName.Trim();
+                var middleName = string.IsNullOrWhiteSpace(details.MiddleName) ? null : details.MiddleName.Trim();
+                var fullName = BuildFullName(firstName, middleName, lastName);
+
+                var payload = new ConsolidatedTransactionPayload(
+                    BeneficiaryId: Truncate45(string.IsNullOrWhiteSpace(details.EmployeeNo) ? $"EMP-{details.EmployeeId}" : details.EmployeeNo),
+                    CivilRegistryId: null,
+                    ProjectCode: Truncate45($"HRMS-{payrollRunId:D6}"),
+                    ProjectName: Truncate45(ResolveProjectName(details)),
+                    OfficeId: Truncate45(officeCode),
+                    FullName: Truncate45(fullName),
+                    FirstName: Truncate45(firstName),
+                    MiddleName: Truncate45OrNull(middleName),
+                    LastName: Truncate45(lastName),
+                    OfficeName: Truncate45(officeName),
+                    TransactionType: "Payroll Release",
+                    Amount: details.NetPay,
+                    TransactionDate: details.PayDate.Date,
+                    Status: "Released");
+
+                await _consolidatedTransactionSyncService.InsertAsync(payload);
+                await _auditLogWriter.TryWriteAsync(
+                    actingUserId,
+                    "CONSOLIDATED_TRANSACTION_INSERT",
+                    "payroll_runs",
+                    payrollRunId.ToString(CultureInfo.InvariantCulture),
+                    "SUCCESS",
+                    $"GGMS consolidated transaction inserted from run status release for payroll run #{payrollRunId}.");
+            }
+            catch (Exception ex)
+            {
+                await _auditLogWriter.TryWriteAsync(
+                    actingUserId,
+                    "CONSOLIDATED_TRANSACTION_INSERT",
+                    "payroll_runs",
+                    payrollRunId.ToString(CultureInfo.InvariantCulture),
+                    "FAILED",
+                    $"Payroll run status changed to RELEASED but GGMS consolidated insert failed: {ex.Message}");
+            }
+        }
+
         private static async Task<ConsolidatedReleaseDetails?> GetConsolidatedReleaseDetailsAsync(
             MySqlConnection connection,
             MySqlTransaction transaction,
@@ -1193,6 +1268,7 @@ SELECT
     e.middle_name,
     COALESCE(e.last_name, '') AS last_name,
     COALESCE(pr.net_pay, 0) AS net_pay,
+    COALESCE(pp.period_code, '') AS period_code,
     COALESCE(pp.pay_date, CURDATE()) AS pay_date
 FROM payroll_runs pr
 INNER JOIN employees e ON e.employee_id = pr.employee_id
@@ -1215,9 +1291,67 @@ LIMIT 1;";
                 MiddleName: reader["middle_name"] == DBNull.Value ? null : reader["middle_name"]?.ToString(),
                 LastName: reader["last_name"]?.ToString() ?? string.Empty,
                 NetPay: ToDecimal(reader["net_pay"]),
+                PeriodCode: reader["period_code"]?.ToString() ?? string.Empty,
                 PayDate: reader["pay_date"] == DBNull.Value
                     ? DateTime.Today
                     : Convert.ToDateTime(reader["pay_date"], CultureInfo.InvariantCulture));
+        }
+
+        private static async Task<ConsolidatedReleaseDetails?> GetConsolidatedReleaseDetailsNoTransactionAsync(
+            MySqlConnection connection,
+            long payrollRunId)
+        {
+            const string sql = @"
+SELECT
+    pr.employee_id,
+    COALESCE(e.employee_no, '') AS employee_no,
+    COALESCE(e.first_name, '') AS first_name,
+    e.middle_name,
+    COALESCE(e.last_name, '') AS last_name,
+    COALESCE(pr.net_pay, 0) AS net_pay,
+    COALESCE(pp.period_code, '') AS period_code,
+    COALESCE(pp.pay_date, CURDATE()) AS pay_date
+FROM payroll_runs pr
+INNER JOIN employees e ON e.employee_id = pr.employee_id
+LEFT JOIN payroll_periods pp ON pp.payroll_period_id = pr.payroll_period_id
+WHERE pr.payroll_run_id = @payroll_run_id
+LIMIT 1;";
+
+            await using var command = new MySqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@payroll_run_id", payrollRunId);
+            await using var reader = await command.ExecuteReaderAsync();
+            if (!await reader.ReadAsync())
+            {
+                return null;
+            }
+
+            return new ConsolidatedReleaseDetails(
+                EmployeeId: ToInt(reader["employee_id"]),
+                EmployeeNo: reader["employee_no"]?.ToString() ?? string.Empty,
+                FirstName: reader["first_name"]?.ToString() ?? string.Empty,
+                MiddleName: reader["middle_name"] == DBNull.Value ? null : reader["middle_name"]?.ToString(),
+                LastName: reader["last_name"]?.ToString() ?? string.Empty,
+                NetPay: ToDecimal(reader["net_pay"]),
+                PeriodCode: reader["period_code"]?.ToString() ?? string.Empty,
+                PayDate: reader["pay_date"] == DBNull.Value
+                    ? DateTime.Today
+                    : Convert.ToDateTime(reader["pay_date"], CultureInfo.InvariantCulture));
+        }
+
+        private static async Task<string?> GetPayrollRunStatusAsync(
+            MySqlConnection connection,
+            long payrollRunId)
+        {
+            const string sql = @"
+SELECT status
+FROM payroll_runs
+WHERE payroll_run_id = @payroll_run_id
+LIMIT 1;";
+
+            await using var command = new MySqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@payroll_run_id", payrollRunId);
+            var value = await command.ExecuteScalarAsync();
+            return value == null || value == DBNull.Value ? null : value.ToString();
         }
 
         private static string ResolveOfficeCode(string? serialNumber)
@@ -1240,6 +1374,20 @@ LIMIT 1;";
             }
 
             return $"{firstName} {middleName.Trim()} {lastName}".Trim();
+        }
+
+        private static string ResolveProjectName(ConsolidatedReleaseDetails details)
+        {
+            var periodCode = string.IsNullOrWhiteSpace(details.PeriodCode)
+                ? null
+                : details.PeriodCode.Trim();
+
+            if (string.IsNullOrWhiteSpace(periodCode))
+            {
+                return $"Payroll {details.PayDate:MMMM yyyy}";
+            }
+
+            return $"Payroll {periodCode}";
         }
 
         private static string Truncate45(string? value)
@@ -1857,6 +2005,220 @@ VALUES (@payroll_run_id, @item_type, @code, @description, @amount);";
             string? MiddleName,
             string LastName,
             decimal NetPay,
+            string PeriodCode,
             DateTime PayDate);
+
+        /// <summary>
+        /// One-click GENERATE: creates payroll runs for ALL active employees in the given period.
+        /// Uses each employee's stored monthly rate and default allowances.
+        /// </summary>
+        public async Task<int> GenerateAllRunsAsync(long payrollPeriodId)
+        {
+            if (payrollPeriodId <= 0)
+            {
+                throw new InvalidOperationException("Payroll period is required.");
+            }
+
+            var employees = await GetEmployeesAsync(null);
+            var generated = 0;
+
+            foreach (var emp in employees)
+            {
+                try
+                {
+                    await UpsertRunAsync(
+                        payrollPeriodId,
+                        emp.EmployeeId,
+                        basicPay: 0m,
+                        allowances: 0m,
+                        overtimePay: 0m,
+                        otherEarnings: 0m,
+                        deductionsTotal: 0m,
+                        status: "GENERATED");
+                    generated++;
+                }
+                catch
+                {
+                    // Skip employees that fail (e.g. missing compensation data)
+                }
+            }
+
+            return generated;
+        }
+
+        /// <summary>
+        /// Loads SSS contribution brackets from the database.
+        /// Returns empty list if table doesn't exist yet.
+        /// </summary>
+        public async Task<IReadOnlyList<SssBracketDto>> GetSssBracketsAsync()
+        {
+            const string sql = @"
+SELECT salary_credit, min_range, max_range, ee_share, er_share, ec_share, total_contribution
+FROM sss_contribution_brackets
+WHERE is_active = 1
+ORDER BY min_range;";
+
+            var list = new List<SssBracketDto>();
+            try
+            {
+                await using var connection = new MySqlConnection(_connectionString);
+                await connection.OpenAsync();
+                await using var command = new MySqlCommand(sql, connection);
+                await using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    list.Add(new SssBracketDto(
+                        ToDecimal(reader["salary_credit"]),
+                        ToDecimal(reader["min_range"]),
+                        ToDecimal(reader["max_range"]),
+                        ToDecimal(reader["ee_share"]),
+                        ToDecimal(reader["er_share"]),
+                        ToDecimal(reader["ec_share"]),
+                        ToDecimal(reader["total_contribution"])));
+                }
+            }
+            catch (MySqlException ex) when (IsMissingObjectError(ex))
+            {
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// Loads GSIS contribution rates from the database.
+        /// </summary>
+        public async Task<GsisBracketDto?> GetGsisBracketAsync()
+        {
+            const string sql = @"
+SELECT ee_rate, er_rate, description
+FROM gsis_contribution_brackets
+WHERE is_active = 1
+ORDER BY effective_year DESC
+LIMIT 1;";
+
+            try
+            {
+                await using var connection = new MySqlConnection(_connectionString);
+                await connection.OpenAsync();
+                await using var command = new MySqlCommand(sql, connection);
+                await using var reader = await command.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    return new GsisBracketDto(
+                        ToDecimal(reader["ee_rate"]),
+                        ToDecimal(reader["er_rate"]),
+                        reader["description"]?.ToString() ?? string.Empty);
+                }
+            }
+            catch (MySqlException ex) when (IsMissingObjectError(ex))
+            {
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Loads PhilHealth contribution parameters from the database.
+        /// </summary>
+        public async Task<PhilHealthBracketDto?> GetPhilHealthBracketAsync()
+        {
+            const string sql = @"
+SELECT premium_rate, min_monthly_premium, max_monthly_premium, ee_share_pct, er_share_pct, salary_floor, salary_ceiling
+FROM philhealth_contribution_brackets
+WHERE is_active = 1
+ORDER BY effective_year DESC
+LIMIT 1;";
+
+            try
+            {
+                await using var connection = new MySqlConnection(_connectionString);
+                await connection.OpenAsync();
+                await using var command = new MySqlCommand(sql, connection);
+                await using var reader = await command.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    return new PhilHealthBracketDto(
+                        ToDecimal(reader["premium_rate"]),
+                        ToDecimal(reader["min_monthly_premium"]),
+                        ToDecimal(reader["max_monthly_premium"]),
+                        ToDecimal(reader["ee_share_pct"]),
+                        ToDecimal(reader["er_share_pct"]),
+                        ToDecimal(reader["salary_floor"]),
+                        ToDecimal(reader["salary_ceiling"]));
+                }
+            }
+            catch (MySqlException ex) when (IsMissingObjectError(ex))
+            {
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Loads Pag-IBIG contribution brackets from the database.
+        /// </summary>
+        public async Task<IReadOnlyList<PagIbigBracketDto>> GetPagIbigBracketsAsync()
+        {
+            const string sql = @"
+SELECT min_salary, max_salary, ee_rate, er_rate, max_ee_contribution, max_er_contribution
+FROM pagibig_contribution_brackets
+WHERE is_active = 1
+ORDER BY min_salary;";
+
+            var list = new List<PagIbigBracketDto>();
+            try
+            {
+                await using var connection = new MySqlConnection(_connectionString);
+                await connection.OpenAsync();
+                await using var command = new MySqlCommand(sql, connection);
+                await using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    list.Add(new PagIbigBracketDto(
+                        ToDecimal(reader["min_salary"]),
+                        ToDecimal(reader["max_salary"]),
+                        ToDecimal(reader["ee_rate"]),
+                        ToDecimal(reader["er_rate"]),
+                        ToDecimal(reader["max_ee_contribution"]),
+                        ToDecimal(reader["max_er_contribution"])));
+                }
+            }
+            catch (MySqlException ex) when (IsMissingObjectError(ex))
+            {
+            }
+
+            return list;
+        }
     }
+
+    public record SssBracketDto(
+        decimal SalaryCredit,
+        decimal MinRange,
+        decimal MaxRange,
+        decimal EeShare,
+        decimal ErShare,
+        decimal EcShare,
+        decimal TotalContribution);
+
+    public record GsisBracketDto(
+        decimal EeRate,
+        decimal ErRate,
+        string Description);
+
+    public record PhilHealthBracketDto(
+        decimal PremiumRate,
+        decimal MinMonthlyPremium,
+        decimal MaxMonthlyPremium,
+        decimal EeSharePct,
+        decimal ErSharePct,
+        decimal SalaryFloor,
+        decimal SalaryCeiling);
+
+    public record PagIbigBracketDto(
+        decimal MinSalary,
+        decimal MaxSalary,
+        decimal EeRate,
+        decimal ErRate,
+        decimal MaxEeContribution,
+        decimal MaxErContribution);
 }

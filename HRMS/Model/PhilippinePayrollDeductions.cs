@@ -4,6 +4,12 @@ namespace HRMS.Model
 {
     public static class PhilippinePayrollDeductions
     {
+        public static decimal ComputeGSIS(decimal basicMonthlySalary) =>
+            Math.Round(basicMonthlySalary * 0.09m, 2, MidpointRounding.AwayFromZero);
+
+        public static decimal ComputeGSISEmployerShare(decimal basicMonthlySalary) =>
+            Math.Round(basicMonthlySalary * 0.12m, 2, MidpointRounding.AwayFromZero);
+
         public static bool UsesSssCoverage(string? employmentTypeName)
         {
             var normalizedType = employmentTypeName?.Trim().ToLowerInvariant() ?? string.Empty;
@@ -21,7 +27,7 @@ namespace HRMS.Model
                 return (0m, ComputeSss(basicMonthlySalary));
             }
 
-            return (Math.Round(basicMonthlySalary * 0.09m, 2, MidpointRounding.AwayFromZero), 0m);
+            return (ComputeGSIS(basicMonthlySalary), 0m);
         }
 
         public static (decimal GsisEmployerShare, decimal SssEmployerShare) ComputeRetirementEmployer(decimal basicMonthlySalary, string? employmentTypeName)
@@ -31,14 +37,20 @@ namespace HRMS.Model
                 return (0m, ComputeSssEmployerShare(basicMonthlySalary));
             }
 
-            return (Math.Round(basicMonthlySalary * 0.12m, 2, MidpointRounding.AwayFromZero), 0m);
+            return (ComputeGSISEmployerShare(basicMonthlySalary), 0m);
         }
+
+        public static decimal ComputeSSS(decimal basicMonthlySalary) =>
+            ComputeSss(basicMonthlySalary);
 
         public static decimal ComputeSss(decimal basicMonthlySalary)
         {
             var salaryCredit = ComputeSssSalaryCredit(basicMonthlySalary);
             return Math.Round(salaryCredit * 0.05m, 2, MidpointRounding.AwayFromZero);
         }
+
+        public static decimal ComputeSSSEmployerShare(decimal basicMonthlySalary) =>
+            ComputeSssEmployerShare(basicMonthlySalary);
 
         public static decimal ComputeSssEmployerShare(decimal basicMonthlySalary)
         {
@@ -100,8 +112,14 @@ namespace HRMS.Model
         public static decimal ComputeAbsenceDeduction(decimal basicMonthlySalary, decimal absentDays) =>
             Math.Round((basicMonthlySalary / 22m) * absentDays, 2, MidpointRounding.AwayFromZero);
 
+        public static decimal ComputeAbsence(decimal basicMonthlySalary, decimal absentDays) =>
+            ComputeAbsenceDeduction(basicMonthlySalary, absentDays);
+
         public static decimal ComputeLateDeduction(decimal basicMonthlySalary, int lateMinutes) =>
             Math.Round((basicMonthlySalary / 22m / 8m / 60m) * lateMinutes, 2, MidpointRounding.AwayFromZero);
+
+        public static decimal ComputeLate(decimal basicMonthlySalary, int lateMinutes) =>
+            ComputeLateDeduction(basicMonthlySalary, lateMinutes);
 
         public static PayrollDeductionResult ComputeAll(
             decimal basicMonthlySalary,
@@ -152,6 +170,109 @@ namespace HRMS.Model
         {
             var salaryCredit = Math.Round(basicMonthlySalary / 500m, 0, MidpointRounding.AwayFromZero) * 500m;
             return Math.Clamp(salaryCredit, 4_000m, 20_000m);
+        }
+
+        /// <summary>
+        /// Computes SSS contribution using DB-loaded bracket table.
+        /// Falls back to formula-based computation if no brackets provided.
+        /// </summary>
+        public static (decimal EeShare, decimal ErShare) ComputeSssFromBrackets(
+            decimal basicMonthlySalary,
+            System.Collections.Generic.IReadOnlyList<SssBracketDto>? brackets)
+        {
+            if (brackets == null || brackets.Count == 0)
+            {
+                return (ComputeSss(basicMonthlySalary), ComputeSssEmployerShare(basicMonthlySalary));
+            }
+
+            foreach (var bracket in brackets)
+            {
+                if (basicMonthlySalary >= bracket.MinRange && basicMonthlySalary <= bracket.MaxRange)
+                {
+                    return (bracket.EeShare, bracket.ErShare);
+                }
+            }
+
+            // If salary exceeds all brackets, use the last (highest) bracket
+            var last = brackets[brackets.Count - 1];
+            return (last.EeShare, last.ErShare);
+        }
+
+        /// <summary>
+        /// Computes GSIS contribution using DB-loaded rates.
+        /// Falls back to hardcoded 9%/12% if no bracket provided.
+        /// </summary>
+        public static (decimal EeShare, decimal ErShare) ComputeGsisFromBracket(
+            decimal basicMonthlySalary,
+            GsisBracketDto? bracket)
+        {
+            if (bracket == null)
+            {
+                return (ComputeGSIS(basicMonthlySalary), ComputeGSISEmployerShare(basicMonthlySalary));
+            }
+
+            var ee = Math.Round(basicMonthlySalary * bracket.EeRate, 2, MidpointRounding.AwayFromZero);
+            var er = Math.Round(basicMonthlySalary * bracket.ErRate, 2, MidpointRounding.AwayFromZero);
+            return (ee, er);
+        }
+
+        /// <summary>
+        /// Computes PhilHealth contribution using DB-loaded parameters.
+        /// Falls back to hardcoded formula if no bracket provided.
+        /// </summary>
+        public static (decimal EeShare, decimal ErShare) ComputePhilHealthFromBracket(
+            decimal basicMonthlySalary,
+            PhilHealthBracketDto? bracket)
+        {
+            if (bracket == null)
+            {
+                var share = ComputePhilHealth(basicMonthlySalary);
+                return (share, share);
+            }
+
+            var totalPremium = basicMonthlySalary * bracket.PremiumRate;
+            totalPremium = Math.Clamp(totalPremium, bracket.MinMonthlyPremium, bracket.MaxMonthlyPremium);
+            var eeShare = Math.Round(totalPremium * bracket.EeSharePct, 2, MidpointRounding.AwayFromZero);
+            var erShare = Math.Round(totalPremium * bracket.ErSharePct, 2, MidpointRounding.AwayFromZero);
+            return (eeShare, erShare);
+        }
+
+        /// <summary>
+        /// Computes Pag-IBIG contribution using DB-loaded brackets.
+        /// Falls back to hardcoded formula if no brackets provided.
+        /// </summary>
+        public static (decimal EeShare, decimal ErShare) ComputePagIbigFromBrackets(
+            decimal basicMonthlySalary,
+            System.Collections.Generic.IReadOnlyList<PagIbigBracketDto>? brackets)
+        {
+            if (brackets == null || brackets.Count == 0)
+            {
+                return (ComputePagIBIG(basicMonthlySalary), ComputePagIBIGEmployerShare(basicMonthlySalary));
+            }
+
+            foreach (var bracket in brackets)
+            {
+                if (basicMonthlySalary >= bracket.MinSalary && basicMonthlySalary <= bracket.MaxSalary)
+                {
+                    var ee = Math.Round(
+                        Math.Min(basicMonthlySalary * bracket.EeRate, bracket.MaxEeContribution),
+                        2, MidpointRounding.AwayFromZero);
+                    var er = Math.Round(
+                        Math.Min(basicMonthlySalary * bracket.ErRate, bracket.MaxErContribution),
+                        2, MidpointRounding.AwayFromZero);
+                    return (ee, er);
+                }
+            }
+
+            // Fallback to last bracket
+            var last = brackets[brackets.Count - 1];
+            var eeFallback = Math.Round(
+                Math.Min(basicMonthlySalary * last.EeRate, last.MaxEeContribution),
+                2, MidpointRounding.AwayFromZero);
+            var erFallback = Math.Round(
+                Math.Min(basicMonthlySalary * last.ErRate, last.MaxErContribution),
+                2, MidpointRounding.AwayFromZero);
+            return (eeFallback, erFallback);
         }
     }
 

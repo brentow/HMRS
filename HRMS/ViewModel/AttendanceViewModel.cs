@@ -150,7 +150,7 @@ namespace HRMS.ViewModel
             ? "Track your logs, assigned shifts, and monthly DTR."
             : "Biometric devices, enrollments, shifts, and assignments for DTR.";
         public string ShiftAssignmentsTabHeader => IsEmployeeMode ? "My Shift" : "Shift Assignments";
-        public string AttendanceRemarksTabHeader => IsEmployeeMode ? "My Travel / OB" : "Travel / OB";
+        public string AttendanceRemarksTabHeader => IsEmployeeMode ? "My Travel Order / Holidays" : "Travel Order / Holidays";
         public string DtrTabHeader => IsEmployeeMode ? "My DTR" : "DTR";
         public string ShiftAssignmentsInfoText => IsEmployeeMode
             ? "This section shows your assigned shifts. Contact Admin/HR for schedule changes."

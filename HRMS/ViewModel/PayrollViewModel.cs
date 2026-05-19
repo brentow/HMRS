@@ -578,6 +578,8 @@ namespace HRMS.ViewModel
         public ICommand SavePeriodCommand { get; }
         public ICommand DeletePeriodCommand { get; }
         public ICommand UpsertRunCommand { get; }
+        public ICommand GenerateAllRunsCommand { get; }
+        public ICommand SelectRunCommand { get; }
         public ICommand SaveRunStatusCommand { get; }
         public ICommand DeleteRunCommand { get; }
         public ICommand ReleasePayslipCommand { get; }
@@ -586,6 +588,10 @@ namespace HRMS.ViewModel
         public ICommand ReportPayrollConcernCommand { get; }
         public ICommand ExportGovernmentReportCommand { get; }
         public ICommand SaveGovernmentReportPdfCommand { get; }
+        public ICommand ViewSssCommand { get; }
+        public ICommand ViewGsisCommand { get; }
+        public ICommand ViewPhilHealthCommand { get; }
+        public ICommand ViewPagIbigCommand { get; }
 
         public PayrollViewModel()
         {
@@ -596,6 +602,8 @@ namespace HRMS.ViewModel
             SavePeriodCommand = new AsyncRelayCommand(SavePeriodAsync);
             DeletePeriodCommand = new AsyncRelayCommand(DeletePeriodAsync);
             UpsertRunCommand = new AsyncRelayCommand(_ => UpsertRunAsync());
+            GenerateAllRunsCommand = new AsyncRelayCommand(_ => GenerateAllRunsAsync());
+            SelectRunCommand = new AsyncRelayCommand(SelectRunAsync);
             SaveRunStatusCommand = new AsyncRelayCommand(SaveRunStatusAsync);
             DeleteRunCommand = new AsyncRelayCommand(DeleteRunAsync);
             ReleasePayslipCommand = new AsyncRelayCommand(ReleasePayslipAsync);
@@ -604,6 +612,10 @@ namespace HRMS.ViewModel
             ReportPayrollConcernCommand = new AsyncRelayCommand(ReportPayrollConcernAsync);
             ExportGovernmentReportCommand = new AsyncRelayCommand(_ => ExportGovernmentReportAsync());
             SaveGovernmentReportPdfCommand = new AsyncRelayCommand(_ => SaveGovernmentReportPdfAsync());
+            ViewSssCommand = new AsyncRelayCommand(_ => SwitchGovernmentContributionType("SSS"));
+            ViewGsisCommand = new AsyncRelayCommand(_ => SwitchGovernmentContributionType("GSIS"));
+            ViewPhilHealthCommand = new AsyncRelayCommand(_ => SwitchGovernmentContributionType("PHILHEALTH"));
+            ViewPagIbigCommand = new AsyncRelayCommand(_ => SwitchGovernmentContributionType("PAGIBIG"));
 
             QueueRefresh();
         }
@@ -842,6 +854,46 @@ namespace HRMS.ViewModel
             }
         }
 
+        private async Task GenerateAllRunsAsync()
+        {
+            if (!EnsureAdminOrHrAction("generate payroll for all employees"))
+            {
+                return;
+            }
+
+            if (!SelectedRunPeriodId.HasValue || SelectedRunPeriodId.Value <= 0)
+            {
+                SetMessage("Select a payroll period first before generating.", ErrorBrush);
+                return;
+            }
+
+            try
+            {
+                IsBusy = true;
+                SetMessage("Generating payroll for all active employees...", InfoBrush);
+
+                var count = await _dataService.GenerateAllRunsAsync(SelectedRunPeriodId.Value);
+
+                await RefreshAsync();
+                SetMessage($"Payroll generated for {count} employee(s).", SuccessBrush);
+                SystemRefreshBus.Raise("PayrollBatchGenerated");
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Batch generation failed: {ex.Message}", ErrorBrush);
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        private Task SwitchGovernmentContributionType(string type)
+        {
+            SelectedGovernmentContributionType = type;
+            return Task.CompletedTask;
+        }
+
         private async Task UpsertRunAsync()
         {
             if (!EnsureAdminOrHrAction("save payroll runs"))
@@ -882,6 +934,39 @@ namespace HRMS.ViewModel
             {
                 SetMessage($"Unable to save payroll run: {ex.Message}", ErrorBrush);
             }
+        }
+
+        private Task SelectRunAsync(object? parameter)
+        {
+            if (!TryResolveRunId(parameter, out var runId))
+            {
+                SetMessage("Select payroll run row first.", ErrorBrush);
+                return Task.CompletedTask;
+            }
+
+            var row = _allRuns.FirstOrDefault(x => x.PayrollRunId == runId)
+                      ?? PayrollRuns.FirstOrDefault(x => x.PayrollRunId == runId);
+
+            if (row is null)
+            {
+                SetMessage($"Run #{runId} is not loaded. Refresh payroll runs and try again.", ErrorBrush);
+                return Task.CompletedTask;
+            }
+
+            if (!PayrollRuns.Any(x => x.PayrollRunId == row.PayrollRunId))
+            {
+                RunSearchText = string.Empty;
+                SelectedRunStatusFilter = "All";
+                SelectedRunPeriodFilterId = AllPeriodsOptionId;
+            }
+
+            SelectedRun = PayrollRuns.FirstOrDefault(x => x.PayrollRunId == row.PayrollRunId) ?? row;
+            SelectedRunPeriodId = row.PayrollPeriodId;
+            SelectedRunEmployeeId = row.EmployeeId;
+            SelectedReleaseRunId = row.PayrollRunId;
+
+            SetMessage($"Run #{row.PayrollRunId} selected for {row.EmployeeName}.", InfoBrush);
+            return Task.CompletedTask;
         }
 
         private async Task SaveRunStatusAsync(object? parameter)
@@ -1312,6 +1397,34 @@ namespace HRMS.ViewModel
             }
 
             return items;
+        }
+
+        private static bool TryResolveRunId(object? parameter, out long runId)
+        {
+            switch (parameter)
+            {
+                case PayrollRunVm runRow:
+                    runId = runRow.PayrollRunId;
+                    return runId > 0;
+                case PayrollReleaseLogVm releaseRow:
+                    runId = releaseRow.PayrollRunId;
+                    return runId > 0;
+                case PayrollGovernmentContributionRowVm governmentRow:
+                    runId = governmentRow.PayrollRunId;
+                    return runId > 0;
+                case long longId:
+                    runId = longId;
+                    return runId > 0;
+                case int intId:
+                    runId = intId;
+                    return runId > 0;
+                case string text when long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedId):
+                    runId = parsedId;
+                    return runId > 0;
+                default:
+                    runId = 0;
+                    return false;
+            }
         }
 
         private bool TryResolvePayslipRow(object? parameter, out PayrollRunVm row)

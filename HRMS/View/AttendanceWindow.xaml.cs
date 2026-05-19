@@ -45,5 +45,28 @@ namespace HRMS.View
                 }
             }
         }
+
+        public void ShowAttendanceTab()
+        {
+            AttendanceTabControl.SelectedItem = DtrTab;
+        }
+
+        public void ShowTravelOrderTab()
+        {
+            AttendanceTabControl.SelectedItem = AttendanceRemarksTab;
+            if (DataContext is AttendanceViewModel vm)
+            {
+                vm.SelectedRemarkType = "TO";
+            }
+        }
+
+        public void ShowHolidaysTab()
+        {
+            AttendanceTabControl.SelectedItem = AttendanceRemarksTab;
+            if (DataContext is AttendanceViewModel vm)
+            {
+                vm.SelectedRemarkType = "HOLIDAY";
+            }
+        }
     }
 }

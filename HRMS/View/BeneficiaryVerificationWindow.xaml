@@ -128,7 +128,29 @@
         </Grid.RowDefinitions>
 
         <!-- Title -->
-        <TextBlock Grid.Row="0" Text="Beneficiary Verification" FontSize="22" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,12" />
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Text="Beneficiary Verification"
+                       FontSize="22"
+                       FontWeight="Bold"
+                       Foreground="{StaticResource PrimaryBrush}"
+                       VerticalAlignment="Center" />
+
+            <Button Grid.Column="1"
+                    Width="190"
+                    Height="38"
+                    Style="{StaticResource ButtonStyle}"
+                    Command="{Binding DataContext.ShowDashboardCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <materialDesign:PackIcon Kind="ArrowLeft" Width="16" Height="16" Margin="0,0,8,0" />
+                    <TextBlock Text="Back to Dashboard" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+        </Grid>
 
         <!-- Status Summary -->
         <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,0,12">

@@ -282,6 +282,42 @@
                             </Grid>
                         </StackPanel>
                     </Border>
+
+                    <Border Style="{StaticResource SectionCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Biometric"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource PrimaryBrush}"
+                                       Margin="0,0,0,10" />
+                            <TextBlock Text="Register biometric devices and enroll employee fingerprints after saving."
+                                       Foreground="#5B6A7A"
+                                       Margin="0,0,0,12" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button x:Name="AddBiometricDeviceButton"
+                                        Content="Add Biometric Device"
+                                        Height="40"
+                                        MinWidth="180"
+                                        Margin="0,0,10,0"
+                                        BorderThickness="0"
+                                        Background="{StaticResource PrimaryBrush}"
+                                        Foreground="White"
+                                        FontWeight="SemiBold"
+                                        Cursor="Hand"
+                                        Click="AddBiometricDeviceButton_Click" />
+                                <Button x:Name="EnrollBiometricButton"
+                                        Content="Enroll Biometric"
+                                        Height="40"
+                                        MinWidth="160"
+                                        BorderThickness="0"
+                                        Background="{StaticResource PrimaryBrush}"
+                                        Foreground="White"
+                                        FontWeight="SemiBold"
+                                        Cursor="Hand"
+                                        Click="EnrollBiometricButton_Click" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
         </Border>

@@ -99,11 +99,23 @@
                 </StackPanel>
                 <TextBlock Text="{Binding DocumentsSubtitle}" Foreground="#5B6A7A" />
             </StackPanel>
-            <Button Grid.Column="1"
-                    Style="{StaticResource ButtonStyle}"
-                    Command="{Binding RefreshCommand}"
-                    Content="Refresh"
-                    VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Width="190"
+                        Height="38"
+                        Margin="0,0,8,0"
+                        Style="{StaticResource ButtonStyle}"
+                        Command="{Binding DataContext.ShowDashboardCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <materialDesign:PackIcon Kind="ArrowLeft" Width="16" Height="16" Margin="0,0,8,0" />
+                        <TextBlock Text="Back to Dashboard" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+
+                <Button Width="120"
+                        Style="{StaticResource ButtonStyle}"
+                        Command="{Binding RefreshCommand}"
+                        Content="Refresh" />
+            </StackPanel>
         </Grid>
 
         <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,0,10">

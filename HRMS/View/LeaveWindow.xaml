@@ -141,28 +141,31 @@
                            Text="File leave, review approvals, maintain balances, and manage leave attachments." />
             </StackPanel>
 
-            <Button Grid.Column="1"
-                    Width="140"
-                    Height="42"
-                    Command="{Binding RefreshCommand}"
-                    Style="{StaticResource PrimaryButtonStyle}"
-                    VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" Margin="0,0,8,0" />
-                    <TextBlock Text="Refresh" VerticalAlignment="Center" />
-                </StackPanel>
-            </Button>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Width="190"
+                        Height="42"
+                        Margin="0,0,8,0"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Command="{Binding DataContext.ShowDashboardCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="ArrowLeft" Width="16" Height="16" Margin="0,0,8,0" />
+                        <TextBlock Text="Back to Dashboard" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+
+                <Button Width="140"
+                        Height="42"
+                        Command="{Binding RefreshCommand}"
+                        Style="{StaticResource PrimaryButtonStyle}">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" Margin="0,0,8,0" />
+                        <TextBlock Text="Refresh" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
         </Grid>
 
-        <UniformGrid Grid.Row="1" Columns="7" Margin="0,0,0,12">
-            <Border Margin="6" Style="{StaticResource CardStyle}" Background="#F5FBFF"><StackPanel><TextBlock Text="Requests" Foreground="#6A7684" /><TextBlock Text="{Binding TotalRequests}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" /></StackPanel></Border>
-            <Border Margin="6" Style="{StaticResource CardStyle}" Background="#FFF8EC"><StackPanel><TextBlock Text="Pending" Foreground="#6A7684" /><TextBlock Text="{Binding PendingRequests}" FontSize="28" FontWeight="Bold" Foreground="#B9831A" /></StackPanel></Border>
-            <Border Margin="6" Style="{StaticResource CardStyle}" Background="#F2FBF5"><StackPanel><TextBlock Text="Approved" Foreground="#6A7684" /><TextBlock Text="{Binding ApprovedRequests}" FontSize="28" FontWeight="Bold" Foreground="#2E9D5B" /></StackPanel></Border>
-            <Border Margin="6" Style="{StaticResource CardStyle}" Background="#FFF5F5"><StackPanel><TextBlock Text="Rejected" Foreground="#6A7684" /><TextBlock Text="{Binding RejectedRequests}" FontSize="28" FontWeight="Bold" Foreground="#D84343" /></StackPanel></Border>
-            <Border Margin="6" Style="{StaticResource CardStyle}" Background="#F5FBFF"><StackPanel><TextBlock Text="Leave Types" Foreground="#6A7684" /><TextBlock Text="{Binding LeaveTypes}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" /></StackPanel></Border>
-            <Border Margin="6" Style="{StaticResource CardStyle}" Background="#F5FBFF"><StackPanel><TextBlock Text="With Balances" Foreground="#6A7684" /><TextBlock Text="{Binding EmployeesWithBalances}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" /></StackPanel></Border>
-            <Border Margin="6" Style="{StaticResource CardStyle}" Background="#F5FBFF"><StackPanel><TextBlock Text="Attachments" Foreground="#6A7684" /><TextBlock Text="{Binding AttachmentsCount}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" /></StackPanel></Border>
-        </UniformGrid>
+
 
         <TabControl Grid.Row="2" Margin="6,0,6,8">
             <TabItem Header="Leave Requests">

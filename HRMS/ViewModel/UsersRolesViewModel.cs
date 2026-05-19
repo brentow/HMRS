@@ -1255,6 +1255,82 @@ namespace HRMS.ViewModel
             return builder.ConnectionString;
         }
 
+        private DbConnectionSettings ResolveLocalHrmsSyncTarget()
+        {
+            var current = GetCurrentConnectionSettings();
+            if (IsLocalHost(current.Host))
+            {
+                return current;
+            }
+
+            var saved = DbConfig.GetSettings();
+            if (IsLocalHost(saved.Host))
+            {
+                return saved;
+            }
+
+            return new DbConnectionSettings
+            {
+                Host = LocalHostDefault,
+                Port = LocalPortDefault,
+                Database = LocalDbDefault,
+                Username = LocalUserDefault,
+                Password = LocalPasswordDefault
+            };
+        }
+
+        private static GgmsConnectionSettings ResolveLocalGgmsSyncTarget(DbConnectionSettings localHrms)
+        {
+            var configured = GgmsConfig.GetSettings();
+            if (IsLocalHost(configured.Host))
+            {
+                return configured;
+            }
+
+            return new GgmsConnectionSettings
+            {
+                Host = "127.0.0.1",
+                Port = "3306",
+                Database = "ggms_db",
+                Username = localHrms.Username,
+                Password = localHrms.Password
+            };
+        }
+
+        private static CrsConnectionSettings ResolveLocalCrsSyncTarget(DbConnectionSettings localHrms)
+        {
+            var configured = CrsConfig.GetSettings();
+            if (IsLocalHost(configured.Host))
+            {
+                return configured;
+            }
+
+            return new CrsConnectionSettings
+            {
+                Host = "127.0.0.1",
+                Port = "3306",
+                Database = "crs_db",
+                Username = localHrms.Username,
+                Password = localHrms.Password
+            };
+        }
+
+        private static bool IsLocalHost(string? host)
+        {
+            if (string.IsNullOrWhiteSpace(host))
+            {
+                return false;
+            }
+
+            return host.Trim().ToLowerInvariant() switch
+            {
+                "localhost" => true,
+                "127.0.0.1" => true,
+                "::1" => true,
+                _ => false
+            };
+        }
+
         private async Task TestDbConnectionAsync()
         {
             if (string.IsNullOrWhiteSpace(DbHost) ||
@@ -1780,7 +1856,14 @@ namespace HRMS.ViewModel
             {
                 IsBusy = true;
                 var progress = new Progress<string>(message => SetMessage(message, InfoBrush));
-                var syncService = new LiveToLocalSyncService(StorageLocation);
+                var localHrmsSettings = ResolveLocalHrmsSyncTarget();
+                var localGgmsSettings = ResolveLocalGgmsSyncTarget(localHrmsSettings);
+                var localCrsSettings = ResolveLocalCrsSyncTarget(localHrmsSettings);
+                var syncService = new LiveToLocalSyncService(
+                    StorageLocation,
+                    localHrmsSettings,
+                    localGgmsSettings,
+                    localCrsSettings);
                 var result = await syncService.SyncAsync(progress);
 
                 await LoadCompanyProfileAsync();

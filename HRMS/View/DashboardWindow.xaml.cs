@@ -337,6 +337,7 @@ namespace HRMS.View
             {
                 CurrentUserNameText.Text = "Current User";
                 CurrentUserRoleText.Text = "Guest";
+                CurrentUserRoleText.Visibility = Visibility.Visible;
                 CurrentUserStatusText.Text = "Inactive";
                 CurrentUserStatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#9AAFC8"));
                 return;
@@ -350,6 +351,13 @@ namespace HRMS.View
 
             CurrentUserNameText.Text = displayName;
             CurrentUserRoleText.Text = role;
+
+            // Hide the role line when it duplicates the display name (e.g. "Admin / Admin")
+            CurrentUserRoleText.Visibility =
+                string.Equals(displayName?.Trim(), role?.Trim(), StringComparison.OrdinalIgnoreCase)
+                    ? Visibility.Collapsed
+                    : Visibility.Visible;
+
             CurrentUserStatusText.Text = isOnline ? "Active" : "Inactive";
             CurrentUserStatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString(isOnline ? "#3BC46B" : "#9AAFC8"));
             UserAccountSettingsButton.ToolTip = IsAdminAccess ? "Account Information" : "My Profile";
@@ -383,12 +391,17 @@ namespace HRMS.View
                 AttendanceSubNavButton.Visibility = ToVisibility(!isEmployeeAccess && canAttendance);
             }
 
+            TravelOrderNavButton.Visibility = ToVisibility(!isEmployeeAccess && canAttendance);
+            HolidaysNavButton.Visibility = ToVisibility(!isEmployeeAccess && canAttendance);
             AttendanceLogsNavButton.Visibility = ToVisibility(!isEmployeeAccess && canAttendanceLogs);
             AdjustmentsNavButton.Visibility = ToVisibility(!isEmployeeAccess && canAdjustments);
-            EmployeeAttendanceLogsNavButton.Visibility = ToVisibility(isEmployeeAccess && canAttendanceLogs);
+            EmployeeAttendanceLogsNavButton.Visibility = Visibility.Collapsed;
             EmployeeAdjustmentsNavButton.Visibility = ToVisibility(isEmployeeAccess && canAdjustments);
             LeaveNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Leave));
             PayrollNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Payroll));
+            PayrollRunsNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Payroll));
+            DeductionsNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Payroll) && !isEmployeeAccess);
+            PayslipNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Payroll));
             RecordsReportsNavButton.Visibility = ToVisibility(canTransactions || canReports || canDocuments);
             TransactionsNavButton.Visibility = ToVisibility(canTransactions);
             ReportsNavButton.Visibility = ToVisibility(canReports);
@@ -396,11 +409,11 @@ namespace HRMS.View
             DocumentVerificationNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.DocumentVerification));
             BeneficiariesNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Beneficiaries));
             RecruitmentNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Recruitment));
-            DevelopmentNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Development));
+            DevelopmentNavButton.Visibility = Visibility.Collapsed;
 
             if (AttendanceNavLabelText != null)
             {
-                AttendanceNavLabelText.Text = isEmployeeAccess ? "My Attendance / DTR" : "Attendance / DTR";
+                AttendanceNavLabelText.Text = isEmployeeAccess ? "My Attendance" : "Attendance";
             }
 
             if (LeaveNavLabelText != null)
@@ -438,6 +451,11 @@ namespace HRMS.View
                 SetSidebarGroupExpanded(RecordsReportsSubmenuPanel, RecordsReportsNavChevronIcon, false);
             }
 
+            if (PayrollNavButton.Visibility != Visibility.Visible)
+            {
+                SetSidebarGroupExpanded(PayrollSubmenuPanel, PayrollNavChevronIcon, false);
+            }
+
             if (EmployeeManagementEmployeesMenuItem != null)
             {
                 EmployeeManagementEmployeesMenuItem.Visibility = ToVisibility(!isEmployeeAccess && canEmployees);
@@ -451,6 +469,17 @@ namespace HRMS.View
             if (AttendanceMenuItem != null)
             {
                 AttendanceMenuItem.Visibility = ToVisibility(!isEmployeeAccess && canAttendance);
+                AttendanceMenuItem.Header = "Attendance";
+            }
+
+            if (TravelOrderMenuItem != null)
+            {
+                TravelOrderMenuItem.Visibility = ToVisibility(!isEmployeeAccess && canAttendance);
+            }
+
+            if (HolidaysMenuItem != null)
+            {
+                HolidaysMenuItem.Visibility = ToVisibility(!isEmployeeAccess && canAttendance);
             }
 
             if (AttendanceLogsMenuItem != null)
@@ -479,6 +508,23 @@ namespace HRMS.View
                 RecordsReportsDocumentsMenuItem.Header = isEmployeeAccess ? "My Documents" : "Documents";
             }
 
+            if (PayrollRunsMenuItem != null)
+            {
+                PayrollRunsMenuItem.Visibility = ToVisibility(CanAccessModule(ModuleKey.Payroll));
+                PayrollRunsMenuItem.Header = isEmployeeAccess ? "My Payroll" : "Payroll";
+            }
+
+            if (DeductionsMenuItem != null)
+            {
+                DeductionsMenuItem.Visibility = ToVisibility(CanAccessModule(ModuleKey.Payroll) && !isEmployeeAccess);
+            }
+
+            if (PayslipMenuItem != null)
+            {
+                PayslipMenuItem.Visibility = ToVisibility(CanAccessModule(ModuleKey.Payroll));
+                PayslipMenuItem.Header = isEmployeeAccess ? "My Payslip" : "Payslip";
+            }
+
             if (QuickEmployeesButton != null)
             {
                 QuickEmployeesButton.Visibility = ToVisibility(!isEmployeeAccess && canEmployees);
@@ -499,24 +545,35 @@ namespace HRMS.View
                 QuickPayrollButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Payroll));
             }
 
-            if (QuickDevelopmentButton != null)
+            if (QuickTravelOrderButton != null)
             {
-                QuickDevelopmentButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Development));
+                QuickTravelOrderButton.Visibility = ToVisibility(!isEmployeeAccess && canAttendance);
             }
 
-            if (QuickPerformanceButton != null)
+            if (QuickHolidaysButton != null)
             {
-                QuickPerformanceButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Development));
+                QuickHolidaysButton.Visibility = ToVisibility(!isEmployeeAccess && canAttendance);
             }
 
             if (QuickDocumentsButton != null)
             {
-                QuickDocumentsButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Documents) && CanOpenDocumentsModule());
+                QuickDocumentsButton.Visibility = ToVisibility(!isEmployeeAccess && CanAccessModule(ModuleKey.Documents) && CanOpenDocumentsModule());
             }
 
             if (QuickProfileButton != null)
             {
                 QuickProfileButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Users));
+            }
+
+            // Toggle between Employee and Admin dashboard panels
+            if (EmployeeDashboardPanel != null)
+            {
+                EmployeeDashboardPanel.Visibility = ToVisibility(isEmployeeAccess);
+            }
+
+            if (AdminDashboardPanel != null)
+            {
+                AdminDashboardPanel.Visibility = ToVisibility(!isEmployeeAccess);
             }
 
         }
@@ -561,17 +618,11 @@ namespace HRMS.View
                 return module switch
                 {
                     ModuleKey.Dashboard => true,
-                    ModuleKey.Employees => true,
-                    ModuleKey.Attendance => true,
-                    ModuleKey.AttendanceLogs => true,
-                    ModuleKey.Adjustments => true,
-                    ModuleKey.Leave => true,
-                    ModuleKey.Payroll => true,
-                    ModuleKey.Transactions => true,
-                    ModuleKey.Reports => true,
-                    ModuleKey.Documents => true,
-                    ModuleKey.Development => true,
-                    ModuleKey.Users => true, // profile tab only
+                    ModuleKey.Attendance => true,        // My DTR
+                    ModuleKey.Adjustments => true,       // File DTR correction
+                    ModuleKey.Leave => true,             // File leave + balance
+                    ModuleKey.Payroll => true,           // View payslip
+                    ModuleKey.Users => true,             // My Profile (via gear icon)
                     _ => false
                 };
             }
@@ -645,6 +696,7 @@ namespace HRMS.View
         {
             SetSidebarGroupExpanded(EmployeeManagementSubmenuPanel, EmployeesNavChevronIcon, false);
             SetSidebarGroupExpanded(AttendanceSubmenuPanel, AttendanceNavChevronIcon, false);
+            SetSidebarGroupExpanded(PayrollSubmenuPanel, PayrollNavChevronIcon, false);
             SetSidebarGroupExpanded(RecordsReportsSubmenuPanel, RecordsReportsNavChevronIcon, false);
         }
 
@@ -695,6 +747,38 @@ namespace HRMS.View
             {
                 vm.ShowAttendance();
             }
+
+            AttendanceModule?.ShowAttendanceTab();
+        }
+
+        private void OpenTravelOrderModule()
+        {
+            if (!EnsureModuleAccess(ModuleKey.Attendance, "Travel Order"))
+            {
+                return;
+            }
+
+            if (DataContext is DashboardViewModel vm)
+            {
+                vm.ShowAttendance();
+            }
+
+            AttendanceModule?.ShowTravelOrderTab();
+        }
+
+        private void OpenHolidaysModule()
+        {
+            if (!EnsureModuleAccess(ModuleKey.Attendance, "Holidays"))
+            {
+                return;
+            }
+
+            if (DataContext is DashboardViewModel vm)
+            {
+                vm.ShowAttendance();
+            }
+
+            AttendanceModule?.ShowHolidaysTab();
         }
 
         private void OpenAttendanceLogsModule()
@@ -721,6 +805,21 @@ namespace HRMS.View
             {
                 vm.ShowAdjustments();
             }
+        }
+
+        private void OpenPayrollModule(Action<PayrollWindow>? selectTab = null)
+        {
+            if (!EnsureModuleAccess(ModuleKey.Payroll, "Payroll"))
+            {
+                return;
+            }
+
+            if (DataContext is DashboardViewModel vm)
+            {
+                vm.ShowPayroll();
+            }
+
+            selectTab?.Invoke(PayrollModule);
         }
 
         public Rect GetMainContentBoundsOnScreen()
@@ -776,6 +875,11 @@ namespace HRMS.View
             if (AttendanceNavChevronIcon != null)
             {
                 AttendanceNavChevronIcon.Visibility = IsEmployeeAccess ? Visibility.Collapsed : chevronVisibility;
+            }
+
+            if (PayrollNavChevronIcon != null)
+            {
+                PayrollNavChevronIcon.Visibility = chevronVisibility;
             }
 
             if (RecordsReportsNavChevronIcon != null)
@@ -1073,6 +1177,16 @@ namespace HRMS.View
             OpenAttendanceLogsModule();
         }
 
+        private void TravelOrderNavButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            OpenTravelOrderModule();
+        }
+
+        private void HolidaysNavButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            OpenHolidaysModule();
+        }
+
         private void AdjustmentsNavButton_OnClick(object sender, RoutedEventArgs e)
         {
             OpenAdjustmentsModule();
@@ -1093,15 +1207,34 @@ namespace HRMS.View
 
         private void PayrollNavButton_OnClick(object sender, RoutedEventArgs e)
         {
-            if (!EnsureModuleAccess(ModuleKey.Payroll, "Payroll"))
+            if (ReferenceEquals(sender, QuickPayrollButton))
             {
+                OpenPayrollModule(x => x.ShowPayrollTab());
                 return;
             }
 
-            if (DataContext is DashboardViewModel vm)
+            if (_navCollapsed)
             {
-                vm.ShowPayroll();
+                OpenAttachedMenu(PayrollNavButton);
+                return;
             }
+
+            ToggleSidebarGroup(PayrollSubmenuPanel, PayrollNavChevronIcon);
+        }
+
+        private void PayrollRunsMenuItem_OnClick(object sender, RoutedEventArgs e)
+        {
+            OpenPayrollModule(x => x.ShowPayrollTab());
+        }
+
+        private void DeductionsNavButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            OpenPayrollModule(x => x.ShowDeductionsTab());
+        }
+
+        private void PayslipNavButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            OpenPayrollModule(x => x.ShowPayslipTab());
         }
 
         private void TransactionsNavButton_OnClick(object sender, RoutedEventArgs e)
@@ -1175,7 +1308,7 @@ namespace HRMS.View
             LeaveNavButton_OnClick(sender, e);
 
         private void DashboardOpenPayrollButton_OnClick(object sender, RoutedEventArgs e) =>
-            PayrollNavButton_OnClick(sender, e);
+            OpenPayrollModule(x => x.ShowPayrollTab());
 
         private void DashboardOpenRecruitmentButton_OnClick(object sender, RoutedEventArgs e) =>
             RecruitmentNavButton_OnClick(sender, e);
@@ -1311,10 +1444,19 @@ namespace HRMS.View
 
             if (normalizedQuery.Contains("attendance") || normalizedQuery.Contains("biometric") || normalizedQuery.Contains("dtr"))
             {
-                if (EnsureModuleAccess(ModuleKey.Attendance, "Attendance"))
-                {
-                    vm.ShowAttendance();
-                }
+                OpenAttendanceModule();
+                return;
+            }
+
+            if (normalizedQuery.Contains("travel") || normalizedQuery.Contains("official business") || normalizedQuery.Contains(" ob "))
+            {
+                OpenTravelOrderModule();
+                return;
+            }
+
+            if (normalizedQuery.Contains("holiday"))
+            {
+                OpenHolidaysModule();
                 return;
             }
 
@@ -1327,12 +1469,21 @@ namespace HRMS.View
                 return;
             }
 
-            if (normalizedQuery.Contains("payroll") || normalizedQuery.Contains("payslip"))
+            if (normalizedQuery.Contains("deduction"))
             {
-                if (EnsureModuleAccess(ModuleKey.Payroll, "Payroll"))
-                {
-                    vm.ShowPayroll();
-                }
+                OpenPayrollModule(x => x.ShowDeductionsTab());
+                return;
+            }
+
+            if (normalizedQuery.Contains("payslip"))
+            {
+                OpenPayrollModule(x => x.ShowPayslipTab());
+                return;
+            }
+
+            if (normalizedQuery.Contains("payroll"))
+            {
+                OpenPayrollModule(x => x.ShowPayrollTab());
                 return;
             }
 
@@ -1345,7 +1496,7 @@ namespace HRMS.View
                 return;
             }
 
-            if (normalizedQuery.Contains("report") || normalizedQuery.Contains("export") || normalizedQuery.Contains("analytics"))
+            if (normalizedQuery.Contains("report") || normalizedQuery.Contains("export"))
             {
                 if (EnsureModuleAccess(ModuleKey.Reports, "Reports"))
                 {
@@ -1381,15 +1532,6 @@ namespace HRMS.View
                 return;
             }
 
-            if (normalizedQuery.Contains("development") || normalizedQuery.Contains("training") || normalizedQuery.Contains("performance"))
-            {
-                if (EnsureModuleAccess(ModuleKey.Development, "Development"))
-                {
-                    vm.ShowTraining();
-                }
-                return;
-            }
-
             MessageBox.Show(
                 $"No direct module match for \"{query}\".",
                 "Search",
@@ -1399,11 +1541,8 @@ namespace HRMS.View
 
         private async void NotificationButton_OnClick(object sender, RoutedEventArgs e)
         {
-            DashboardNotificationsPopup.IsOpen = !DashboardNotificationsPopup.IsOpen;
-            if (DashboardNotificationsPopup.IsOpen)
-            {
-                await _notificationsViewModel.RefreshAsync();
-            }
+            DashboardNotificationsPopup.IsOpen = true;
+            await _notificationsViewModel.RefreshAsync();
         }
 
         private void CloseNotificationsPopup_OnClick(object sender, RoutedEventArgs e)
@@ -1413,8 +1552,6 @@ namespace HRMS.View
 
         private void EmployeeModule_OpenModuleRequested(object? sender, string moduleKey)
         {
-            DashboardNotificationsPopup.IsOpen = false;
-
             var normalized = moduleKey?.Trim().ToUpperInvariant();
             switch (normalized)
             {
@@ -1422,10 +1559,10 @@ namespace HRMS.View
                     LeaveNavButton_OnClick(this, new RoutedEventArgs());
                     break;
                 case "PAYROLL":
-                    PayrollNavButton_OnClick(this, new RoutedEventArgs());
+                    OpenPayrollModule(x => x.ShowPayrollTab());
                     break;
                 case "DEVELOPMENT":
-                    TrainingNavButton_OnClick(this, new RoutedEventArgs());
+                    DashboardNavButton_OnClick(this, new RoutedEventArgs());
                     break;
                 case "ADJUSTMENTS":
                     OpenAdjustmentsModule();

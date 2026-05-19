@@ -88,6 +88,40 @@
             <Setter Property="FontSize" Value="12" />
         </Style>
 
+        <Style x:Key="RunIdButtonStyle" TargetType="Button">
+            <Setter Property="MinWidth" Value="48" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="6,2" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#1D8FDB" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#E5F3FF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#D5EAFE" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.55" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="GridHeaderStyle" TargetType="DataGridColumnHeader">
             <Setter Property="Background" Value="#F2F7FD" />
             <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
@@ -165,17 +199,28 @@
                            Text="{Binding PageHeaderSubtitle}" />
             </StackPanel>
 
-            <Button Grid.Column="1"
-                    Width="140"
-                    Height="42"
-                    VerticalAlignment="Center"
-                    Style="{StaticResource PrimaryButtonStyle}"
-                    Command="{Binding RefreshCommand}">
-                <StackPanel Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" Margin="0,0,8,0" />
-                    <TextBlock Text="Refresh" VerticalAlignment="Center" />
-                </StackPanel>
-            </Button>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Width="190"
+                        Height="42"
+                        Margin="0,0,8,0"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Command="{Binding DataContext.ShowDashboardCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="ArrowLeft" Width="16" Height="16" Margin="0,0,8,0" />
+                        <TextBlock Text="Back to Dashboard" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+
+                <Button Width="140"
+                        Height="42"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Command="{Binding RefreshCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" Margin="0,0,8,0" />
+                        <TextBlock Text="Refresh" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
         </Grid>
 
         <StackPanel Grid.Row="1" Margin="0,0,0,12">
@@ -260,8 +305,8 @@
             </Border>
         </StackPanel>
 
-        <TabControl Grid.Row="2" Margin="6,0,6,8">
-            <TabItem Header="{Binding PeriodsTabLabel}">
+        <TabControl x:Name="PayrollTabControl" Grid.Row="2" Margin="6,0,6,8">
+            <TabItem x:Name="PayrollPeriodsTab" Header="{Binding PeriodsTabLabel}">
                 <Grid Margin="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -462,7 +507,7 @@
                     </Border>
                 </Grid>
             </TabItem>
-            <TabItem Header="{Binding RunsTabLabel}">
+            <TabItem x:Name="PayrollRunsTab" Header="{Binding RunsTabLabel}">
                 <Grid Margin="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -567,6 +612,18 @@
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="ContentSaveOutline" Width="15" Height="15" Margin="0,0,6,0" />
                                     <TextBlock Text="Save Run" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Grid.Row="1" Grid.Column="3"
+                                    Margin="10,0,0,0"
+                                    Height="40"
+                                    MinWidth="150"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    Command="{Binding GenerateAllRunsCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="PlayCircleOutline" Width="15" Height="15" Margin="0,0,6,0" />
+                                    <TextBlock Text="GENERATE" FontWeight="Bold" />
                                 </StackPanel>
                             </Button>
 
@@ -785,7 +842,18 @@
                                   CellStyle="{StaticResource GridCellStyle}"
                                   RowStyle="{StaticResource GridRowStyle}">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Run ID" Binding="{Binding PayrollRunId, Mode=OneWay}" Width="72" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTemplateColumn Header="Run ID" Width="72" CellStyle="{StaticResource GridActionCellStyle}">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource RunIdButtonStyle}"
+                                                    ToolTip="Select payroll run"
+                                                    Command="{Binding DataContext.SelectRunCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}">
+                                                <TextBlock Text="{Binding PayrollRunId}" />
+                                            </Button>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="Period" Binding="{Binding PeriodCode, Mode=OneWay}" Width="130" CellStyle="{StaticResource GridCellCenterStyle}" />
                                 <DataGridTextColumn Header="Emp No" Binding="{Binding EmployeeNo, Mode=OneWay}" Width="92" CellStyle="{StaticResource GridCellCenterStyle}" />
                                 <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName, Mode=OneWay}" Width="215" />
@@ -883,7 +951,7 @@
                     </Border>
                 </Grid>
             </TabItem>
-            <TabItem Header="{Binding ReleaseTabLabel}">
+            <TabItem x:Name="PayslipReleasesTab" Header="{Binding ReleaseTabLabel}">
                 <Grid Margin="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -935,7 +1003,18 @@
                                   RowStyle="{StaticResource GridRowStyle}">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Release ID" Binding="{Binding PayslipReleaseId, Mode=OneWay}" Width="0.8*" CellStyle="{StaticResource GridCellCenterStyle}" />
-                                <DataGridTextColumn Header="Run ID" Binding="{Binding PayrollRunId, Mode=OneWay}" Width="0.8*" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTemplateColumn Header="Run ID" Width="0.8*" CellStyle="{StaticResource GridActionCellStyle}">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource RunIdButtonStyle}"
+                                                    ToolTip="Select payroll run"
+                                                    Command="{Binding DataContext.SelectRunCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}">
+                                                <TextBlock Text="{Binding PayrollRunId}" />
+                                            </Button>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="Period" Binding="{Binding PeriodCode, Mode=OneWay}" Width="1*" CellStyle="{StaticResource GridCellCenterStyle}" />
                                 <DataGridTextColumn Header="Emp No" Binding="{Binding EmployeeNo, Mode=OneWay}" Width="0.9*" CellStyle="{StaticResource GridCellCenterStyle}" />
                                 <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName, Mode=OneWay}" Width="1.6*" />
@@ -977,7 +1056,8 @@
                     </Border>
                 </Grid>
             </TabItem>
-            <TabItem Header="Government Reports"
+            <TabItem x:Name="DeductionsTab"
+                     Header="Deductions"
                      Visibility="{Binding IsAdminOrHrMode, Converter={StaticResource BoolToVis}}">
                 <Grid Margin="8">
                     <Grid.RowDefinitions>
@@ -989,7 +1069,10 @@
                     <Grid Grid.Row="0" Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="240" />
-                            <ColumnDefinition Width="220" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
@@ -1002,19 +1085,49 @@
                                   SelectedValuePath="Id"
                                   SelectedValue="{Binding SelectedGovernmentPeriodId}" />
 
-                        <ComboBox Grid.Column="1"
-                                  Margin="10,0,0,0"
-                                  Height="40"
-                                  ItemsSource="{Binding GovernmentContributionTypeOptions}"
-                                  SelectedItem="{Binding SelectedGovernmentContributionType}" />
+                        <Button Grid.Column="1"
+                                Margin="10,0,0,0"
+                                Height="40"
+                                MinWidth="80"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Command="{Binding ViewSssCommand}">
+                            <TextBlock Text="SSS" FontWeight="Bold" />
+                        </Button>
 
-                        <TextBlock Grid.Column="2"
+                        <Button Grid.Column="2"
+                                Margin="6,0,0,0"
+                                Height="40"
+                                MinWidth="80"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Command="{Binding ViewGsisCommand}">
+                            <TextBlock Text="GSIS" FontWeight="Bold" />
+                        </Button>
+
+                        <Button Grid.Column="3"
+                                Margin="6,0,0,0"
+                                Height="40"
+                                MinWidth="100"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Command="{Binding ViewPhilHealthCommand}">
+                            <TextBlock Text="PhilHealth" FontWeight="Bold" />
+                        </Button>
+
+                        <Button Grid.Column="4"
+                                Margin="6,0,0,0"
+                                Height="40"
+                                MinWidth="90"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Command="{Binding ViewPagIbigCommand}">
+                            <TextBlock Text="Pag-IBIG" FontWeight="Bold" />
+                        </Button>
+
+                        <TextBlock Grid.Column="5"
                                    Margin="14,0,0,0"
                                    VerticalAlignment="Center"
                                    Foreground="#5B6A7A"
                                    Text="{Binding GovernmentContributionTitle}" />
 
-                        <Button Grid.Column="3"
+                        <Button Grid.Column="6"
                                 Margin="10,0,0,0"
                                 Height="40"
                                 MinWidth="128"
@@ -1027,7 +1140,7 @@
                             </StackPanel>
                         </Button>
 
-                        <Button Grid.Column="4"
+                        <Button Grid.Column="7"
                                 Margin="8,0,0,0"
                                 Height="40"
                                 MinWidth="128"
@@ -1112,7 +1225,18 @@
                                   CellStyle="{StaticResource GridCellStyle}"
                                   RowStyle="{StaticResource GridRowStyle}">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Run ID" Binding="{Binding PayrollRunId}" Width="80" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTemplateColumn Header="Run ID" Width="80" CellStyle="{StaticResource GridActionCellStyle}">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource RunIdButtonStyle}"
+                                                    ToolTip="Select payroll run"
+                                                    Command="{Binding DataContext.SelectRunCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}">
+                                                <TextBlock Text="{Binding PayrollRunId}" />
+                                            </Button>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="Period" Binding="{Binding PeriodCode}" Width="130" CellStyle="{StaticResource GridCellCenterStyle}" />
                                 <DataGridTextColumn Header="Pay Date" Binding="{Binding PayDateText}" Width="120" CellStyle="{StaticResource GridCellCenterStyle}" />
                                 <DataGridTextColumn Header="Emp No" Binding="{Binding EmployeeNo}" Width="100" CellStyle="{StaticResource GridCellCenterStyle}" />

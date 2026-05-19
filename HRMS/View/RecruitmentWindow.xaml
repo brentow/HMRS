@@ -294,70 +294,31 @@
                 <TextBlock Text="Manage job postings, applicants, pipeline, interviews, and offers." Foreground="#5A6A7C" Margin="0,4,0,0"/>
             </StackPanel>
 
-            <Button Grid.Column="1"
-                    Style="{StaticResource PrimaryButtonStyle}"
-                    Width="140"
-                    Height="42"
-                    VerticalAlignment="Center"
-                    Command="{Binding RefreshCommand}">
-                <StackPanel Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" Margin="0,0,8,0"/>
-                    <TextBlock Text="Refresh" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Button>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Style="{StaticResource PrimaryButtonStyle}"
+                        Width="190"
+                        Height="42"
+                        Margin="0,0,8,0"
+                        Command="{Binding DataContext.ShowDashboardCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="ArrowLeft" Width="16" Height="16" Margin="0,0,8,0"/>
+                        <TextBlock Text="Back to Dashboard" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource PrimaryButtonStyle}"
+                        Width="140"
+                        Height="42"
+                        Command="{Binding RefreshCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" Margin="0,0,8,0"/>
+                        <TextBlock Text="Refresh" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
         </Grid>
 
-        <UniformGrid Grid.Row="1" Columns="6" Margin="0,0,0,10">
-            <Border Style="{StaticResource StatCardStyle}"
-                    Background="#F5FBFF"
-                    BorderBrush="#D9E8F8">
-                <StackPanel>
-                    <TextBlock Text="Job Postings" Foreground="#6A7684"/>
-                    <TextBlock Text="{Binding TotalPostings}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource StatCardStyle}"
-                    Background="#F2FBF5"
-                    BorderBrush="#D8EEDD">
-                <StackPanel>
-                    <TextBlock Text="Open Postings" Foreground="#6A7684"/>
-                    <TextBlock Text="{Binding OpenPostings}" FontSize="28" FontWeight="Bold" Foreground="#2E9D5B"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource StatCardStyle}"
-                    Background="#F7F5FF"
-                    BorderBrush="#E1DBF7">
-                <StackPanel>
-                    <TextBlock Text="Applicants" Foreground="#6A7684"/>
-                    <TextBlock Text="{Binding TotalApplicants}" FontSize="28" FontWeight="Bold" Foreground="#4F46A5"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource StatCardStyle}"
-                    Background="#F3FAFF"
-                    BorderBrush="#D6EAF7">
-                <StackPanel>
-                    <TextBlock Text="Applications" Foreground="#6A7684"/>
-                    <TextBlock Text="{Binding TotalApplications}" FontSize="28" FontWeight="Bold" Foreground="#1E4368"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource StatCardStyle}"
-                    Background="#FFF9EC"
-                    BorderBrush="#F5E2B5">
-                <StackPanel>
-                    <TextBlock Text="Scheduled Interviews" Foreground="#6A7684"/>
-                    <TextBlock Text="{Binding ScheduledInterviews}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
-                </StackPanel>
-            </Border>
-            <Border Style="{StaticResource StatCardStyle}"
-                    Margin="0,0,0,0"
-                    Background="#FFF5EC"
-                    BorderBrush="#F5DEC0">
-                <StackPanel>
-                    <TextBlock Text="Pending Offers" Foreground="#6A7684"/>
-                    <TextBlock Text="{Binding PendingOffers}" FontSize="28" FontWeight="Bold" Foreground="#D98608"/>
-                </StackPanel>
-            </Border>
-        </UniformGrid>
+
 
         <TabControl Grid.Row="2">
             <TabItem Header="Job Postings">
@@ -1024,6 +985,5 @@
         </Border>
     </Grid>
 </UserControl>
-
 
 
