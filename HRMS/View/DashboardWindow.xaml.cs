@@ -436,6 +436,16 @@ namespace HRMS.View
                 AttendanceNavChevronIcon.Visibility = isEmployeeAccess ? Visibility.Collapsed : Visibility.Visible;
             }
 
+            if (PayrollNavChevronIcon != null)
+            {
+                PayrollNavChevronIcon.Visibility = isEmployeeAccess ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            if (PayrollNavButton != null && isEmployeeAccess)
+            {
+                PayrollNavButton.ContextMenu = null;
+            }
+
             if (EmployeesNavButton.Visibility != Visibility.Visible)
             {
                 SetSidebarGroupExpanded(EmployeeManagementSubmenuPanel, EmployeesNavChevronIcon, false);
@@ -446,14 +456,14 @@ namespace HRMS.View
                 SetSidebarGroupExpanded(AttendanceSubmenuPanel, AttendanceNavChevronIcon, false);
             }
 
+            if (PayrollNavButton != null && (PayrollNavButton.Visibility != Visibility.Visible || isEmployeeAccess))
+            {
+                SetSidebarGroupExpanded(PayrollSubmenuPanel, PayrollNavChevronIcon, false);
+            }
+
             if (RecordsReportsNavButton.Visibility != Visibility.Visible)
             {
                 SetSidebarGroupExpanded(RecordsReportsSubmenuPanel, RecordsReportsNavChevronIcon, false);
-            }
-
-            if (PayrollNavButton.Visibility != Visibility.Visible)
-            {
-                SetSidebarGroupExpanded(PayrollSubmenuPanel, PayrollNavChevronIcon, false);
             }
 
             if (EmployeeManagementEmployeesMenuItem != null)
@@ -879,7 +889,7 @@ namespace HRMS.View
 
             if (PayrollNavChevronIcon != null)
             {
-                PayrollNavChevronIcon.Visibility = chevronVisibility;
+                PayrollNavChevronIcon.Visibility = IsEmployeeAccess ? Visibility.Collapsed : chevronVisibility;
             }
 
             if (RecordsReportsNavChevronIcon != null)
@@ -1207,7 +1217,7 @@ namespace HRMS.View
 
         private void PayrollNavButton_OnClick(object sender, RoutedEventArgs e)
         {
-            if (ReferenceEquals(sender, QuickPayrollButton))
+            if (ReferenceEquals(sender, QuickPayrollButton) || IsEmployeeAccess)
             {
                 OpenPayrollModule(x => x.ShowPayrollTab());
                 return;

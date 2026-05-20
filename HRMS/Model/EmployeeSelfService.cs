@@ -579,6 +579,119 @@ LIMIT @limit;";
             return results;
         }
 
+        public async Task<IReadOnlyList<EmployeeNotificationDto>> GetAdminNotificationsAsync(int limit = 500)
+        {
+            var safeLimit = Math.Clamp(limit, 20, 1000);
+            var results = new List<EmployeeNotificationDto>();
+
+            const string sql = @"
+SELECT
+    n.source_id,
+    n.module_key,
+    n.title,
+    n.message,
+    n.status,
+    n.event_at,
+    0 AS is_read
+FROM (
+    SELECT
+        la.leave_application_id AS source_id,
+        'LEAVE' COLLATE utf8mb4_general_ci AS module_key,
+        CONCAT('Leave: ', e.last_name, ', ', e.first_name) COLLATE utf8mb4_general_ci AS title,
+        CONCAT(COALESCE(lt.name, 'Leave'), ' (', DATE_FORMAT(la.date_from, '%b %d'), ') - ', COALESCE(la.status, 'SUBMITTED')) COLLATE utf8mb4_general_ci AS message,
+        COALESCE(la.status, 'SUBMITTED') COLLATE utf8mb4_general_ci AS status,
+        COALESCE(la.updated_at, la.filed_at) AS event_at
+    FROM leave_applications la
+    INNER JOIN employees e ON e.employee_id = la.employee_id
+    LEFT JOIN leave_types lt ON lt.leave_type_id = la.leave_type_id
+    WHERE la.status = 'SUBMITTED'
+
+    UNION ALL
+
+    SELECT
+        aa.adjustment_id AS source_id,
+        'ADJUSTMENTS' COLLATE utf8mb4_general_ci AS module_key,
+        CONCAT('DTR: ', e.last_name, ', ', e.first_name) COLLATE utf8mb4_general_ci AS title,
+        CONCAT('Adj for ', DATE_FORMAT(aa.work_date, '%b %d'), ': ', COALESCE(aa.status, 'PENDING')) COLLATE utf8mb4_general_ci AS message,
+        COALESCE(aa.status, 'PENDING') COLLATE utf8mb4_general_ci AS status,
+        aa.requested_at AS event_at
+    FROM attendance_adjustments aa
+    INNER JOIN employees e ON e.employee_id = aa.employee_id
+    WHERE aa.status = 'PENDING'
+
+    UNION ALL
+
+    SELECT
+        pr.payroll_run_id AS source_id,
+        'PAYROLL' COLLATE utf8mb4_general_ci AS module_key,
+        'Payroll Generated' COLLATE utf8mb4_general_ci AS title,
+        CONCAT('Run #', pr.payroll_run_id, ' for period ', COALESCE(pp.period_code, 'N/A'), ': ', COALESCE(pr.status, 'GENERATED')) COLLATE utf8mb4_general_ci AS message,
+        COALESCE(pr.status, 'GENERATED') COLLATE utf8mb4_general_ci AS status,
+        pr.generated_at AS event_at
+    FROM payroll_runs pr
+    LEFT JOIN payroll_periods pp ON pp.payroll_period_id = pr.payroll_period_id
+    WHERE pr.status IN ('GENERATED', 'LOCKED')
+      AND pr.generated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+
+    UNION ALL
+
+    SELECT
+        ja.job_application_id AS source_id,
+        'RECRUITMENT' COLLATE utf8mb4_general_ci AS module_key,
+        CONCAT('New Applicant: ', a.last_name, ', ', a.first_name) COLLATE utf8mb4_general_ci AS title,
+        CONCAT('Applied for: ', COALESCE(jp.title, 'Position')) COLLATE utf8mb4_general_ci AS message,
+        COALESCE(ja.status, 'SUBMITTED') COLLATE utf8mb4_general_ci AS status,
+        ja.applied_at AS event_at
+    FROM job_applications ja
+    INNER JOIN applicants a ON a.applicant_id = ja.applicant_id
+    INNER JOIN job_postings jp ON jp.job_posting_id = ja.job_posting_id
+    WHERE ja.status = 'SUBMITTED'
+
+    UNION ALL
+
+    SELECT
+        cl.checklist_id AS source_id,
+        'VERIFICATION' COLLATE utf8mb4_general_ci AS module_key,
+        CONCAT('Doc Check: ', e.last_name, ', ', e.first_name) COLLATE utf8mb4_general_ci AS title,
+        CONCAT('Verify: ', cl.document_name) COLLATE utf8mb4_general_ci AS message,
+        cl.status COLLATE utf8mb4_general_ci AS status,
+        cl.updated_at AS event_at
+    FROM employee_document_checklist cl
+    INNER JOIN employees e ON e.employee_id = cl.employee_id
+    WHERE cl.status = 'SUBMITTED'
+) n
+ORDER BY n.event_at DESC, n.source_id DESC
+LIMIT @limit;";
+
+            try
+            {
+                await using var connection = new MySqlConnection(_connectionString);
+                await connection.OpenAsync();
+
+                await using var command = new MySqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@limit", safeLimit);
+
+                await using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    results.Add(new EmployeeNotificationDto(
+                        SourceId: ToLong(reader["source_id"]),
+                        ModuleKey: ToText(reader["module_key"], "DASHBOARD"),
+                        Title: ToText(reader["title"], "Update"),
+                        Message: ToText(reader["message"], "-"),
+                        Status: ToText(reader["status"], "-"),
+                        EventAt: ToDateTime(reader["event_at"]),
+                        IsRead: ToBool(reader["is_read"])));
+                }
+            }
+            catch (MySqlException ex) when (IsMissingObjectError(ex))
+            {
+                // Fallback for missing tables
+            }
+
+            return results;
+        }
+
         public async Task MarkEmployeeNotificationAsReadAsync(int employeeId, string moduleKey, long sourceId, DateTime eventAt)
         {
             if (employeeId <= 0 || sourceId <= 0 || eventAt == DateTime.MinValue || string.IsNullOrWhiteSpace(moduleKey))

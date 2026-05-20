@@ -11,12 +11,52 @@ namespace HRMS
     {
         protected override void OnStartup(StartupEventArgs e)
         {
+            // Set up global exception handling for UI thread
+            DispatcherUnhandledException += App_DispatcherUnhandledException;
+
+            // Set up global exception handling for Task-based async operations
+            TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
+
+            // Set up global exception handling for non-UI threads
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+
             StartMenuShortcutService.EnsureInstalledShortcutUsesHrmsIcon();
             base.OnStartup(e);
 
             Dispatcher.BeginInvoke(
                 new Action(() => _ = VerifyOnlineDatabasesOnStartupAsync()),
                 DispatcherPriority.ApplicationIdle);
+        }
+
+        private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+        {
+            e.Handled = true;
+            ShowCriticalError(e.Exception, "UI Thread Error");
+        }
+
+        private void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+        {
+            e.SetObserved();
+            ShowCriticalError(e.Exception, "Async Task Error");
+        }
+
+        private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            if (e.ExceptionObject is Exception ex)
+            {
+                ShowCriticalError(ex, "Domain Error");
+            }
+        }
+
+        private static void ShowCriticalError(Exception ex, string source)
+        {
+            MessageBox.Show(
+                $"A critical {source} has occurred.\n\n" +
+                $"Details: {ex.Message}\n\n" +
+                "The application will attempt to remain stable. Please report this if it persists.",
+                "HRMS System Stability",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
         }
 
         private static async Task VerifyOnlineDatabasesOnStartupAsync()

@@ -181,6 +181,20 @@ namespace HRMS.ViewModel
             }
         }
 
+        public string EmployeeGreeting
+        {
+            get
+            {
+                var hour = DateTime.Now.Hour;
+                string greeting;
+                if (hour < 12) greeting = "Good Morning";
+                else if (hour < 17) greeting = "Good Afternoon";
+                else greeting = "Good Evening";
+
+                return $"{greeting}, {CurrentUserDisplay}!";
+            }
+        }
+
         public string SnapshotTitle => ShowEmployeeDashboard ? "My Workday Snapshot" : "Organization Snapshot";
 
         public string SnapshotSubtitle => ShowEmployeeDashboard

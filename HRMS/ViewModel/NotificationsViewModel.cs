@@ -20,6 +20,7 @@ namespace HRMS.ViewModel
         private readonly HashSet<string> _locallyReadKeys = new(StringComparer.OrdinalIgnoreCase);
         private int _currentUserId;
         private int? _currentEmployeeId;
+        private string? _currentRole;
         private bool _isLoading;
         private string _searchText = string.Empty;
         private string _selectedModule = "All";
@@ -34,6 +35,8 @@ namespace HRMS.ViewModel
             ModuleOptions.Add("Leave");
             ModuleOptions.Add("Payroll");
             ModuleOptions.Add("Development");
+            ModuleOptions.Add("Recruitment");
+            ModuleOptions.Add("Verification");
 
             RefreshCommand = new AsyncRelayCommand(_ => RefreshAsync());
             OpenSourceCommand = new AsyncRelayCommand(OpenSourceAsync);
@@ -43,6 +46,10 @@ namespace HRMS.ViewModel
         public ObservableCollection<NotificationRowVm> Notifications { get; } = new();
 
         public int UnreadCount => _allNotifications.Count(x => !x.IsRead);
+
+        public bool IsAdminAccess =>
+            string.Equals(_currentRole?.Trim(), "Admin", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(_currentRole?.Trim(), "HR Manager", StringComparison.OrdinalIgnoreCase);
 
         public ICommand RefreshCommand { get; }
         public ICommand OpenSourceCommand { get; }
@@ -102,6 +109,7 @@ namespace HRMS.ViewModel
 
             _currentUserId = user?.UserId ?? 0;
             _currentEmployeeId = user?.EmployeeId;
+            _currentRole = user?.RoleName;
             _ = RefreshAsync();
         }
 
@@ -110,6 +118,15 @@ namespace HRMS.ViewModel
             IsLoading = true;
             try
             {
+                if (IsAdminAccess)
+                {
+                    var adminData = await _dataService.GetAdminNotificationsAsync(500);
+                    RebuildRows(adminData);
+                    ApplyFilter();
+                    SetMessage($"Loaded {Notifications.Count} system notification(s).", Brushes.SeaGreen);
+                    return;
+                }
+
                 if ((!_currentEmployeeId.HasValue || _currentEmployeeId.Value <= 0) && _currentUserId > 0)
                 {
                     _currentEmployeeId = await _dataService.GetEmployeeIdByUserIdAsync(_currentUserId);
@@ -145,7 +162,7 @@ namespace HRMS.ViewModel
                 return;
             }
 
-            if (_currentEmployeeId.HasValue && _currentEmployeeId.Value > 0 && !row.IsRead)
+            if (!IsAdminAccess && _currentEmployeeId.HasValue && _currentEmployeeId.Value > 0 && !row.IsRead)
             {
                 _locallyReadKeys.Add(BuildReadKey(row.ModuleKey, row.SourceId, row.EventAt));
                 await _dataService.MarkEmployeeNotificationAsReadAsync(_currentEmployeeId.Value, row.ModuleKey, row.SourceId, row.EventAt);
@@ -254,6 +271,8 @@ namespace HRMS.ViewModel
                 "ADJUSTMENTS" => "Adjustments",
                 "PAYROLL" => "Payroll",
                 "DEVELOPMENT" => "Development",
+                "RECRUITMENT" => "Recruitment",
+                "VERIFICATION" => "Verification",
                 _ => "Attendance"
             };
             Title = dto.Title;

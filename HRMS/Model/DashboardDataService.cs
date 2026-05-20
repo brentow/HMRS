@@ -24,49 +24,57 @@ namespace HRMS.Model
 
         public async Task<DashboardStats> GetDashboardStatsAsync()
         {
-            await using var connection = new MySqlConnection(_connectionString);
-            await connection.OpenAsync();
-
-            var stats = new DashboardStats
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            try
             {
-                TotalEmployees = await CountSafeAsync(connection, "SELECT COUNT(*) FROM employees;"),
-                ActiveEmployees = await CountSafeAsync(connection, "SELECT COUNT(*) FROM employees WHERE status = 'ACTIVE';"),
-                Departments = await CountSafeAsync(connection, "SELECT COUNT(*) FROM departments;"),
-                Positions = await CountSafeAsync(connection, "SELECT COUNT(*) FROM positions;"),
-                PresentToday = await CountWithFallbackAsync(
-                    connection,
-                    "SELECT COUNT(DISTINCT employee_id) FROM v_dtr_daily_effective WHERE work_date = CURDATE();",
-                    "SELECT COUNT(DISTINCT employee_id) FROM attendance_logs WHERE DATE(log_time) = CURDATE() AND log_type = 'IN';"),
-                PendingAdjustments = await CountSafeAsync(
-                    connection,
-                    "SELECT COUNT(*) FROM attendance_adjustments WHERE status = 'PENDING';"),
-                PendingLeaves = await CountSafeAsync(
-                    connection,
-                    "SELECT COUNT(*) FROM leave_applications WHERE status IN ('SUBMITTED','RECOMMENDED');"),
-                OpenJobs = await CountSafeAsync(connection, "SELECT COUNT(*) FROM job_postings WHERE status = 'OPEN';"),
-                ActiveCourses = await CountWithFallbackAsync(
-                    connection,
-                    "SELECT COUNT(*) FROM training_sessions WHERE session_date >= CURDATE();",
-                    "SELECT COUNT(*) FROM training_courses;"),
-                PendingTrainingEnrollments = await CountSafeAsync(
-                    connection,
-                    "SELECT COUNT(*) FROM training_enrollments WHERE status = 'PENDING';"),
-                OpenPayrollPeriods = await CountSafeAsync(connection, "SELECT COUNT(*) FROM payroll_periods WHERE status = 'OPEN';"),
-                PayrollReleaseQueue = await CountSafeAsync(
-                    connection,
-                    @"SELECT COUNT(*)
-                      FROM payroll_runs pr
-                      LEFT JOIN payslip_releases rel ON rel.payroll_run_id = pr.payroll_run_id
-                      WHERE pr.status IN ('GENERATED','APPROVED')
-                        AND rel.payslip_release_id IS NULL;"),
-                OpenPerformanceCycles = await CountSafeAsync(connection, "SELECT COUNT(*) FROM performance_cycles WHERE status = 'OPEN';"),
-                ActiveUsers = await CountSafeAsync(connection, "SELECT COUNT(*) FROM user_accounts WHERE status = 'ACTIVE';"),
-                ApplicantsInPipeline = await CountSafeAsync(
-                    connection,
-                    "SELECT COUNT(*) FROM job_applications WHERE status IN ('SUBMITTED','SCREENING','SHORTLISTED','INTERVIEW','OFFERED');")
-            };
+                await using var connection = new MySqlConnection(_connectionString);
+                await connection.OpenAsync();
 
-            return stats;
+                var stats = new DashboardStats
+                {
+                    TotalEmployees = await CountSafeAsync(connection, "SELECT COUNT(*) FROM employees;"),
+                    ActiveEmployees = await CountSafeAsync(connection, "SELECT COUNT(*) FROM employees WHERE status = 'ACTIVE';"),
+                    Departments = await CountSafeAsync(connection, "SELECT COUNT(*) FROM departments;"),
+                    Positions = await CountSafeAsync(connection, "SELECT COUNT(*) FROM positions;"),
+                    PresentToday = await CountWithFallbackAsync(
+                        connection,
+                        "SELECT COUNT(DISTINCT employee_id) FROM v_dtr_daily_effective WHERE work_date = CURDATE();",
+                        "SELECT COUNT(DISTINCT employee_id) FROM attendance_logs WHERE DATE(log_time) = CURDATE() AND log_type = 'IN';"),
+                    PendingAdjustments = await CountSafeAsync(
+                        connection,
+                        "SELECT COUNT(*) FROM attendance_adjustments WHERE status = 'PENDING';"),
+                    PendingLeaves = await CountSafeAsync(
+                        connection,
+                        "SELECT COUNT(*) FROM leave_applications WHERE status IN ('SUBMITTED','RECOMMENDED');"),
+                    OpenJobs = await CountSafeAsync(connection, "SELECT COUNT(*) FROM job_postings WHERE status = 'OPEN';"),
+                    ActiveCourses = await CountWithFallbackAsync(
+                        connection,
+                        "SELECT COUNT(*) FROM training_sessions WHERE session_date >= CURDATE();",
+                        "SELECT COUNT(*) FROM training_courses;"),
+                    PendingTrainingEnrollments = await CountSafeAsync(
+                        connection,
+                        "SELECT COUNT(*) FROM training_enrollments WHERE status = 'PENDING';"),
+                    OpenPayrollPeriods = await CountSafeAsync(connection, "SELECT COUNT(*) FROM payroll_periods WHERE status = 'OPEN';"),
+                    PayrollReleaseQueue = await CountSafeAsync(
+                        connection,
+                        @"SELECT COUNT(*)
+                          FROM payroll_runs pr
+                          LEFT JOIN payslip_releases rel ON rel.payroll_run_id = pr.payroll_run_id
+                          WHERE pr.status IN ('GENERATED','APPROVED')
+                            AND rel.payslip_release_id IS NULL;"),
+                    OpenPerformanceCycles = await CountSafeAsync(connection, "SELECT COUNT(*) FROM performance_cycles WHERE status = 'OPEN';"),
+                    ActiveUsers = await CountSafeAsync(connection, "SELECT COUNT(*) FROM user_accounts WHERE status = 'ACTIVE';"),
+                    ApplicantsInPipeline = await CountSafeAsync(
+                        connection,
+                        "SELECT COUNT(*) FROM job_applications WHERE status IN ('SUBMITTED','SCREENING','SHORTLISTED','INTERVIEW','OFFERED');")
+                };
+
+                return stats;
+            }
+            finally
+            {
+                PerformanceTracker.LogQueryTime(sw.ElapsedMilliseconds);
+            }
         }
 
         public async Task<DashboardStats> GetEmployeeDashboardStatsAsync(int employeeId)
@@ -76,28 +84,31 @@ namespace HRMS.Model
                 return new DashboardStats();
             }
 
-            await using var connection = new MySqlConnection(_connectionString);
-            await connection.OpenAsync();
-
-            var stats = new DashboardStats
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            try
             {
-                MyPendingAdjustments = await CountSafeWithParamsAsync(
-                    connection,
-                    "SELECT COUNT(*) FROM attendance_adjustments WHERE employee_id = @employee_id AND status = 'PENDING';",
-                    new MySqlParameter("@employee_id", employeeId)),
-                MyPendingLeaves = await CountSafeWithParamsAsync(
-                    connection,
-                    "SELECT COUNT(*) FROM leave_applications WHERE employee_id = @employee_id AND status IN ('SUBMITTED','RECOMMENDED');",
-                    new MySqlParameter("@employee_id", employeeId)),
-                MyActiveEnrollments = await CountSafeWithParamsAsync(
-                    connection,
-                    "SELECT COUNT(*) FROM training_enrollments WHERE employee_id = @employee_id AND status IN ('PENDING','COMPLETED');",
-                    new MySqlParameter("@employee_id", employeeId)),
-                MyOpenReviews = await CountSafeWithParamsAsync(
-                    connection,
-                    "SELECT COUNT(*) FROM performance_reviews WHERE employee_id = @employee_id AND status IN ('DRAFT','SUBMITTED');",
-                    new MySqlParameter("@employee_id", employeeId)),
-                MyLatestNetPay = await DecimalSafeWithParamsAsync(
+                await using var connection = new MySqlConnection(_connectionString);
+                await connection.OpenAsync();
+
+                var stats = new DashboardStats
+                {
+                    MyPendingAdjustments = await CountSafeWithParamsAsync(
+                        connection,
+                        "SELECT COUNT(*) FROM attendance_adjustments WHERE employee_id = @employee_id AND status = 'PENDING';",
+                        new MySqlParameter("@employee_id", employeeId)),
+                    MyPendingLeaves = await CountSafeWithParamsAsync(
+                        connection,
+                        "SELECT COUNT(*) FROM leave_applications WHERE employee_id = @employee_id AND status IN ('SUBMITTED','RECOMMENDED');",
+                        new MySqlParameter("@employee_id", employeeId)),
+                    MyActiveEnrollments = await CountSafeWithParamsAsync(
+                        connection,
+                        "SELECT COUNT(*) FROM training_enrollments WHERE employee_id = @employee_id AND status IN ('PENDING','COMPLETED');",
+                        new MySqlParameter("@employee_id", employeeId)),
+                    MyOpenReviews = await CountSafeWithParamsAsync(
+                        connection,
+                        "SELECT COUNT(*) FROM performance_reviews WHERE employee_id = @employee_id AND status IN ('DRAFT','SUBMITTED');",
+                        new MySqlParameter("@employee_id", employeeId)),
+                    MyLatestNetPay = await DecimalSafeWithParamsAsync(
                     connection,
                     @"SELECT net_pay
                       FROM payroll_runs
@@ -139,8 +150,13 @@ WHERE employee_id = @employee_id
 
             return stats;
         }
+        finally
+        {
+            PerformanceTracker.LogQueryTime(sw.ElapsedMilliseconds);
+        }
+    }
 
-        public async Task<DashboardAttendanceTrendData> GetAttendanceTrendAsync(int days = 7)
+    public async Task<DashboardAttendanceTrendData> GetAttendanceTrendAsync(int days = 7)
         {
             var clampedDays = Math.Clamp(days, 2, 14);
             var endDate = DateTime.Today;

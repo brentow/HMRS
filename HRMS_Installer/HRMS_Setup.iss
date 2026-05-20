@@ -3,7 +3,7 @@
 ; Requires Inno Setup 6.x (https://jrsoftware.org/isinfo.php)
 
 #define MyAppName "HRMS"
-#define MyAppVersion "1.0.1"
+#define MyAppVersion "1.0.2"
 #define MyAppPublisher "ePRIME"
 #define MyAppExeName "HRMS.exe"
 #define MyAppDescription "Human Resources Management System"
@@ -20,7 +20,7 @@ AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\{#MyAppPublisher}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
-OutputDir=Output
+OutputDir=C:\Users\User\Downloads
 OutputBaseFilename=HRMS_Setup_{#MyAppVersion}
 SetupIconFile=ePRIME_logo.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}

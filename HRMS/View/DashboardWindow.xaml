@@ -115,13 +115,14 @@
         </Style>
 
         <Style x:Key="EmployeeSnapshotValueStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="24" />
+            <Setter Property="FontSize" Value="32" />
             <Setter Property="FontWeight" Value="Bold" />
             <Setter Property="Margin" Value="0,0,0,4" />
         </Style>
 
         <Style x:Key="EmployeeSnapshotLabelStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="#5F6E80" />
+            <Setter Property="FontSize" Value="15" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="TextWrapping" Value="Wrap" />
             <Setter Property="MinHeight" Value="20" />
@@ -1199,41 +1200,42 @@
                         <StackPanel Grid.Column="3"
                                     Orientation="Horizontal"
                                     VerticalAlignment="Center"
-                                    Margin="0,0,14,0">
-                            <Border Width="34"
-                                    Height="34"
+                                    Margin="0,0,16,0">
+                            <Border Width="38"
+                                    Height="38"
                                     Background="#EEF5FF"
-                                    BorderBrush="#D8E8FF"
+                                    BorderBrush="#C9DFFF"
                                     BorderThickness="1"
-                                    CornerRadius="17"
+                                    CornerRadius="19"
                                     VerticalAlignment="Center">
                                 <materialDesign:PackIcon Kind="AccountCircleOutline"
-                                                         Width="20"
-                                                         Height="20"
-                                                         Foreground="#4E6E93"
+                                                         Width="22"
+                                                         Height="22"
+                                                         Foreground="#3B5573"
                                                          HorizontalAlignment="Center"
                                                          VerticalAlignment="Center" />
                             </Border>
                             <TextBlock Text="{Binding CurrentUserDisplay}"
-                                       Margin="8,0,0,0"
+                                       Margin="10,0,0,0"
                                        VerticalAlignment="Center"
-                                       FontSize="14"
-                                       FontWeight="SemiBold"
-                                       Foreground="#3B5573"
+                                       FontSize="15"
+                                       FontWeight="Bold"
+                                       Foreground="#2D435A"
                                        TextTrimming="CharacterEllipsis"
-                                       MaxWidth="170" />
+                                       MaxWidth="180" />
                         </StackPanel>
 
-                        <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Padding="10,6"
+                        <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                            <Button Padding="12,6"
                                     Background="Transparent"
                                     BorderThickness="0"
-                                    Foreground="#5A6F86"
+                                    Foreground="#4E6E93"
+                                    Visibility="{Binding ShowAdminHrDashboard, Converter={StaticResource BoolToVis}}"
                                     Click="UserAccountSettingsButton_OnClick"
                                     ToolTip="Admin Tools">
                                 <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="ShieldAccountOutline" Width="18" Height="18" VerticalAlignment="Center" />
-                                    <TextBlock Text="Admin Tools" Margin="8,0,0,0" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    <materialDesign:PackIcon Kind="ShieldAccountOutline" Width="20" Height="20" VerticalAlignment="Center" />
+                                    <TextBlock Text="Admin Tools" Margin="8,0,0,0" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
 
@@ -1529,6 +1531,7 @@
                       Visibility="Collapsed">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
@@ -1569,8 +1572,40 @@
                         </Grid>
                     </Border>
 
+                    <!-- Snapshot Section (The "Read First" part) -->
+                    <UniformGrid Grid.Row="1" Columns="4" Margin="0,12,0,8">
+                        <Border Style="{StaticResource EmployeeSnapshotCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="ATTENDANCE TODAY" Style="{StaticResource EmployeeSnapshotLabelStyle}" />
+                                <TextBlock Text="{Binding Stats.TodayInText, StringFormat='IN: {0}'}" Style="{StaticResource EmployeeSnapshotValueStyle}" Foreground="#10B981" />
+                                <TextBlock Text="{Binding Stats.TodayOutText, StringFormat='OUT: {0}'}" Style="{StaticResource EmployeeSnapshotValueStyle}" Foreground="#EF4444" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource EmployeeSnapshotCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="SHIFT SCHEDULE" Style="{StaticResource EmployeeSnapshotLabelStyle}" />
+                                <TextBlock Text="{Binding Stats.MyNextShiftText}" Style="{StaticResource EmployeeSnapshotValueStyle}" FontSize="18" Foreground="#3B82F6" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource EmployeeSnapshotCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="PENDING REQUESTS" Style="{StaticResource EmployeeSnapshotLabelStyle}" />
+                                <TextBlock Text="{Binding Stats.MyPendingRequestsText}" Style="{StaticResource EmployeeSnapshotValueStyle}" FontSize="18" Foreground="#F59E0B" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource EmployeeSnapshotCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="LATEST UPDATE" Style="{StaticResource EmployeeSnapshotLabelStyle}" />
+                                <TextBlock Text="{Binding Stats.MyLatestDecisionText}" FontSize="13" FontWeight="Medium" Foreground="#475569" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+
                     <!-- Main tiles for employee -->
-                    <UniformGrid Grid.Row="1" Columns="3" Rows="2" Margin="0,4,0,4">
+                    <UniformGrid Grid.Row="2" Columns="3" Rows="2" Margin="0,4,0,4">
                         <Button x:Name="EmpQuickAttendanceButton"
                                 Style="{StaticResource ReferenceDashboardTileStyle}"
                                 Background="#F59E0B"
@@ -1639,12 +1674,12 @@
                     </UniformGrid>
 
                     <!-- Bottom quick actions -->
-                    <Border Grid.Row="2"
+                    <Border Grid.Row="3"
                             Margin="4,2,4,0"
                             Padding="6"
                             Background="#111827"
                             CornerRadius="12">
-                        <UniformGrid Columns="4">
+                        <UniformGrid Columns="5">
                             <Button Style="{StaticResource ReferenceDashboardMiniTileStyle}"
                                     Background="#0F5A86"
                                     Click="AttendanceNavButton_OnClick">
@@ -1665,6 +1700,15 @@
 
                             <Button Style="{StaticResource ReferenceDashboardMiniTileStyle}"
                                     Background="#475569"
+                                    Click="UserAccountSettingsButton_OnClick">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="CogOutline" Width="18" Height="18" Foreground="White" />
+                                    <TextBlock Text="Settings" Margin="8,0,0,0" FontSize="13" FontWeight="SemiBold" Foreground="White" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Style="{StaticResource ReferenceDashboardMiniTileStyle}"
+                                    Background="#4C5A6A"
                                     Click="HelpHeaderButton_OnClick">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <materialDesign:PackIcon Kind="HelpCircleOutline" Width="18" Height="18" Foreground="White" />
