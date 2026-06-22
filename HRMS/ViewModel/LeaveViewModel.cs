@@ -532,11 +532,10 @@ namespace HRMS.ViewModel
         public ObservableCollection<string> RequestStatusFilters { get; } = new()
         {
             "All",
-            "SUBMITTED",
-            "RECOMMENDED",
-            "APPROVED",
-            "REJECTED",
-            "CANCELLED"
+            "Pending",
+            "Approved",
+            "Rejected",
+            "Cancelled"
         };
 
         public ObservableCollection<LeaveRequestVm> LeaveRequests { get; } = new();
@@ -900,7 +899,7 @@ namespace HRMS.ViewModel
                 DecisionRemarks = string.Empty;
                 await RefreshAsync();
                 SelectedRequest = LeaveRequests.FirstOrDefault(x => x.LeaveApplicationId == request.LeaveApplicationId);
-                SetMessage($"Leave request #{request.LeaveApplicationId} marked as {status}.", SuccessBrush);
+                SetMessage($"Leave request #{request.LeaveApplicationId} marked as {ToSimpleStatusDisplay(status)}.", SuccessBrush);
                 SystemRefreshBus.Raise("LeaveRequestStatusUpdated");
             }
             catch (Exception ex)
@@ -1158,7 +1157,7 @@ namespace HRMS.ViewModel
                     EscapeCsv(request.DateFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
                     EscapeCsv(request.DateTo.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
                     EscapeCsv(request.DaysRequested.ToString("0.##", CultureInfo.InvariantCulture)),
-                    EscapeCsv(request.Status),
+                    EscapeCsv(request.StatusDisplay),
                     EscapeCsv(request.Reason),
                     EscapeCsv(request.DecisionRemarks),
                     EscapeCsv(request.FiledAt.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)),
@@ -1341,7 +1340,7 @@ namespace HRMS.ViewModel
 
             if (!string.Equals(SelectedRequestStatusFilter, "All", StringComparison.OrdinalIgnoreCase))
             {
-                query = query.Where(x => string.Equals(x.Status, SelectedRequestStatusFilter, StringComparison.OrdinalIgnoreCase));
+                query = query.Where(x => MatchesStatusFilter(x, SelectedRequestStatusFilter));
             }
 
             var search = (RequestSearchText ?? string.Empty).Trim();
@@ -1351,6 +1350,7 @@ namespace HRMS.ViewModel
                     Contains(x.EmployeeNo, search) ||
                     Contains(x.EmployeeName, search) ||
                     Contains(x.LeaveTypeName, search) ||
+                    Contains(x.StatusDisplay, search) ||
                     Contains(x.Status, search) ||
                     Contains(x.Reason, search));
             }
@@ -1371,6 +1371,19 @@ namespace HRMS.ViewModel
             {
                 UpdateSelectedRequestContext();
             }
+        }
+
+        private static bool MatchesStatusFilter(LeaveRequestVm request, string filter)
+        {
+            return filter.Trim().ToUpperInvariant() switch
+            {
+                "PENDING" => string.Equals(request.Status, "SUBMITTED", StringComparison.OrdinalIgnoreCase) ||
+                             string.Equals(request.Status, "RECOMMENDED", StringComparison.OrdinalIgnoreCase),
+                "APPROVED" => string.Equals(request.Status, "APPROVED", StringComparison.OrdinalIgnoreCase),
+                "REJECTED" => string.Equals(request.Status, "REJECTED", StringComparison.OrdinalIgnoreCase),
+                "CANCELLED" => string.Equals(request.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase),
+                _ => true
+            };
         }
 
         private void ApplyBalanceFilters()
@@ -1460,13 +1473,13 @@ namespace HRMS.ViewModel
                 return;
             }
 
-            var timeline = $"Submitted: {SelectedRequest.FiledAtText}";
+            var timeline = $"Filed: {SelectedRequest.FiledAtText}";
             switch (SelectedRequest.Status)
             {
                 case "RECOMMENDED":
                     timeline += SelectedRequest.DecisionAt.HasValue
-                        ? $" | Recommended: {SelectedRequest.DecisionAtText}"
-                        : " | Recommended";
+                        ? $" | Still pending: {SelectedRequest.DecisionAtText}"
+                        : " | Pending";
                     break;
                 case "APPROVED":
                     timeline += SelectedRequest.DecisionAt.HasValue
@@ -1596,6 +1609,18 @@ namespace HRMS.ViewModel
             !string.IsNullOrWhiteSpace(source) &&
             source.Contains(search, StringComparison.OrdinalIgnoreCase);
 
+        private static string ToSimpleStatusDisplay(string status)
+        {
+            return status.Trim().ToUpperInvariant() switch
+            {
+                "SUBMITTED" or "RECOMMENDED" => "Pending",
+                "APPROVED" => "Approved",
+                "REJECTED" => "Rejected",
+                "CANCELLED" => "Cancelled",
+                _ => status
+            };
+        }
+
         private void SetMessage(string message, Brush brush)
         {
             ActionMessage = message;
@@ -1664,7 +1689,6 @@ namespace HRMS.ViewModel
     public class LeaveRequestVm
     {
         private static readonly Brush PendingBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B9831A"));
-        private static readonly Brush RecommendedBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#5B8DEF"));
         private static readonly Brush ApprovedBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2E9D5B"));
         private static readonly Brush RejectedBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D84343"));
         private static readonly Brush CancelledBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8A98AA"));
@@ -1725,10 +1749,20 @@ namespace HRMS.ViewModel
 
         public string DateFromText => DateFrom == DateTime.MinValue ? "-" : DateFrom.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture);
         public string DateToText => DateTo == DateTime.MinValue ? "-" : DateTo.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture);
+        public string DateRangeText => DateFrom.Date == DateTo.Date ? DateFromText : $"{DateFromText} - {DateToText}";
         public string FiledAtText => FiledAt == DateTime.MinValue ? "-" : FiledAt.ToString("MMM dd, yyyy hh:mm tt", CultureInfo.InvariantCulture);
         public string DecisionAtText => DecisionAt.HasValue ? DecisionAt.Value.ToString("MMM dd, yyyy hh:mm tt", CultureInfo.InvariantCulture) : "-";
         public string DaysRequestedText => DaysRequested.ToString("0.##", CultureInfo.InvariantCulture);
         public string DecisionRemarks => string.IsNullOrWhiteSpace(DecisionRemarksRaw) ? "-" : DecisionRemarksRaw;
+        public string StatusDisplay => Status switch
+        {
+            "SUBMITTED" or "RECOMMENDED" => "Pending",
+            "APPROVED" => "Approved",
+            "REJECTED" => "Rejected",
+            "CANCELLED" => "Cancelled",
+            _ => CultureInfo.InvariantCulture.TextInfo.ToTitleCase(Status.ToLowerInvariant())
+        };
+
         public bool CanCancelPending =>
             string.Equals(Status, "SUBMITTED", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(Status, "RECOMMENDED", StringComparison.OrdinalIgnoreCase);
@@ -1736,7 +1770,7 @@ namespace HRMS.ViewModel
         public Brush StatusBrush => Status switch
         {
             "SUBMITTED" => PendingBrush,
-            "RECOMMENDED" => RecommendedBrush,
+            "RECOMMENDED" => PendingBrush,
             "APPROVED" => ApprovedBrush,
             "REJECTED" => RejectedBrush,
             "CANCELLED" => CancelledBrush,

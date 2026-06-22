@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Controls;
 using HRMS.Model;
 using HRMS.ViewModel;
@@ -14,6 +15,7 @@ namespace HRMS.View
             InitializeComponent();
             _viewModel = new PayrollViewModel();
             DataContext = _viewModel;
+            PayrollTabControl.SelectedItem = PayrollRunsTab;
         }
 
         public void SetCurrentUser(AuthenticatedUser? user)
@@ -47,6 +49,16 @@ namespace HRMS.View
         public void ShowPayslipTab()
         {
             PayrollTabControl.SelectedItem = PayslipReleasesTab;
+        }
+
+        private void OpenRunDetailsPopup_OnClick(object sender, RoutedEventArgs e)
+        {
+            RunDetailsPopup.IsOpen = true;
+        }
+
+        private void CloseRunDetailsPopup_OnClick(object sender, RoutedEventArgs e)
+        {
+            RunDetailsPopup.IsOpen = false;
         }
     }
 }

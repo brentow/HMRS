@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media;
 using System.Windows.Input;
 using Microsoft.Win32;
 
@@ -21,6 +22,10 @@ namespace HRMS.ViewModel
         private string _dtrSummaryText = "No DTR loaded.";
         private int _dtrTotalWorkedDays;
         private int _dtrTotalWorkedMinutes;
+        private int _dtrPresentCount;
+        private int _dtrLateCount;
+        private int _dtrAbsentCount;
+        private int _dtrLeaveOrHolidayCount;
         private DtrCertificationRowVm? _selectedDtrCertification;
         private string _dtrCertificationRemarks = string.Empty;
 
@@ -128,6 +133,68 @@ namespace HRMS.ViewModel
         }
 
         public string DtrTotalWorkedHoursText => FormatMinutes(DtrTotalWorkedMinutes);
+
+        public int DtrPresentCount
+        {
+            get => _dtrPresentCount;
+            private set
+            {
+                if (_dtrPresentCount == value)
+                {
+                    return;
+                }
+
+                _dtrPresentCount = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public int DtrLateCount
+        {
+            get => _dtrLateCount;
+            private set
+            {
+                if (_dtrLateCount == value)
+                {
+                    return;
+                }
+
+                _dtrLateCount = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public int DtrAbsentCount
+        {
+            get => _dtrAbsentCount;
+            private set
+            {
+                if (_dtrAbsentCount == value)
+                {
+                    return;
+                }
+
+                _dtrAbsentCount = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public int DtrLeaveOrHolidayCount
+        {
+            get => _dtrLeaveOrHolidayCount;
+            private set
+            {
+                if (_dtrLeaveOrHolidayCount == value)
+                {
+                    return;
+                }
+
+                _dtrLeaveOrHolidayCount = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool IsDtrEmpty => DtrDailyRows.Count == 0;
 
         public DtrCertificationRowVm? SelectedDtrCertification
         {
@@ -249,7 +316,11 @@ namespace HRMS.ViewModel
 
                 DtrTotalWorkedDays = DtrCertificationRows.Sum(x => x.WorkedDays);
                 DtrTotalWorkedMinutes = DtrCertificationRows.Sum(x => x.WorkedMinutes);
-                DtrSummaryText = $"{DtrDailyRows.Count} daily records | {DtrCertificationRows.Count} employees";
+                UpdateDtrSummaryCounts();
+                DtrSummaryText = DtrDailyRows.Count == 0
+                    ? "No attendance records found."
+                    : $"{DtrDailyRows.Count} records | {DtrCertificationRows.Count} employees";
+                OnPropertyChanged(nameof(IsDtrEmpty));
 
                 if (!silent)
                 {
@@ -445,10 +516,31 @@ namespace HRMS.ViewModel
             var minutes = workedMinutes % 60;
             return $"{hours}h {minutes}m";
         }
+
+        private void UpdateDtrSummaryCounts()
+        {
+            DtrPresentCount = DtrDailyRows.Count(x => x.IsPresent);
+            DtrLateCount = DtrDailyRows.Count(x => x.LateMinutes > 0);
+            DtrAbsentCount = DtrDailyRows.Count(x => x.StatusDisplay == "Absent");
+            DtrLeaveOrHolidayCount = DtrDailyRows.Count(x =>
+                x.StatusDisplay == "On Leave" ||
+                x.StatusDisplay == "Holiday" ||
+                x.StatusDisplay == "Travel Order" ||
+                x.StatusDisplay == "Official Business");
+        }
     }
 
     public class DtrDailyRowVm
     {
+        private static readonly Brush PresentBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2E9D5B"));
+        private static readonly Brush LateBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B9831A"));
+        private static readonly Brush AbsentBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D84343"));
+        private static readonly Brush LeaveBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2F80ED"));
+        private static readonly Brush HolidayBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7353BB"));
+        private static readonly Brush WeekendBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#64748B"));
+        private static readonly Brush PendingBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6A7684"));
+        private static readonly Brush DefaultBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E4368"));
+
         public DtrDailyRowVm(
             int employeeId,
             string employeeNo,
@@ -483,6 +575,7 @@ namespace HRMS.ViewModel
         public string Remarks { get; }
         public int LateMinutes { get; }
         public int EarlyOutMinutes { get; }
+        public bool IsPresent => TimeIn.HasValue || TimeOut.HasValue || WorkedMinutes > 0;
 
         public string DateText => WorkDate == DateTime.MinValue ? "-" : WorkDate.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture);
         public string DayName => WorkDate == DateTime.MinValue ? "-" : WorkDate.ToString("ddd", CultureInfo.InvariantCulture);
@@ -490,7 +583,78 @@ namespace HRMS.ViewModel
         public string AmDeparture => TimeIn.HasValue && TimeOut.HasValue ? "12:00 PM" : "--";
         public string PmArrival => TimeIn.HasValue && TimeOut.HasValue ? "01:00 PM" : "--";
         public string PmDeparture => TimeOut.HasValue ? TimeOut.Value.ToString("hh:mm tt", CultureInfo.InvariantCulture) : "--";
+        public string TimeInText => TimeIn.HasValue ? TimeIn.Value.ToString("hh:mm tt", CultureInfo.InvariantCulture) : "--";
+        public string TimeOutText => TimeOut.HasValue ? TimeOut.Value.ToString("hh:mm tt", CultureInfo.InvariantCulture) : "--";
         public string WorkedHoursText => FormatMinutes(WorkedMinutes);
+        public string UndertimeText => EarlyOutMinutes > 0 ? $"{EarlyOutMinutes}m" : "-";
+        public string LateText => LateMinutes > 0 ? $"{LateMinutes}m" : "-";
+        public string StatusDisplay
+        {
+            get
+            {
+                var remarks = Remarks.ToUpperInvariant();
+                if (remarks.Contains("HOLIDAY", StringComparison.OrdinalIgnoreCase))
+                {
+                    return "Holiday";
+                }
+
+                if (remarks.Contains("TO", StringComparison.OrdinalIgnoreCase) ||
+                    remarks.Contains("TRAVEL", StringComparison.OrdinalIgnoreCase))
+                {
+                    return "Travel Order";
+                }
+
+                if (remarks.Contains("OB", StringComparison.OrdinalIgnoreCase) ||
+                    remarks.Contains("OFFICIAL", StringComparison.OrdinalIgnoreCase))
+                {
+                    return "Official Business";
+                }
+
+                if (remarks.Contains("LEAVE", StringComparison.OrdinalIgnoreCase) ||
+                    remarks.Contains("CTO", StringComparison.OrdinalIgnoreCase))
+                {
+                    return "On Leave";
+                }
+
+                if (!IsPresent && WorkDate.Date > DateTime.Today)
+                {
+                    return "Pending";
+                }
+
+                if (!IsPresent &&
+                    (WorkDate.DayOfWeek == DayOfWeek.Saturday || WorkDate.DayOfWeek == DayOfWeek.Sunday))
+                {
+                    return "Weekend";
+                }
+
+                if (!IsPresent)
+                {
+                    return "Absent";
+                }
+
+                if (LateMinutes > 0)
+                {
+                    return "Late";
+                }
+
+                return "Present";
+            }
+        }
+
+        public Brush StatusBrush => StatusDisplay switch
+        {
+            "Present" => PresentBrush,
+            "Late" => LateBrush,
+            "Absent" => AbsentBrush,
+            "On Leave" => LeaveBrush,
+            "Holiday" => HolidayBrush,
+            "Weekend" => WeekendBrush,
+            "Pending" => PendingBrush,
+            "Travel Order" => HolidayBrush,
+            "Official Business" => LeaveBrush,
+            _ => DefaultBrush
+        };
+
         public string AttendanceFlag => LateMinutes > 0 && EarlyOutMinutes > 0
             ? $"Late {LateMinutes}m / Early {EarlyOutMinutes}m"
             : LateMinutes > 0

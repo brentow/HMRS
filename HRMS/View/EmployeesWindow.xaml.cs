@@ -39,14 +39,18 @@ namespace HRMS.View
         private static readonly IReadOnlyList<int> SalaryStepLookups = Enumerable.Range(1, 8).ToArray();
         private bool _suppressProfileLookupEvents;
         private bool _isEmployeeSelfMode;
+        private bool _hasOpenedEmployeePickerForCurrentVisibility;
+        private bool _isOpeningEmployeePicker;
 
         public EmployeesWindow()
         {
             InitializeComponent();
             DataContext = new EmployeesViewModel();
-            EmployeeSearchPopup.DataContext = DataContext;
-            EmployeeSearchTextBox.DataContext = DataContext;
-            EmployeeSearchResultsListBox.DataContext = DataContext;
+            EmployeePickerPopup.DataContext = DataContext;
+            EmployeePickerSearchTextBox.DataContext = DataContext;
+            EmployeePickerResultsListBox.DataContext = DataContext;
+            Loaded += EmployeesWindow_OnLoaded;
+            IsVisibleChanged += EmployeesWindow_OnIsVisibleChanged;
             SetEditMode(false);
             ApplyAccessScope(null);
         }
@@ -73,10 +77,149 @@ namespace HRMS.View
 
         public void OpenProfileTab()
         {
-            if (EmployeeDetailsTabs != null)
+            if (EmployeeDetailsScrollViewer != null)
             {
-                EmployeeDetailsTabs.SelectedIndex = 0;
+                EmployeeDetailsScrollViewer.ScrollToTop();
             }
+        }
+
+        private async void EmployeesWindow_OnLoaded(object sender, RoutedEventArgs e)
+        {
+            if (IsVisible)
+            {
+                await ShowEmployeePickerWhenReadyAsync();
+            }
+        }
+
+        private async void EmployeesWindow_OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (!IsVisible)
+            {
+                _hasOpenedEmployeePickerForCurrentVisibility = false;
+                if (EmployeePickerPopup != null)
+                {
+                    EmployeePickerPopup.IsOpen = false;
+                }
+
+                return;
+            }
+
+            await ShowEmployeePickerWhenReadyAsync();
+        }
+
+        private async Task ShowEmployeePickerWhenReadyAsync()
+        {
+            if (_isEmployeeSelfMode || _hasOpenedEmployeePickerForCurrentVisibility || _isOpeningEmployeePicker)
+            {
+                return;
+            }
+
+            _hasOpenedEmployeePickerForCurrentVisibility = true;
+            _isOpeningEmployeePicker = true;
+
+            try
+            {
+                if (DataContext is EmployeesViewModel vm)
+                {
+                    if (vm.Employees.Count == 0)
+                    {
+                        await vm.RefreshAsync();
+                    }
+
+                    vm.ResetEmployeePickerSearch();
+                }
+
+                _ = Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (!IsVisible || _isEmployeeSelfMode || EmployeePickerPopup == null)
+                    {
+                        return;
+                    }
+
+                    EmployeePickerPopup.IsOpen = true;
+                }), DispatcherPriority.Input);
+            }
+            finally
+            {
+                _isOpeningEmployeePicker = false;
+            }
+        }
+
+        private void EmployeePickerPopup_OnOpened(object sender, EventArgs e)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                EmployeePickerSearchTextBox.Focus();
+                EmployeePickerSearchTextBox.SelectAll();
+            }), DispatcherPriority.Input);
+        }
+
+        private void EmployeePickerSearchTextBox_OnKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                EmployeePickerPopup.IsOpen = false;
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key != Key.Enter)
+            {
+                return;
+            }
+
+            if (DataContext is EmployeesViewModel vm)
+            {
+                SelectEmployeeFromPicker(vm.EmployeePickerResults.FirstOrDefault());
+            }
+
+            e.Handled = true;
+        }
+
+        private void ClearEmployeePickerSearchButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is EmployeesViewModel vm)
+            {
+                vm.ResetEmployeePickerSearch();
+            }
+
+            EmployeePickerSearchTextBox.Focus();
+        }
+
+        private void CloseEmployeePickerButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            EmployeePickerPopup.IsOpen = false;
+        }
+
+        private void EmployeePickerResultsListBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is not ListBox listBox || listBox.SelectedItem is not EmployeeRowVm employee)
+            {
+                return;
+            }
+
+            SelectEmployeeFromPicker(employee);
+            listBox.SelectedItem = null;
+        }
+
+        private void SelectEmployeeFromPicker(EmployeeRowVm? employee)
+        {
+            if (employee == null)
+            {
+                return;
+            }
+
+            if (DataContext is EmployeesViewModel vm)
+            {
+                vm.SelectEmployee(employee);
+                _editingEmployeeNo = employee.EmployeeNo;
+                if (_isEditMode)
+                {
+                    SyncProfileEditorsToSelectedEmployee();
+                }
+            }
+
+            EmployeePickerPopup.IsOpen = false;
         }
 
         private void DataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -98,67 +241,6 @@ namespace HRMS.View
         {
             await AddEmployeeForm.PrepareForCreateAsync();
             AddEmployeeHost.Visibility = Visibility.Visible;
-        }
-
-        private void SearchEmployeeButton_OnClick(object sender, RoutedEventArgs e)
-        {
-            EmployeeSearchPopup.IsOpen = true;
-        }
-
-        private void EmployeeSearchPopup_OnOpened(object sender, EventArgs e)
-        {
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                EmployeeSearchTextBox.Focus();
-                EmployeeSearchTextBox.SelectAll();
-            }), DispatcherPriority.Input);
-        }
-
-        private void EmployeeSearchTextBox_OnKeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key != Key.Enter && e.Key != Key.Escape)
-            {
-                return;
-            }
-
-            EmployeeSearchPopup.IsOpen = false;
-            e.Handled = true;
-        }
-
-        private void ClearEmployeeSearchButton_OnClick(object sender, RoutedEventArgs e)
-        {
-            if (DataContext is EmployeesViewModel vm)
-            {
-                vm.SearchText = string.Empty;
-            }
-
-            EmployeeSearchTextBox.Focus();
-        }
-
-        private void CloseEmployeeSearchButton_OnClick(object sender, RoutedEventArgs e)
-        {
-            EmployeeSearchPopup.IsOpen = false;
-        }
-
-        private void EmployeeSearchResultsListBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (sender is not ListBox listBox || listBox.SelectedItem is not EmployeeRowVm employee)
-            {
-                return;
-            }
-
-            if (DataContext is EmployeesViewModel vm)
-            {
-                vm.SelectEmployee(employee);
-                _editingEmployeeNo = employee.EmployeeNo;
-                if (_isEditMode)
-                {
-                    SyncProfileEditorsToSelectedEmployee();
-                }
-            }
-
-            EmployeeSearchPopup.IsOpen = false;
-            listBox.SelectedItem = null;
         }
 
         private async void AddEmployeeForm_EmployeeSaved(object sender, System.EventArgs e)
@@ -319,24 +401,6 @@ namespace HRMS.View
             if (AddEmployeeButton != null)
             {
                 AddEmployeeButton.Visibility = _isEmployeeSelfMode ? Visibility.Collapsed : Visibility.Visible;
-            }
-
-            if (SearchEmployeeButton != null)
-            {
-                SearchEmployeeButton.Visibility = _isEmployeeSelfMode ? Visibility.Collapsed : Visibility.Visible;
-            }
-
-            if (_isEmployeeSelfMode)
-            {
-                if (EmployeeSearchPopup != null)
-                {
-                    EmployeeSearchPopup.IsOpen = false;
-                }
-
-                if (DataContext is EmployeesViewModel vm)
-                {
-                    vm.SearchText = string.Empty;
-                }
             }
 
             if (EditProfileButton != null)
@@ -537,16 +601,6 @@ namespace HRMS.View
                 datePicker.IsHitTestVisible = _isEditMode;
                 datePicker.Focusable = _isEditMode;
             }
-        }
-
-        private void EmployeeDetailsTabs_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (!ReferenceEquals(sender, e.Source))
-            {
-                return;
-            }
-
-            ApplyEditModeToDetailsControls();
         }
 
         private static string? NormalizeLookupText(string? text)

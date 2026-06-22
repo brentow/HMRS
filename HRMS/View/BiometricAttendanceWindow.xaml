@@ -1,0 +1,519 @@
+<Window x:Class="HRMS.View.BiometricAttendanceWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d"
+        Title="Biometric Attendance"
+        Width="1280"
+        Height="760"
+        MinWidth="1040"
+        MinHeight="680"
+        WindowStartupLocation="CenterOwner"
+        WindowState="Maximized"
+        Background="#F5F8FC">
+    <Window.Resources>
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#1E4368" />
+        <SolidColorBrush x:Key="PrimaryDarkBrush" Color="#173653" />
+        <SolidColorBrush x:Key="TextBrush" Color="#12385A" />
+        <SolidColorBrush x:Key="MutedBrush" Color="#5B6A7A" />
+        <SolidColorBrush x:Key="LineBrush" Color="#DCE7F3" />
+        <SolidColorBrush x:Key="SoftBlueBrush" Color="#EDF5FF" />
+        <SolidColorBrush x:Key="SoftGreenBrush" Color="#EAF8F0" />
+        <SolidColorBrush x:Key="SoftYellowBrush" Color="#FFF7E8" />
+        <SolidColorBrush x:Key="DangerBrush" Color="#D84343" />
+        <SolidColorBrush x:Key="SuccessBrush" Color="#2E9D5B" />
+
+        <Style x:Key="PanelStyle" TargetType="Border">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="{StaticResource LineBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="18" />
+        </Style>
+
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style x:Key="ValueStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style x:Key="KioskButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="64" />
+            <Setter Property="Padding" Value="18,10" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Opacity" Value="0.92" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Chrome" Property="Opacity" Value="0.84" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Chrome" Property="Opacity" Value="0.45" />
+                                <Setter Property="Cursor" Value="Arrow" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SmallButtonStyle" TargetType="Button" BasedOn="{StaticResource KioskButtonStyle}">
+            <Setter Property="Height" Value="44" />
+            <Setter Property="MinWidth" Value="116" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Padding" Value="12,8" />
+        </Style>
+
+        <Style x:Key="DtrHeaderStyle" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#F2F6FB" />
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="BorderBrush" Value="#CAD8E8" />
+            <Setter Property="BorderThickness" Value="0,0,1,1" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Padding" Value="4,3" />
+        </Style>
+
+        <Style x:Key="DtrCellStyle" TargetType="DataGridCell">
+            <Setter Property="BorderBrush" Value="#D7E1EC" />
+            <Setter Property="BorderThickness" Value="0,0,1,1" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="4,0" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="TextBlock.TextAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="DtrRemarksCellStyle" TargetType="DataGridCell" BasedOn="{StaticResource DtrCellStyle}">
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="TextBlock.TextAlignment" Value="Left" />
+            <Setter Property="Padding" Value="10,0,4,0" />
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{StaticResource PrimaryBrush}" Padding="24,18">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="54"
+                            Height="54"
+                            CornerRadius="8"
+                            Background="#2B5B86"
+                            BorderBrush="#497BAA"
+                            BorderThickness="1"
+                            Margin="0,0,14,0">
+                        <materialDesign:PackIcon Kind="Fingerprint"
+                                                 Width="32"
+                                                 Height="32"
+                                                 Foreground="White"
+                                                 HorizontalAlignment="Center"
+                                                 VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel>
+                        <TextBlock Text="{Binding PageTitle}"
+                                   FontSize="28"
+                                   FontWeight="Bold"
+                                   Foreground="White" />
+                        <TextBlock Text="{Binding PageSubtitle}"
+                                   Foreground="#D8E8F6"
+                                   FontSize="14" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Margin="18,0,18,0">
+                    <TextBlock Text="{Binding CurrentDateText}"
+                               Foreground="#D8E8F6"
+                               FontSize="14"
+                               HorizontalAlignment="Right" />
+                    <TextBlock Text="{Binding CurrentTimeText}"
+                               Foreground="White"
+                               FontSize="30"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Right" />
+                </StackPanel>
+
+                <Button Grid.Column="2"
+                        Style="{StaticResource SmallButtonStyle}"
+                        Background="#2B5B86"
+                        BorderBrush="#497BAA"
+                        Click="CloseButton_OnClick">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Close" Width="18" Height="18" Margin="0,0,8,0" />
+                        <TextBlock Text="Close" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="370" />
+                <ColumnDefinition Width="18" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource PanelStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel>
+                        <TextBlock Text="{Binding EmployeePanelTitle}"
+                                   FontSize="22"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource TextBrush}" />
+                        <TextBlock Text="{Binding EmployeePanelSubtitle}"
+                                   Foreground="{StaticResource MutedBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,4,0,0" />
+
+                        <ComboBox ItemsSource="{Binding Employees}"
+                                  SelectedItem="{Binding SelectedEmployee, Mode=TwoWay}"
+                                  DisplayMemberPath="DisplayName"
+                                  IsTextSearchEnabled="True"
+                                  TextSearch.TextPath="DisplayName"
+                                  IsEnabled="{Binding CanChangeEmployee}"
+                                  Height="42"
+                                  Margin="0,18,0,0"
+                                  Padding="10,4"
+                                  FontSize="14" />
+                        <TextBlock Text="{Binding ScopeNoticeText}"
+                                   Foreground="{StaticResource MutedBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,8,0,0" />
+
+                        <TextBlock Text="Biometric Device"
+                                   Style="{StaticResource LabelStyle}"
+                                   Margin="0,14,0,0" />
+                        <ComboBox ItemsSource="{Binding Devices}"
+                                  SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"
+                                  DisplayMemberPath="DisplayName"
+                                  IsTextSearchEnabled="True"
+                                  TextSearch.TextPath="DisplayName"
+                                  IsEnabled="{Binding CanChangeDevice}"
+                                  Height="42"
+                                  Margin="0,6,0,0"
+                                  Padding="10,4"
+                                  FontSize="14" />
+                        <TextBlock Text="{Binding SelectedDeviceName}"
+                                   Foreground="{StaticResource MutedBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,6,0,0" />
+                    </StackPanel>
+
+                    <Border Grid.Row="1"
+                            Background="{StaticResource SoftBlueBrush}"
+                            BorderBrush="#CFE1F2"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="14"
+                            Margin="0,18,0,0">
+                        <StackPanel>
+                            <TextBlock Text="{Binding SelectedEmployeeNo}"
+                                       Style="{StaticResource LabelStyle}" />
+                            <TextBlock Text="{Binding SelectedEmployeeName}"
+                                       FontSize="20"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource TextBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,4,0,0" />
+                            <TextBlock Text="{Binding ScheduleText}"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,12,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Grid.Row="2" Margin="0,18,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button Grid.Column="0"
+                                Style="{StaticResource KioskButtonStyle}"
+                                Command="{Binding TimeInCommand}"
+                                IsEnabled="{Binding CanPunch}"
+                                Background="{StaticResource SuccessBrush}"
+                                BorderBrush="{StaticResource SuccessBrush}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Login" Width="24" Height="24" Margin="0,0,8,0" />
+                                <TextBlock Text="Time In" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Grid.Column="2"
+                                Style="{StaticResource KioskButtonStyle}"
+                                Command="{Binding TimeOutCommand}"
+                                IsEnabled="{Binding CanPunch}"
+                                Background="{StaticResource DangerBrush}"
+                                BorderBrush="{StaticResource DangerBrush}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Logout" Width="24" Height="24" Margin="0,0,8,0" />
+                                <TextBlock Text="Time Out" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <StackPanel Grid.Row="3" VerticalAlignment="Bottom">
+                        <Border Background="#F7FAFD"
+                                BorderBrush="{StaticResource LineBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="14"
+                                Margin="0,20,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Last Punch" Style="{StaticResource LabelStyle}" />
+                                <TextBlock Text="{Binding LastPunchText}"
+                                           FontSize="20"
+                                           FontWeight="Bold"
+                                           Foreground="{StaticResource TextBrush}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,4,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <Button Style="{StaticResource SmallButtonStyle}"
+                                Command="{Binding RefreshCommand}"
+                                Background="#EAF2FB"
+                                Foreground="{StaticResource PrimaryBrush}"
+                                BorderBrush="#D5E3F5">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Refresh" Width="17" Height="17" Margin="0,0,8,0" />
+                                <TextBlock Text="Refresh" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource PanelStyle}" Background="{StaticResource SoftGreenBrush}">
+                        <StackPanel>
+                            <TextBlock Text="Morning In" Style="{StaticResource LabelStyle}" />
+                            <TextBlock Text="{Binding MorningInText}" Style="{StaticResource ValueStyle}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource PanelStyle}" Background="{StaticResource SoftBlueBrush}">
+                        <StackPanel>
+                            <TextBlock Text="Morning Out" Style="{StaticResource LabelStyle}" />
+                            <TextBlock Text="{Binding MorningOutText}" Style="{StaticResource ValueStyle}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="4" Style="{StaticResource PanelStyle}" Background="#F4F2FF">
+                        <StackPanel>
+                            <TextBlock Text="Afternoon In" Style="{StaticResource LabelStyle}" />
+                            <TextBlock Text="{Binding AfternoonInText}" Style="{StaticResource ValueStyle}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="6" Style="{StaticResource PanelStyle}" Background="{StaticResource SoftYellowBrush}">
+                        <StackPanel>
+                            <TextBlock Text="Afternoon Out" Style="{StaticResource LabelStyle}" />
+                            <TextBlock Text="{Binding AfternoonOutText}" Style="{StaticResource ValueStyle}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid Grid.Row="1" Margin="0,18,0,18">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource PanelStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Date" Style="{StaticResource LabelStyle}" />
+                            <TextBlock Text="{Binding WorkDateText}" Style="{StaticResource ValueStyle}" FontSize="18" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource PanelStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Worked" Style="{StaticResource LabelStyle}" />
+                            <TextBlock Text="{Binding WorkedText}" Style="{StaticResource ValueStyle}" FontSize="18" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="4" Style="{StaticResource PanelStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Late / Undertime" Style="{StaticResource LabelStyle}" />
+                            <TextBlock Foreground="{StaticResource TextBrush}" FontSize="16" FontWeight="Bold">
+                                <Run Text="Late " />
+                                <Run Text="{Binding LateText, Mode=OneWay}" />
+                                <Run Text="   Out " />
+                                <Run Text="{Binding UndertimeText, Mode=OneWay}" />
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="6" Style="{StaticResource PanelStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Minus" Style="{StaticResource LabelStyle}" />
+                            <TextBlock Text="{Binding MinusText}"
+                                       Style="{StaticResource ValueStyle}"
+                                       FontSize="18"
+                                       Foreground="{StaticResource DangerBrush}" />
+                            <TextBlock Text="{Binding MissingText}"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,4,0,0" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Border Grid.Row="2" Style="{StaticResource PanelStyle}" Padding="0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Margin="18,16,18,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Daily Time Record"
+                                           FontSize="22"
+                                           FontWeight="Bold"
+                                           Foreground="{StaticResource TextBrush}" />
+                                <TextBlock Text="{Binding DtrEmployeeText}"
+                                           Foreground="{StaticResource TextBrush}"
+                                           FontWeight="SemiBold"
+                                           Margin="0,2,0,0" />
+                                <TextBlock Text="{Binding DtrMonthText}"
+                                           Foreground="{StaticResource MutedBrush}" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding ActionMessage}"
+                                       Foreground="{Binding ActionMessageBrush}"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       MaxWidth="420" />
+                        </Grid>
+
+                        <DataGrid Grid.Row="1"
+                                  ItemsSource="{Binding DtrRows}"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  IsReadOnly="True"
+                                  HeadersVisibility="Column"
+                                  GridLinesVisibility="All"
+                                  HorizontalGridLinesBrush="#D7E1EC"
+                                  VerticalGridLinesBrush="#D7E1EC"
+                                  RowHeaderWidth="0"
+                                  RowHeight="24"
+                                  ColumnHeaderHeight="34"
+                                  BorderBrush="#CAD8E8"
+                                  BorderThickness="1"
+                                  Background="White"
+                                  Foreground="{StaticResource TextBrush}"
+                                  AlternatingRowBackground="#F8FBFF"
+                                  ColumnHeaderStyle="{StaticResource DtrHeaderStyle}"
+                                  CellStyle="{StaticResource DtrCellStyle}"
+                                  FontFamily="Segoe UI">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Day" Binding="{Binding Day, Mode=OneWay}" Width="48" />
+                                <DataGridTextColumn Header="A.M. In" Binding="{Binding AmArrival, Mode=OneWay}" Width="105" />
+                                <DataGridTextColumn Header="A.M. Out" Binding="{Binding AmDeparture, Mode=OneWay}" Width="105" />
+                                <DataGridTextColumn Header="P.M. In" Binding="{Binding PmArrival, Mode=OneWay}" Width="105" />
+                                <DataGridTextColumn Header="P.M. Out" Binding="{Binding PmDeparture, Mode=OneWay}" Width="105" />
+                                <DataGridTextColumn Header="UT Hrs" Binding="{Binding UndertimeHours, Mode=OneWay}" Width="78" />
+                                <DataGridTextColumn Header="UT Min" Binding="{Binding UndertimeMinutes, Mode=OneWay}" Width="78" />
+                                <DataGridTextColumn Header="Remarks" Binding="{Binding Status, Mode=OneWay}" Width="*" CellStyle="{StaticResource DtrRemarksCellStyle}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <Border Grid.Row="2"
+                Background="#EDF5FF"
+                BorderBrush="#D5E3F5"
+                BorderThickness="1,1,0,0"
+                Padding="24,12">
+            <TextBlock Text="{Binding ActionMessage}"
+                       Foreground="{Binding ActionMessageBrush}"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap" />
+        </Border>
+    </Grid>
+</Window>

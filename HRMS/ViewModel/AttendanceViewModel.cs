@@ -145,10 +145,10 @@ namespace HRMS.ViewModel
         public string AdjustmentsPageSubtitle => IsEmployeeMode
             ? "File and track your own DTR correction requests."
             : "Approve or reject DTR correction requests from employees.";
-        public string AttendancePageTitle => IsEmployeeMode ? "My Attendance Hub" : "Attendance Timekeeping Hub";
+        public string AttendancePageTitle => IsEmployeeMode ? "My Attendance" : "Attendance";
         public string AttendancePageSubtitle => IsEmployeeMode
-            ? "Track your logs, assigned shifts, and monthly DTR."
-            : "Biometric devices, enrollments, shifts, and assignments for DTR.";
+            ? "Review your DTR, shifts, and attendance remarks."
+            : "Review DTR, shift assignments, shifts, and attendance remarks.";
         public string ShiftAssignmentsTabHeader => IsEmployeeMode ? "My Shift" : "Shift Assignments";
         public string AttendanceRemarksTabHeader => IsEmployeeMode ? "My Travel Order / Holidays" : "Travel Order / Holidays";
         public string DtrTabHeader => IsEmployeeMode ? "My DTR" : "DTR";
@@ -2318,6 +2318,9 @@ namespace HRMS.ViewModel
         public string EndDateText => EndDate.HasValue
             ? EndDate.Value.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture)
             : "Open";
+        public string StatusText => string.Equals(Status, "ASSIGNED", StringComparison.OrdinalIgnoreCase)
+            ? "Assigned"
+            : "Cancelled";
         public Brush StatusBrush => string.Equals(Status, "ASSIGNED", StringComparison.OrdinalIgnoreCase)
             ? AssignedBrush
             : CancelledBrush;

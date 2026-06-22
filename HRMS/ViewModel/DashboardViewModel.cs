@@ -1,17 +1,20 @@
 using HRMS.Model;
 using System;
 using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace HRMS.ViewModel
 {
-    public class DashboardViewModel : INotifyPropertyChanged
+    public class DashboardViewModel : INotifyPropertyChanged, IDisposable
     {
         private readonly DashboardDataService _dataService;
         private readonly CompanyProfileDataService _companyProfileDataService;
         private readonly AuthenticatedUser? _authenticatedUser;
+        private readonly DispatcherTimer _clockTimer;
         private DashboardStats _stats = new DashboardStats();
         private bool _isLoading;
         private string _errorMessage = string.Empty;
@@ -44,6 +47,13 @@ namespace HRMS.ViewModel
             _authenticatedUser = authenticatedUser;
             _dataService = new DashboardDataService(DbConfig.ConnectionString);
             _companyProfileDataService = new CompanyProfileDataService(DbConfig.ConnectionString);
+            _clockTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _clockTimer.Tick += ClockTimer_OnTick;
+            _clockTimer.Start();
+
             RefreshCommand = new AsyncRelayCommand(_ => LoadStatsAsync());
             ShowDashboardCommand = new AsyncRelayCommand(_ =>
             {
@@ -214,6 +224,8 @@ namespace HRMS.ViewModel
         public string TodayDayDisplay => DateTime.Now.ToString("dddd");
 
         public string TodayDateDisplay => DateTime.Now.ToString("MMMM dd, yyyy");
+
+        public string TodayTimeDisplay => DateTime.Now.ToString("hh:mm:ss tt", CultureInfo.InvariantCulture);
 
         private bool IsAdminAccess =>
             string.Equals(_authenticatedUser?.RoleName?.Trim(), "Admin", StringComparison.OrdinalIgnoreCase);
@@ -587,6 +599,20 @@ namespace HRMS.ViewModel
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
+
+        private void ClockTimer_OnTick(object? sender, EventArgs e)
+        {
+            OnPropertyChanged(nameof(TodayTimeDisplay));
+            OnPropertyChanged(nameof(TodayDayDisplay));
+            OnPropertyChanged(nameof(TodayDateDisplay));
+            OnPropertyChanged(nameof(EmployeeGreeting));
+        }
+
+        public void Dispose()
+        {
+            _clockTimer.Stop();
+            _clockTimer.Tick -= ClockTimer_OnTick;
+        }
 
         private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

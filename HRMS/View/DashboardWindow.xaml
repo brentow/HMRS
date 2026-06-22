@@ -251,6 +251,48 @@
             <Setter Property="FontSize" Value="13" />
         </Style>
 
+        <Style x:Key="SidebarProfileIconButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="MinWidth" Value="30" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="#D8E8F7" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonSurface"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="15"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonSurface" Property="Background" Value="#315D8B" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonSurface" Property="Background" Value="#254B73" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ButtonSurface" Property="Opacity" Value="0.55" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="NotificationItemButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -984,54 +1026,73 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <Border x:Name="UserAccountCard" Grid.Row="3" Margin="0,12,0,12" Padding="12" Background="#244A73" CornerRadius="12">
+                <Border x:Name="UserAccountCard"
+                        Grid.Row="3"
+                        Margin="0,10,0,14"
+                        Padding="12,10"
+                        Background="#193D61"
+                        BorderBrush="#315F8E"
+                        BorderThickness="1"
+                        CornerRadius="10">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <Border Width="40" Height="40" Background="White" CornerRadius="20">
-                            <materialDesign:PackIcon Kind="AccountCircle" Width="24" Height="24" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Border Width="42"
+                                Height="42"
+                                Background="#F7FBFF"
+                                BorderBrush="#D9E7F5"
+                                BorderThickness="1"
+                                CornerRadius="21"
+                                VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="Account"
+                                                     Width="24"
+                                                     Height="24"
+                                                     Foreground="{StaticResource PrimaryBrush}"
+                                                     HorizontalAlignment="Center"
+                                                     VerticalAlignment="Center" />
                         </Border>
-                        <StackPanel Grid.Column="1" Margin="10,0" VerticalAlignment="Center">
+                        <StackPanel Grid.Column="1"
+                                    Margin="11,0,8,0"
+                                    MinWidth="0"
+                                    VerticalAlignment="Center">
                             <TextBlock x:Name="CurrentUserNameText"
                                        Text="Current User"
                                        Foreground="White"
-                                       FontWeight="SemiBold"
+                                       FontSize="14"
+                                       FontWeight="Bold"
                                        TextTrimming="CharacterEllipsis" />
                             <TextBlock x:Name="CurrentUserRoleText"
                                        Text="Guest"
-                                       Foreground="#CFE2F5"
-                                       FontSize="12"
-                                       Margin="0,2,0,0"
+                                       Foreground="#BFD5EB"
+                                       FontSize="11"
+                                       Margin="0,0,0,0"
                                        TextTrimming="CharacterEllipsis" />
-                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal"
+                                        Margin="0,2,0,0"
+                                        VerticalAlignment="Center">
                                 <Ellipse x:Name="CurrentUserStatusDot"
-                                         Width="8"
-                                         Height="8"
-                                         Margin="0,0,6,0"
-                                         VerticalAlignment="Center"
-                                         Fill="#9AAFC8" />
+                                          Width="7"
+                                          Height="7"
+                                          Margin="0,0,5,0"
+                                          VerticalAlignment="Center"
+                                          Fill="#9AAFC8" />
                                 <TextBlock x:Name="CurrentUserStatusText"
                                            Text="Inactive"
-                                           Foreground="#CFE2F5"
+                                           Foreground="#EAF3FB"
                                            FontSize="12"
                                            TextTrimming="CharacterEllipsis" />
                             </StackPanel>
                         </StackPanel>
                         <Button x:Name="UserAccountSettingsButton"
                                 Grid.Column="2"
-                                Height="34"
-                                Margin="8,3,0,3"
-                                Background="#2D5783"
-                                Foreground="White"
-                                BorderThickness="0"
-                                Cursor="Hand"
+                                Style="{StaticResource SidebarProfileIconButtonStyle}"
+                                Margin="0"
                                 ToolTip="Account Information"
-                                materialDesign:ButtonAssist.CornerRadius="8"
                                 Click="UserAccountSettingsButton_OnClick">
-                            <materialDesign:PackIcon Kind="CogOutline" Width="18" Height="18" />
+                            <materialDesign:PackIcon Kind="CogOutline" Width="16" Height="16" />
                         </Button>
                     </Grid>
                 </Border>
@@ -1797,6 +1858,28 @@
                             <TextBlock Text="Track attendance logs, scans, and shift records." Margin="0,8,0,0" FontSize="13" Foreground="#FFF5DE" TextWrapping="Wrap" />
                         </StackPanel>
                     </Button>
+                    <Button x:Name="QuickBiometricScanButton"
+                            Grid.Row="0"
+                            Grid.Column="3"
+                            Margin="0,0,18,18"
+                            Padding="10,6"
+                            MinWidth="128"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Bottom"
+                            Background="#FFF7ED"
+                            BorderBrush="#FED7AA"
+                            BorderThickness="1"
+                            Foreground="#9A4A00"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Cursor="Hand"
+                            Visibility="{Binding Visibility, ElementName=QuickAttendanceButton}"
+                            Click="BiometricAttendanceButton_OnClick">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Fingerprint" Width="16" Height="16" Margin="0,0,6,0" />
+                            <TextBlock Text="Biometric Scan" />
+                        </StackPanel>
+                    </Button>
 
                     <Border Grid.Row="0"
                             Grid.Column="4"
@@ -1859,11 +1942,12 @@
                             BorderBrush="#243C67"
                             BorderThickness="1"
                             CornerRadius="14">
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{Binding TodayDayDisplay}" FontSize="34" FontWeight="Light" Foreground="White" />
-                            <TextBlock Text="{Binding TodayDateDisplay}" Margin="0,6,0,0" FontSize="30" FontWeight="SemiBold" Foreground="White" />
-                            <TextBlock Text="SYSTEM READY" Margin="0,16,0,0" FontSize="22" FontWeight="Bold" Foreground="#1ED760" />
-                        </StackPanel>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{Binding TodayDayDisplay}" FontSize="34" FontWeight="Light" Foreground="White" />
+                                <TextBlock Text="{Binding TodayDateDisplay}" Margin="0,6,0,0" FontSize="30" FontWeight="SemiBold" Foreground="White" />
+                                <TextBlock Text="{Binding TodayTimeDisplay}" Margin="0,10,0,0" FontSize="24" FontWeight="SemiBold" Foreground="#BFD7FF" />
+                                <TextBlock Text="SYSTEM READY" Margin="0,16,0,0" FontSize="22" FontWeight="Bold" Foreground="#1ED760" />
+                            </StackPanel>
                     </Border>
 
                     <Button Grid.Row="1"

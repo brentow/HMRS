@@ -22,10 +22,10 @@
         <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
 
         <Style x:Key="CardStyle" TargetType="Border">
-            <Setter Property="CornerRadius" Value="14" />
-            <Setter Property="Padding" Value="14" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12" />
             <Setter Property="Background" Value="White" />
-            <Setter Property="BorderBrush" Value="#E5EDF7" />
+            <Setter Property="BorderBrush" Value="#E3E8EF" />
             <Setter Property="BorderThickness" Value="1" />
         </Style>
 
@@ -124,25 +124,25 @@
         </Style>
 
         <Style x:Key="DetailSectionCardStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
-            <Setter Property="Padding" Value="16" />
-            <Setter Property="CornerRadius" Value="16" />
-            <Setter Property="Background" Value="#FBFDFF" />
-            <Setter Property="BorderBrush" Value="#D9E6F4" />
+            <Setter Property="Padding" Value="12" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#E3E8EF" />
         </Style>
 
         <Style x:Key="DetailFieldCardStyle" TargetType="Border">
             <Setter Property="Background" Value="White" />
-            <Setter Property="BorderBrush" Value="#D8E4F1" />
+            <Setter Property="BorderBrush" Value="#E3E8EF" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="12" />
-            <Setter Property="Padding" Value="14,12" />
-            <Setter Property="MinHeight" Value="82" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="MinHeight" Value="62" />
         </Style>
 
         <Style x:Key="DetailSectionTitleStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
-            <Setter Property="FontSize" Value="16" />
-            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
 
         <Style x:Key="DetailSectionSubtitleStyle" TargetType="TextBlock">
@@ -164,7 +164,7 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
-            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
@@ -176,7 +176,7 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
-            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
 
@@ -186,7 +186,7 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
-            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontSize" Value="13" />
             <Style.Resources>
                 <Style TargetType="{x:Type DatePickerTextBox}">
                     <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -205,7 +205,7 @@
 
         <Style x:Key="DetailFieldValueTextBlockStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
-            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
@@ -213,7 +213,7 @@
 
     </UserControl.Resources>
 
-    <Grid Margin="4">
+    <Grid x:Name="EmployeesRoot" Margin="4">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -250,7 +250,6 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <Button x:Name="BackToDashboardButton"
                         Grid.Column="0"
@@ -262,158 +261,8 @@
                         <TextBlock Text="Back to Dashboard" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
-                <Button x:Name="SearchEmployeeButton"
-                        Grid.Column="1"
-                        Style="{StaticResource SecondaryActionButtonStyle}"
-                        Margin="8,0,8,0"
-                        Click="SearchEmployeeButton_OnClick">
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="Magnify" Width="18" Height="18" Margin="0,0,8,0" />
-                        <TextBlock Text="Search Employee" VerticalAlignment="Center" />
-                    </StackPanel>
-                </Button>
-                <Popup x:Name="EmployeeSearchPopup"
-                       Grid.Column="1"
-                       PlacementTarget="{Binding ElementName=SearchEmployeeButton}"
-                       Placement="Bottom"
-                       VerticalOffset="8"
-                       AllowsTransparency="True"
-                       StaysOpen="False"
-                       PopupAnimation="Fade"
-                       Opened="EmployeeSearchPopup_OnOpened">
-                    <Border Width="360"
-                            Background="White"
-                            BorderBrush="#D9E6F4"
-                            BorderThickness="1"
-                            CornerRadius="12"
-                            Padding="14">
-                        <StackPanel>
-                            <Grid Margin="0,0,0,10">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="Search Employee"
-                                           FontSize="16"
-                                           FontWeight="Bold"
-                                           Foreground="{StaticResource PrimaryBrush}"
-                                           VerticalAlignment="Center" />
-                                <Button Grid.Column="1"
-                                        Width="28"
-                                        Height="28"
-                                        Padding="0"
-                                        BorderThickness="0"
-                                        Background="#F2F5FA"
-                                        Click="CloseEmployeeSearchButton_OnClick"
-                                        ToolTip="Close">
-                                    <materialDesign:PackIcon Kind="Close" Width="15" Height="15" Foreground="#6A7684" />
-                                </Button>
-                            </Grid>
-                            <Border Background="#F2F7FD"
-                                    BorderBrush="#E0EAF6"
-                                    BorderThickness="1"
-                                    CornerRadius="10"
-                                    Padding="10,6">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <materialDesign:PackIcon Kind="Magnify"
-                                                             Width="18"
-                                                             Height="18"
-                                                             Foreground="#7A8FA5"
-                                                             Margin="0,0,8,0"
-                                                             VerticalAlignment="Center" />
-                                    <TextBox x:Name="EmployeeSearchTextBox"
-                                             Grid.Column="1"
-                                             BorderThickness="0"
-                                             Background="Transparent"
-                                             FontSize="14"
-                                             Foreground="#5B6A7A"
-                                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                             VerticalContentAlignment="Center"
-                                             KeyDown="EmployeeSearchTextBox_OnKeyDown"
-                                             materialDesign:HintAssist.Hint="Search employee name" />
-                                </Grid>
-                            </Border>
-                            <ListBox x:Name="EmployeeSearchResultsListBox"
-                                     ItemsSource="{Binding EmployeeSearchResults}"
-                                     SelectionChanged="EmployeeSearchResultsListBox_OnSelectionChanged"
-                                     MaxHeight="230"
-                                     Margin="0,10,0,0"
-                                     BorderBrush="#E0EAF6"
-                                     BorderThickness="1"
-                                     Background="White"
-                                     ScrollViewer.VerticalScrollBarVisibility="Auto">
-                                <ListBox.Style>
-                                    <Style TargetType="ListBox">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Text, ElementName=EmployeeSearchTextBox}" Value="">
-                                                <Setter Property="Visibility" Value="Collapsed" />
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding EmployeeSearchResults.Count}" Value="0">
-                                                <Setter Property="Visibility" Value="Collapsed" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ListBox.Style>
-                                <ListBox.ItemContainerStyle>
-                                    <Style TargetType="ListBoxItem">
-                                        <Setter Property="Padding" Value="10,8" />
-                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                        <Setter Property="Cursor" Value="Hand" />
-                                    </Style>
-                                </ListBox.ItemContainerStyle>
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <materialDesign:PackIcon Kind="AccountCircleOutline"
-                                                                     Width="24"
-                                                                     Height="24"
-                                                                     Foreground="{StaticResource PrimaryBrush}"
-                                                                     Margin="0,2,10,0" />
-                                            <StackPanel Grid.Column="1">
-                                                <TextBlock Text="{Binding Name}"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="{StaticResource PrimaryBrush}"
-                                                           TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Text="{Binding EmployeeNo, StringFormat=ID: {0}}"
-                                                           FontSize="12"
-                                                           Foreground="#5B6A7A"
-                                                           TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Text="{Binding Position}"
-                                                           FontSize="12"
-                                                           Foreground="#6A7684"
-                                                           TextTrimming="CharacterEllipsis" />
-                                            </StackPanel>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                            <Button x:Name="ClearEmployeeSearchButton"
-                                    Style="{StaticResource SecondaryActionButtonStyle}"
-                                    Height="32"
-                                    MinWidth="90"
-                                    Padding="10,5"
-                                    Margin="0,10,0,0"
-                                    HorizontalAlignment="Right"
-                                    Click="ClearEmployeeSearchButton_OnClick">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="CloseCircleOutline" Width="16" Height="16" Margin="0,0,6,0" />
-                                    <TextBlock Text="Clear" VerticalAlignment="Center" />
-                                </StackPanel>
-                            </Button>
-                        </StackPanel>
-                    </Border>
-                </Popup>
                 <Button x:Name="AddEmployeeButton"
-                        Grid.Column="2"
+                        Grid.Column="1"
                         Style="{StaticResource PrimaryActionButtonStyle}"
                         Margin="8,0,8,0"
                         Click="AddEmployeeButton_OnClick">
@@ -424,7 +273,7 @@
                 </Button>
                 <Button x:Name="EditProfileButton"
                         Style="{StaticResource SecondaryActionButtonStyle}"
-                        Grid.Column="3"
+                        Grid.Column="2"
                         Margin="8,0,0,0"
                         Click="EditProfileButton_OnClick">
                     <StackPanel Orientation="Horizontal">
@@ -487,30 +336,14 @@
                         </Button>
                     </Grid>
 
-                    <TabControl x:Name="EmployeeDetailsTabs"
-                                Grid.Row="1"
-                                Background="White"
-                                BorderBrush="#DDE8F6"
-                                BorderThickness="1"
-                                SelectionChanged="EmployeeDetailsTabs_OnSelectionChanged">
-                        <TabControl.ItemContainerStyle>
-                            <Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
-                                <Setter Property="Padding" Value="10,6" />
-                                <Setter Property="MinWidth" Value="0" />
-                                <Setter Property="FontSize" Value="13" />
-                            </Style>
-                        </TabControl.ItemContainerStyle>
-                        <TabItem>
-                            <TabItem.Header>
-                                <StackPanel Orientation="Horizontal" Margin="4,2">
-                                    <materialDesign:PackIcon Kind="AccountDetailsOutline" Width="16" Height="16" Margin="0,0,6,0" />
-                                    <TextBlock Text="Profile" />
-                                </StackPanel>
-                            </TabItem.Header>
-                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer x:Name="EmployeeDetailsScrollViewer"
+                                  Grid.Row="1"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel>
                                 <Border Margin="12"
                                         Style="{StaticResource DetailSectionCardStyle}"
-                                        Background="#F8FBFF">
+                                        Background="White">
                                     <StackPanel>
                                         <Grid Margin="0,0,0,16">
                                             <Grid.ColumnDefinitions>
@@ -521,7 +354,7 @@
                                             <Border Width="42"
                                                     Height="42"
                                                     CornerRadius="21"
-                                                    Background="#DDECFD"
+                                                    Background="#F2F4F7"
                                                     VerticalAlignment="Top">
                                                 <materialDesign:PackIcon Kind="AccountDetailsOutline"
                                                                          Width="22"
@@ -641,20 +474,9 @@
                                         </Grid>
                                     </StackPanel>
                                 </Border>
-                            </ScrollViewer>
-                        </TabItem>
-
-                        <TabItem>
-                            <TabItem.Header>
-                                <StackPanel Orientation="Horizontal" Margin="4,2">
-                                    <materialDesign:PackIcon Kind="ClockOutline" Width="16" Height="16" Margin="0,0,6,0" />
-                                    <TextBlock Text="Attendance" />
-                                </StackPanel>
-                            </TabItem.Header>
-                            <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <StackPanel Margin="12">
                                     <Border Style="{StaticResource DetailSectionCardStyle}"
-                                            Background="#F8FBFF"
+                                            Background="White"
                                             Margin="0,0,0,12">
                                         <StackPanel>
                                             <Grid Margin="0,0,0,14">
@@ -666,7 +488,7 @@
                                                 <Border Width="42"
                                                         Height="42"
                                                         CornerRadius="21"
-                                                        Background="#DDECFD"
+                                                        Background="#F2F4F7"
                                                         VerticalAlignment="Top">
                                                     <materialDesign:PackIcon Kind="ClockOutline"
                                                                              Width="22"
@@ -684,8 +506,8 @@
                                                 </StackPanel>
                                             </Grid>
 
-                                            <Border Background="#EFF6FF"
-                                                    BorderBrush="#D7E6F7"
+                                            <Border Background="White"
+                                                    BorderBrush="#E3E8EF"
                                                     BorderThickness="1"
                                                     CornerRadius="10"
                                                     Padding="10"
@@ -795,25 +617,14 @@
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>
-                            </ScrollViewer>
-                        </TabItem>
-
-                        <TabItem>
-                            <TabItem.Header>
-                                <StackPanel Orientation="Horizontal" Margin="4,2">
-                                    <materialDesign:PackIcon Kind="CashMultiple" Width="16" Height="16" Margin="0,0,6,0" />
-                                    <TextBlock Text="Salary / Appt." />
-                                </StackPanel>
-                            </TabItem.Header>
-                            <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <StackPanel Margin="12">
-                                    <Border Background="#F4F9FF" BorderBrush="#DDE8F6" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,0,0,12">
+                                    <Border Background="White" BorderBrush="#E3E8EF" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,12">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="*" />
                                             </Grid.ColumnDefinitions>
-                                            <Border Width="38" Height="38" CornerRadius="19" Background="#DDECFD" VerticalAlignment="Center">
+                                            <Border Width="32" Height="32" CornerRadius="16" Background="#F2F4F7" VerticalAlignment="Center">
                                                 <materialDesign:PackIcon Kind="CurrencyPhp" Width="20" Height="20" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             </Border>
                                             <StackPanel Grid.Column="1" Margin="10,0,0,0">
@@ -826,7 +637,7 @@
                                         </Grid>
                                     </Border>
 
-                                    <Border Background="#F8FCFF" BorderBrush="#DDE8F6" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,0,0,12">
+                                    <Border Background="White" BorderBrush="#E3E8EF" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,12">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
@@ -837,7 +648,7 @@
                                             <Border Width="46"
                                                     Height="46"
                                                     CornerRadius="23"
-                                                    Background="#DDECFD"
+                                                    Background="#F2F4F7"
                                                     VerticalAlignment="Center">
                                                 <materialDesign:PackIcon Kind="ClockOutline"
                                                                          Width="22"
@@ -914,7 +725,7 @@
                                         </Grid>
                                     </Border>
 
-                                    <Border Background="#FFF9F1" BorderBrush="#F0DFC4" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,0,0,12">
+                                    <Border Visibility="Collapsed" Background="#FFF9F1" BorderBrush="#F0DFC4" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,0,0,12">
                                         <StackPanel>
                                             <Grid Margin="0,0,0,12">
                                                 <Grid.ColumnDefinitions>
@@ -1278,8 +1089,8 @@
                                     </Border>
 
                                     <Border Style="{StaticResource DetailSectionCardStyle}"
-                                            Background="#FFFBF5"
-                                            BorderBrush="#F0DFC4">
+                                            Background="White"
+                                            BorderBrush="#E3E8EF">
                                         <StackPanel>
                                             <Grid Margin="0,0,0,16">
                                                 <Grid.ColumnDefinitions>
@@ -1290,7 +1101,7 @@
                                                 <Border Width="42"
                                                         Height="42"
                                                         CornerRadius="21"
-                                                        Background="#FCE5BA"
+                                                        Background="#F2F4F7"
                                                         VerticalAlignment="Top">
                                                     <materialDesign:PackIcon Kind="CashMultiple"
                                                                              Width="22"
@@ -1404,20 +1215,9 @@
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>
-                            </ScrollViewer>
-                        </TabItem>
-
-                        <TabItem>
-                            <TabItem.Header>
-                                <StackPanel Orientation="Horizontal" Margin="4,2">
-                                    <materialDesign:PackIcon Kind="CardAccountDetailsOutline" Width="16" Height="16" Margin="0,0,6,0" />
-                                    <TextBlock Text="Government IDs" />
-                                </StackPanel>
-                            </TabItem.Header>
-                            <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <Border Margin="12"
                                         Style="{StaticResource DetailSectionCardStyle}"
-                                        Background="#FAFCFF">
+                                        Background="White">
                                     <StackPanel>
                                         <Grid Margin="0,0,0,16">
                                             <Grid.ColumnDefinitions>
@@ -1428,7 +1228,7 @@
                                             <Border Width="42"
                                                     Height="42"
                                                     CornerRadius="21"
-                                                    Background="#E7EEF8"
+                                                    Background="#F2F4F7"
                                                     VerticalAlignment="Top">
                                                 <materialDesign:PackIcon Kind="CardAccountDetailsOutline"
                                                                          Width="22"
@@ -1529,13 +1329,221 @@
                                         </Grid>
                                     </StackPanel>
                                 </Border>
-                            </ScrollViewer>
-                        </TabItem>
-
-                    </TabControl>
+                        </StackPanel>
+                    </ScrollViewer>
                 </Grid>
             </Border>
         </Grid>
+
+        <Popup x:Name="EmployeePickerPopup"
+               PlacementTarget="{Binding ElementName=EmployeesRoot}"
+               Placement="Center"
+               AllowsTransparency="True"
+               StaysOpen="False"
+               PopupAnimation="Fade"
+               Opened="EmployeePickerPopup_OnOpened">
+            <Border Width="560"
+                    MaxHeight="560"
+                    Background="White"
+                    BorderBrush="#D9E6F4"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="16">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="18"
+                                      ShadowDepth="2"
+                                      Opacity="0.22"
+                                      Color="#223344" />
+                </Border.Effect>
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="AccountSearchOutline"
+                                                     Width="24"
+                                                     Height="24"
+                                                     Foreground="{StaticResource PrimaryBrush}"
+                                                     Margin="0,0,8,0" />
+                            <TextBlock Text="Select Employee or User"
+                                       FontSize="18"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource PrimaryBrush}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                        <Button Grid.Column="1"
+                                Width="30"
+                                Height="30"
+                                Padding="0"
+                                BorderThickness="0"
+                                Background="#F2F5FA"
+                                Click="CloseEmployeePickerButton_OnClick"
+                                ToolTip="Close">
+                            <materialDesign:PackIcon Kind="Close" Width="16" Height="16" Foreground="#6A7684" />
+                        </Button>
+                    </Grid>
+
+                    <Border Background="#F2F7FD"
+                            BorderBrush="#E0EAF6"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Padding="10,6">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <materialDesign:PackIcon Kind="Magnify"
+                                                     Width="18"
+                                                     Height="18"
+                                                     Foreground="#7A8FA5"
+                                                     Margin="0,0,8,0"
+                                                     VerticalAlignment="Center" />
+                            <TextBox x:Name="EmployeePickerSearchTextBox"
+                                     Grid.Column="1"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     FontSize="14"
+                                     Foreground="#5B6A7A"
+                                     Text="{Binding EmployeePickerSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     VerticalContentAlignment="Center"
+                                     KeyDown="EmployeePickerSearchTextBox_OnKeyDown"
+                                     materialDesign:HintAssist.Hint="Search name, user, ID, department, or position" />
+                            <Button Grid.Column="2"
+                                    Width="28"
+                                    Height="28"
+                                    Padding="0"
+                                    BorderThickness="0"
+                                    Background="Transparent"
+                                    Click="ClearEmployeePickerSearchButton_OnClick"
+                                    ToolTip="Clear">
+                                <materialDesign:PackIcon Kind="CloseCircleOutline"
+                                                         Width="16"
+                                                         Height="16"
+                                                         Foreground="#7A8FA5" />
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <TextBlock Text="{Binding EmployeePickerResults.Count, StringFormat={}{0} result(s)}"
+                               Foreground="#6B7C90"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               Margin="2,10,0,6" />
+
+                    <Grid>
+                        <ListBox x:Name="EmployeePickerResultsListBox"
+                                 ItemsSource="{Binding EmployeePickerResults}"
+                                 SelectionChanged="EmployeePickerResultsListBox_OnSelectionChanged"
+                                 MaxHeight="360"
+                                 BorderBrush="#E0EAF6"
+                                 BorderThickness="1"
+                                 Background="White"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            <ListBox.Style>
+                                <Style TargetType="ListBox">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding EmployeePickerResults.Count}" Value="0">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ListBox.Style>
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Padding" Value="10,8" />
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Cursor" Value="Hand" />
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="38"
+                                                Height="38"
+                                                CornerRadius="19"
+                                                Background="#EAF2FB"
+                                                Margin="0,2,12,0">
+                                            <materialDesign:PackIcon Kind="AccountCircleOutline"
+                                                                     Width="22"
+                                                                     Height="22"
+                                                                     Foreground="{StaticResource PrimaryBrush}"
+                                                                     HorizontalAlignment="Center"
+                                                                     VerticalAlignment="Center" />
+                                        </Border>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource PrimaryBrush}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding EmployeeNo, StringFormat=ID: {0}}"
+                                                       FontSize="12"
+                                                       Foreground="#5B6A7A"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock FontSize="12"
+                                                       Foreground="#6A7684"
+                                                       TextTrimming="CharacterEllipsis">
+                                                <TextBlock.Text>
+                                                    <MultiBinding StringFormat="{}{0} / {1}">
+                                                        <Binding Path="Department" />
+                                                        <Binding Path="Position" />
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <Border Grid.Column="2"
+                                                Background="#F2F7FD"
+                                                BorderBrush="#DDE8F6"
+                                                BorderThickness="1"
+                                                CornerRadius="8"
+                                                Padding="8,4"
+                                                VerticalAlignment="Center"
+                                                Margin="12,0,0,0">
+                                            <TextBlock Text="{Binding Status}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource PrimaryBrush}" />
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <Border Background="#F8FBFF"
+                                BorderBrush="#E0EAF6"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Padding="18"
+                                MinHeight="120">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding EmployeePickerResults.Count}" Value="0">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="No employees found."
+                                       Foreground="#6B7C90"
+                                       FontWeight="SemiBold"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Popup>
 
         <Grid x:Name="AddEmployeeHost"
               Grid.RowSpan="3"

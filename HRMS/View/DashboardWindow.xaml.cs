@@ -113,6 +113,7 @@ namespace HRMS.View
             if (DataContext is DashboardViewModel vm)
             {
                 vm.PropertyChanged -= DashboardViewModel_PropertyChanged;
+                vm.Dispose();
             }
 
             if (DocumentsModule != null)
@@ -761,6 +762,22 @@ namespace HRMS.View
             AttendanceModule?.ShowAttendanceTab();
         }
 
+        private void OpenBiometricAttendanceWindow()
+        {
+            if (!EnsureModuleAccess(ModuleKey.Attendance, "Biometric Attendance"))
+            {
+                return;
+            }
+
+            var window = new BiometricAttendanceWindow(_authenticatedUser)
+            {
+                Owner = this
+            };
+
+            window.ShowDialog();
+            _ = QueueSystemRefreshAsync();
+        }
+
         private void OpenTravelOrderModule()
         {
             if (!EnsureModuleAccess(ModuleKey.Attendance, "Travel Order"))
@@ -1146,6 +1163,11 @@ namespace HRMS.View
         private void DepartmentsNavButton_OnClick(object sender, RoutedEventArgs e)
         {
             OpenDepartmentsModule();
+        }
+
+        private void BiometricAttendanceButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            OpenBiometricAttendanceWindow();
         }
 
         private void AttendanceNavButton_OnClick(object sender, RoutedEventArgs e)

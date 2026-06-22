@@ -45,7 +45,8 @@ namespace HRMS.Model
         string Status,
         DateTime GeneratedAt,
         DateTime? LastReleasedAt,
-        int ReleaseCount);
+        int ReleaseCount,
+        int DtrMinusMinutes);
 
     public record PayrollReleaseDto(
         long PayslipReleaseId,
@@ -66,6 +67,24 @@ namespace HRMS.Model
         string Description,
         decimal Amount);
 
+    public record PayrollPayslipProfileDto(
+        long PayrollRunId,
+        DateTime DateFrom,
+        DateTime DateTo,
+        DateTime PayDate,
+        string EmployeeNo,
+        string EmployeeName,
+        string DepartmentName,
+        string PositionName,
+        string EmploymentTypeName,
+        int SalaryGrade,
+        int StepNo,
+        DateTime? HireDate,
+        string TinNo,
+        string GsisNo,
+        string PhilHealthNo,
+        string PagIbigNo);
+
     public record PayrollRunEditorDefaultsDto(
         decimal BasicPay,
         decimal Allowances,
@@ -75,18 +94,22 @@ namespace HRMS.Model
         string Status,
         bool FromExistingRun,
         string EmploymentTypeName,
-        string PositionName);
+        string PositionName,
+        int DtrMinusMinutes);
 
     public record PayrollGovernmentContributionSourceDto(
         long PayrollRunId,
         long PayrollPeriodId,
         string PeriodCode,
+        DateTime DateFrom,
+        DateTime DateTo,
         DateTime PayDate,
         int EmployeeId,
         string EmployeeNo,
         string EmployeeName,
         string EmploymentTypeName,
         decimal BasicPay,
+        int DtrMinusMinutes,
         string RunStatus);
 
     internal record PayrollEmployeeCompensationDto(
@@ -94,6 +117,10 @@ namespace HRMS.Model
         decimal DefaultAllowances,
         string EmploymentTypeName,
         string PositionName);
+
+    internal record PayrollPeriodRangeDto(
+        DateTime DateFrom,
+        DateTime DateTo);
 
     public class PayrollDataService
     {
@@ -465,6 +492,8 @@ SELECT
     pr.net_pay,
     pr.status,
     pr.generated_at,
+    pp.date_from,
+    pp.date_to,
     rel.last_released_at,
     COALESCE(rel.release_count, 0) AS release_count
 FROM payroll_runs pr
@@ -488,6 +517,7 @@ ORDER BY pp.pay_date DESC, e.employee_no
 LIMIT @limit;";
 
             var rows = new List<PayrollRunDto>();
+            var ranges = new List<(DateTime DateFrom, DateTime DateTo)>();
 
             try
             {
@@ -500,27 +530,41 @@ LIMIT @limit;";
                 command.Parameters.AddWithValue("@search", string.IsNullOrWhiteSpace(search) ? string.Empty : search.Trim());
                 command.Parameters.AddWithValue("@limit", Math.Max(1, limit));
 
-                await using var reader = await command.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
+                await using (var reader = await command.ExecuteReaderAsync())
                 {
-                    rows.Add(new PayrollRunDto(
-                        PayrollRunId: ToLong(reader["payroll_run_id"]),
-                        PayrollPeriodId: ToLong(reader["payroll_period_id"]),
-                        PeriodCode: reader["period_code"]?.ToString() ?? "-",
-                        EmployeeId: ToInt(reader["employee_id"]),
-                        EmployeeNo: reader["employee_no"]?.ToString() ?? "-",
-                        EmployeeName: reader["employee_name"]?.ToString() ?? "-",
-                        BasicPay: ToDecimal(reader["basic_pay"]),
-                        Allowances: ToDecimal(reader["allowances"]),
-                        OvertimePay: ToDecimal(reader["overtime_pay"]),
-                        OtherEarnings: ToDecimal(reader["other_earnings"]),
-                        GrossPay: ToDecimal(reader["gross_pay"]),
-                        DeductionsTotal: ToDecimal(reader["deductions_total"]),
-                        NetPay: ToDecimal(reader["net_pay"]),
-                        Status: reader["status"]?.ToString() ?? "GENERATED",
-                        GeneratedAt: reader["generated_at"] == DBNull.Value ? DateTime.Today : Convert.ToDateTime(reader["generated_at"], CultureInfo.InvariantCulture),
-                        LastReleasedAt: reader["last_released_at"] == DBNull.Value ? null : Convert.ToDateTime(reader["last_released_at"], CultureInfo.InvariantCulture),
-                        ReleaseCount: ToInt(reader["release_count"])));
+                    while (await reader.ReadAsync())
+                    {
+                        rows.Add(new PayrollRunDto(
+                            PayrollRunId: ToLong(reader["payroll_run_id"]),
+                            PayrollPeriodId: ToLong(reader["payroll_period_id"]),
+                            PeriodCode: reader["period_code"]?.ToString() ?? "-",
+                            EmployeeId: ToInt(reader["employee_id"]),
+                            EmployeeNo: reader["employee_no"]?.ToString() ?? "-",
+                            EmployeeName: reader["employee_name"]?.ToString() ?? "-",
+                            BasicPay: ToDecimal(reader["basic_pay"]),
+                            Allowances: ToDecimal(reader["allowances"]),
+                            OvertimePay: ToDecimal(reader["overtime_pay"]),
+                            OtherEarnings: ToDecimal(reader["other_earnings"]),
+                            GrossPay: ToDecimal(reader["gross_pay"]),
+                            DeductionsTotal: ToDecimal(reader["deductions_total"]),
+                            NetPay: ToDecimal(reader["net_pay"]),
+                            Status: reader["status"]?.ToString() ?? "GENERATED",
+                            GeneratedAt: reader["generated_at"] == DBNull.Value ? DateTime.Today : Convert.ToDateTime(reader["generated_at"], CultureInfo.InvariantCulture),
+                            LastReleasedAt: reader["last_released_at"] == DBNull.Value ? null : Convert.ToDateTime(reader["last_released_at"], CultureInfo.InvariantCulture),
+                            ReleaseCount: ToInt(reader["release_count"]),
+                            DtrMinusMinutes: 0));
+                        ranges.Add((
+                            DateFrom: reader["date_from"] == DBNull.Value ? DateTime.Today : Convert.ToDateTime(reader["date_from"], CultureInfo.InvariantCulture),
+                            DateTo: reader["date_to"] == DBNull.Value ? DateTime.Today : Convert.ToDateTime(reader["date_to"], CultureInfo.InvariantCulture)));
+                    }
+                }
+
+                for (var i = 0; i < rows.Count; i++)
+                {
+                    var row = rows[i];
+                    var range = ranges[i];
+                    var dtrMinusMinutes = await GetDtrMinusMinutesAsync(connection, null, row.EmployeeId, range.DateFrom, range.DateTo);
+                    rows[i] = row with { DtrMinusMinutes = dtrMinusMinutes };
                 }
             }
             catch (MySqlException ex) when (IsMissingObjectError(ex))
@@ -538,6 +582,8 @@ SELECT
     pr.payroll_run_id,
     pr.payroll_period_id,
     pp.period_code,
+    pp.date_from,
+    pp.date_to,
     pp.pay_date,
     pr.employee_id,
     COALESCE(e.employee_no, '-') AS employee_no,
@@ -564,20 +610,32 @@ LIMIT @limit;";
                 command.Parameters.AddWithValue("@period_id", periodId.HasValue && periodId.Value > 0 ? periodId.Value : DBNull.Value);
                 command.Parameters.AddWithValue("@limit", Math.Max(1, limit));
 
-                await using var reader = await command.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
+                await using (var reader = await command.ExecuteReaderAsync())
                 {
-                    rows.Add(new PayrollGovernmentContributionSourceDto(
-                        PayrollRunId: ToLong(reader["payroll_run_id"]),
-                        PayrollPeriodId: ToLong(reader["payroll_period_id"]),
-                        PeriodCode: reader["period_code"]?.ToString() ?? "-",
-                        PayDate: reader["pay_date"] == DBNull.Value ? DateTime.Today : Convert.ToDateTime(reader["pay_date"], CultureInfo.InvariantCulture),
-                        EmployeeId: ToInt(reader["employee_id"]),
-                        EmployeeNo: reader["employee_no"]?.ToString() ?? "-",
-                        EmployeeName: reader["employee_name"]?.ToString() ?? "-",
-                        EmploymentTypeName: reader["employment_type_name"]?.ToString() ?? "Permanent",
-                        BasicPay: ToDecimal(reader["basic_pay"]),
-                        RunStatus: reader["status"]?.ToString() ?? "GENERATED"));
+                    while (await reader.ReadAsync())
+                    {
+                        rows.Add(new PayrollGovernmentContributionSourceDto(
+                            PayrollRunId: ToLong(reader["payroll_run_id"]),
+                            PayrollPeriodId: ToLong(reader["payroll_period_id"]),
+                            PeriodCode: reader["period_code"]?.ToString() ?? "-",
+                            DateFrom: reader["date_from"] == DBNull.Value ? DateTime.Today : Convert.ToDateTime(reader["date_from"], CultureInfo.InvariantCulture),
+                            DateTo: reader["date_to"] == DBNull.Value ? DateTime.Today : Convert.ToDateTime(reader["date_to"], CultureInfo.InvariantCulture),
+                            PayDate: reader["pay_date"] == DBNull.Value ? DateTime.Today : Convert.ToDateTime(reader["pay_date"], CultureInfo.InvariantCulture),
+                            EmployeeId: ToInt(reader["employee_id"]),
+                            EmployeeNo: reader["employee_no"]?.ToString() ?? "-",
+                            EmployeeName: reader["employee_name"]?.ToString() ?? "-",
+                            EmploymentTypeName: reader["employment_type_name"]?.ToString() ?? "Permanent",
+                            BasicPay: ToDecimal(reader["basic_pay"]),
+                            DtrMinusMinutes: 0,
+                            RunStatus: reader["status"]?.ToString() ?? "GENERATED"));
+                    }
+                }
+
+                for (var i = 0; i < rows.Count; i++)
+                {
+                    var row = rows[i];
+                    var dtrMinusMinutes = await GetDtrMinusMinutesAsync(connection, null, row.EmployeeId, row.DateFrom, row.DateTo);
+                    rows[i] = row with { DtrMinusMinutes = dtrMinusMinutes };
                 }
             }
             catch (MySqlException ex) when (IsMissingObjectError(ex))
@@ -639,6 +697,101 @@ ORDER BY
             return rows;
         }
 
+        public async Task<PayrollPayslipProfileDto?> GetPayslipProfileAsync(long payrollRunId)
+        {
+            if (payrollRunId <= 0)
+            {
+                return null;
+            }
+
+            const string sql = @"
+SELECT
+    pr.payroll_run_id,
+    pp.date_from,
+    pp.date_to,
+    pp.pay_date,
+    COALESCE(e.employee_no, '-') AS employee_no,
+    CONCAT(e.last_name, ', ', e.first_name, IFNULL(CONCAT(' ', e.middle_name), '')) AS employee_name,
+    COALESCE(d.dept_name, '-') AS department_name,
+    COALESCE(p.position_name, '-') AS position_name,
+    COALESCE(at.type_name, '-') AS employment_type_name,
+    COALESCE(e.salary_grade, 0) AS salary_grade,
+    COALESCE(e.step_no, 0) AS step_no,
+    e.hire_date,
+    COALESCE(e.tin_no, '-') AS tin_no,
+    COALESCE(e.gsis_bp_no, '-') AS gsis_no,
+    COALESCE(e.philhealth_no, '-') AS philhealth_no,
+    COALESCE(e.pagibig_mid_no, '-') AS pagibig_no
+FROM payroll_runs pr
+INNER JOIN payroll_periods pp ON pp.payroll_period_id = pr.payroll_period_id
+INNER JOIN employees e ON e.employee_id = pr.employee_id
+LEFT JOIN departments d ON d.department_id = e.department_id
+LEFT JOIN positions p ON p.position_id = e.position_id
+LEFT JOIN appointment_types at ON at.appointment_type_id = e.appointment_type_id
+WHERE pr.payroll_run_id = @payroll_run_id
+LIMIT 1;";
+
+            try
+            {
+                await using var connection = new MySqlConnection(_connectionString);
+                await connection.OpenAsync();
+                await using var command = new MySqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@payroll_run_id", payrollRunId);
+
+                await using var reader = await command.ExecuteReaderAsync();
+                if (!await reader.ReadAsync())
+                {
+                    return null;
+                }
+
+                return new PayrollPayslipProfileDto(
+                    PayrollRunId: ToLong(reader["payroll_run_id"]),
+                    DateFrom: reader["date_from"] == DBNull.Value ? DateTime.Today : Convert.ToDateTime(reader["date_from"], CultureInfo.InvariantCulture),
+                    DateTo: reader["date_to"] == DBNull.Value ? DateTime.Today : Convert.ToDateTime(reader["date_to"], CultureInfo.InvariantCulture),
+                    PayDate: reader["pay_date"] == DBNull.Value ? DateTime.Today : Convert.ToDateTime(reader["pay_date"], CultureInfo.InvariantCulture),
+                    EmployeeNo: reader["employee_no"]?.ToString() ?? "-",
+                    EmployeeName: reader["employee_name"]?.ToString() ?? "-",
+                    DepartmentName: reader["department_name"]?.ToString() ?? "-",
+                    PositionName: reader["position_name"]?.ToString() ?? "-",
+                    EmploymentTypeName: reader["employment_type_name"]?.ToString() ?? "-",
+                    SalaryGrade: ToInt(reader["salary_grade"]),
+                    StepNo: ToInt(reader["step_no"]),
+                    HireDate: reader["hire_date"] == DBNull.Value ? null : Convert.ToDateTime(reader["hire_date"], CultureInfo.InvariantCulture),
+                    TinNo: SafePayslipGovernmentIdValue(reader["tin_no"]),
+                    GsisNo: SafePayslipGovernmentIdValue(reader["gsis_no"]),
+                    PhilHealthNo: SafePayslipGovernmentIdValue(reader["philhealth_no"]),
+                    PagIbigNo: SafePayslipGovernmentIdValue(reader["pagibig_no"]));
+            }
+            catch (MySqlException ex) when (IsMissingObjectError(ex))
+            {
+                return null;
+            }
+        }
+
+        private static string SafePayslipGovernmentIdValue(object value)
+        {
+            if (value == null || value == DBNull.Value)
+            {
+                return "-";
+            }
+
+            var text = value.ToString();
+            if (string.IsNullOrWhiteSpace(text) || text.Trim() == "-")
+            {
+                return "-";
+            }
+
+            try
+            {
+                var decrypted = SensitiveIdProtector.UnprotectToPlaintext(text);
+                return string.IsNullOrWhiteSpace(decrypted) ? "-" : decrypted.Trim();
+            }
+            catch
+            {
+                return SensitiveIdProtector.IsProtected(text) ? "-" : text.Trim();
+            }
+        }
+
         public async Task<long> UpsertRunAsync(
             long payrollPeriodId,
             int employeeId,
@@ -682,12 +835,15 @@ SELECT LAST_INSERT_ID();";
             {
                 var compensation = await GetEmployeeCompensationAsync(connection, transaction, employeeId);
                 var effectiveBasicPay = basicPay > 0m ? basicPay : compensation.MonthlyRate;
+                var periodRange = await GetPayrollPeriodRangeAsync(connection, transaction, payrollPeriodId);
+                var dtrMinusMinutes = await GetDtrMinusMinutesAsync(connection, transaction, employeeId, periodRange.DateFrom, periodRange.DateTo);
                 var deductions = PhilippinePayrollDeductions.ComputeAll(
                     basicMonthlySalary: effectiveBasicPay,
                     employmentTypeName: compensation.EmploymentTypeName,
                     allowances: allowances,
                     overtimePay: overtimePay,
-                    otherEarnings: otherEarnings);
+                    otherEarnings: otherEarnings,
+                    lateMinutes: dtrMinusMinutes);
 
                 await using var command = new MySqlCommand(sql, connection, transaction);
                 command.Parameters.AddWithValue("@payroll_period_id", payrollPeriodId);
@@ -735,7 +891,7 @@ SELECT LAST_INSERT_ID();";
         {
             if (payrollPeriodId <= 0 || employeeId <= 0)
             {
-                return new PayrollRunEditorDefaultsDto(0m, 0m, 0m, 0m, 0m, "GENERATED", false, string.Empty, string.Empty);
+                return new PayrollRunEditorDefaultsDto(0m, 0m, 0m, 0m, 0m, "GENERATED", false, string.Empty, string.Empty, 0);
             }
 
             const string existingRunSql = @"
@@ -756,6 +912,8 @@ LIMIT 1;";
                 await using var connection = new MySqlConnection(_connectionString);
                 await connection.OpenAsync();
                 var compensation = await GetEmployeeCompensationAsync(connection, null, employeeId);
+                var periodRange = await GetPayrollPeriodRangeAsync(connection, null, payrollPeriodId);
+                var dtrMinusMinutes = await GetDtrMinusMinutesAsync(connection, null, employeeId, periodRange.DateFrom, periodRange.DateTo);
 
                 await using (var existingRunCommand = new MySqlCommand(existingRunSql, connection))
                 {
@@ -773,7 +931,8 @@ LIMIT 1;";
                             Status: existingRunReader["status"]?.ToString() ?? "GENERATED",
                             FromExistingRun: true,
                             EmploymentTypeName: compensation.EmploymentTypeName,
-                            PositionName: compensation.PositionName);
+                            PositionName: compensation.PositionName,
+                            DtrMinusMinutes: dtrMinusMinutes);
                     }
                 }
 
@@ -784,7 +943,8 @@ LIMIT 1;";
                     employmentTypeName: compensation.EmploymentTypeName,
                     allowances: allowances,
                     overtimePay: 0m,
-                    otherEarnings: 0m);
+                    otherEarnings: 0m,
+                    lateMinutes: dtrMinusMinutes);
 
                 return new PayrollRunEditorDefaultsDto(
                     BasicPay: basicPay,
@@ -795,11 +955,12 @@ LIMIT 1;";
                     Status: "GENERATED",
                     FromExistingRun: false,
                     EmploymentTypeName: compensation.EmploymentTypeName,
-                    PositionName: compensation.PositionName);
+                    PositionName: compensation.PositionName,
+                    DtrMinusMinutes: dtrMinusMinutes);
             }
             catch (MySqlException ex) when (IsMissingObjectError(ex))
             {
-                return new PayrollRunEditorDefaultsDto(0m, 0m, 0m, 0m, 0m, "GENERATED", false, string.Empty, string.Empty);
+                return new PayrollRunEditorDefaultsDto(0m, 0m, 0m, 0m, 0m, "GENERATED", false, string.Empty, string.Empty, 0);
             }
         }
 
@@ -1803,6 +1964,147 @@ LIMIT 1;";
                 PositionName: reader["position_name"]?.ToString() ?? "-");
         }
 
+        private static async Task<PayrollPeriodRangeDto> GetPayrollPeriodRangeAsync(
+            MySqlConnection connection,
+            MySqlTransaction? transaction,
+            long payrollPeriodId)
+        {
+            const string sql = @"
+SELECT date_from, date_to
+FROM payroll_periods
+WHERE payroll_period_id = @payroll_period_id
+LIMIT 1;";
+
+            await using var command = transaction == null
+                ? new MySqlCommand(sql, connection)
+                : new MySqlCommand(sql, connection, transaction);
+            command.Parameters.AddWithValue("@payroll_period_id", payrollPeriodId);
+
+            await using var reader = await command.ExecuteReaderAsync();
+            if (!await reader.ReadAsync())
+            {
+                throw new InvalidOperationException("Payroll period was not found.");
+            }
+
+            return new PayrollPeriodRangeDto(
+                DateFrom: reader["date_from"] == DBNull.Value ? DateTime.Today : Convert.ToDateTime(reader["date_from"], CultureInfo.InvariantCulture),
+                DateTo: reader["date_to"] == DBNull.Value ? DateTime.Today : Convert.ToDateTime(reader["date_to"], CultureInfo.InvariantCulture));
+        }
+
+        private static async Task<int> GetDtrMinusMinutesAsync(
+            MySqlConnection connection,
+            MySqlTransaction? transaction,
+            int employeeId,
+            DateTime dateFrom,
+            DateTime dateTo)
+        {
+            if (employeeId <= 0 || dateTo.Date < dateFrom.Date)
+            {
+                return 0;
+            }
+
+            const string sql = @"
+SELECT COALESCE(SUM(
+    CASE
+        WHEN DAYOFWEEK(cal.work_date) IN (1, 7) THEN 0
+        WHEN COALESCE(ar.has_excused_remark, 0) = 1 THEN 0
+        ELSE
+            CASE
+                WHEN COALESCE(adj.requested_in, raw.time_in_raw) IS NULL THEN 0
+                ELSE GREATEST(
+                    COALESCE(
+                        TIMESTAMPDIFF(
+                            MINUTE,
+                            DATE_ADD(
+                                TIMESTAMP(cal.work_date, COALESCE(s.start_time, TIME('07:00:00'))),
+                                INTERVAL COALESCE(s.grace_minutes, 10) MINUTE),
+                            COALESCE(adj.requested_in, raw.time_in_raw)),
+                        0),
+                    0)
+            END
+            +
+            CASE
+                WHEN COALESCE(adj.requested_out, raw.time_out_raw) IS NULL THEN 0
+                ELSE GREATEST(
+                    COALESCE(
+                        TIMESTAMPDIFF(
+                            MINUTE,
+                            COALESCE(adj.requested_out, raw.time_out_raw),
+                            CASE
+                                WHEN COALESCE(s.is_overnight, 0) = 1
+                                THEN DATE_ADD(TIMESTAMP(cal.work_date, COALESCE(s.end_time, TIME('17:00:00'))), INTERVAL 1 DAY)
+                                ELSE TIMESTAMP(cal.work_date, COALESCE(s.end_time, TIME('17:00:00')))
+                            END),
+                        0),
+                    0)
+            END
+    END), 0) AS dtr_minus_minutes
+FROM (
+    SELECT DATE_ADD(@date_from, INTERVAL (ones.n + tens.n * 10) DAY) AS work_date
+    FROM (
+        SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
+        UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9
+    ) ones
+    CROSS JOIN (
+        SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
+        UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9
+    ) tens
+    WHERE DATE_ADD(@date_from, INTERVAL (ones.n + tens.n * 10) DAY) <= @date_to
+) cal
+LEFT JOIN (
+    SELECT
+        DATE(al.log_time) AS work_date,
+        MIN(CASE WHEN al.log_type = 'IN' THEN al.log_time END) AS time_in_raw,
+        MAX(CASE WHEN al.log_type = 'OUT' THEN al.log_time END) AS time_out_raw
+    FROM attendance_logs al
+    WHERE al.employee_id = @employee_id
+      AND al.log_time >= @date_from
+      AND al.log_time < DATE_ADD(@date_to, INTERVAL 1 DAY)
+    GROUP BY DATE(al.log_time)
+) raw
+    ON raw.work_date = cal.work_date
+LEFT JOIN attendance_adjustments adj
+    ON adj.employee_id = @employee_id
+   AND adj.work_date = cal.work_date
+   AND adj.status = 'APPROVED'
+LEFT JOIN (
+    SELECT
+        employee_id,
+        work_date,
+        MAX(CASE WHEN remark_type IN ('HOLIDAY','TO','OB','CTO','SUSPENDED','WFH') THEN 1 ELSE 0 END) AS has_excused_remark
+    FROM attendance_remarks
+    WHERE employee_id = @employee_id
+      AND work_date BETWEEN @date_from AND @date_to
+    GROUP BY employee_id, work_date
+) ar
+    ON ar.employee_id = @employee_id
+   AND ar.work_date = cal.work_date
+LEFT JOIN shift_assignments sa
+    ON sa.assignment_id = (
+        SELECT sa2.assignment_id
+        FROM shift_assignments sa2
+        WHERE sa2.employee_id = @employee_id
+          AND sa2.status = 'ASSIGNED'
+          AND sa2.start_date <= cal.work_date
+          AND (sa2.end_date IS NULL OR sa2.end_date >= cal.work_date)
+        ORDER BY sa2.start_date DESC, sa2.assignment_id DESC
+        LIMIT 1
+    )
+LEFT JOIN shifts s ON s.shift_id = sa.shift_id;";
+
+            await using var command = transaction == null
+                ? new MySqlCommand(sql, connection)
+                : new MySqlCommand(sql, connection, transaction);
+            command.Parameters.AddWithValue("@employee_id", employeeId);
+            command.Parameters.AddWithValue("@date_from", dateFrom.Date);
+            command.Parameters.AddWithValue("@date_to", dateTo.Date);
+
+            var result = await command.ExecuteScalarAsync();
+            return result == null || result == DBNull.Value
+                ? 0
+                : Convert.ToInt32(result, CultureInfo.InvariantCulture);
+        }
+
         private static async Task ReplaceRunItemsAsync(
             MySqlConnection connection,
             MySqlTransaction transaction,
@@ -1884,7 +2186,7 @@ WHERE payroll_run_id = @payroll_run_id;";
 
             if (deductions.LateDeduction > 0m)
             {
-                await InsertRunItemAsync(connection, transaction, payrollRunId, "DEDUCTION", "LATE", "Late Deduction", deductions.LateDeduction);
+                await InsertRunItemAsync(connection, transaction, payrollRunId, "DEDUCTION", "DTR_MINUS", "DTR Minus Deduction", deductions.LateDeduction);
             }
 
             if (deductions.LoanDeduction > 0m)

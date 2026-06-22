@@ -311,6 +311,12 @@ namespace HRMS.Model
             try
             {
                 var tableNames = await GetTableNamesAsync(connection, transaction);
+                var targetSchemas = new Dictionary<string, BackupTableSchema>(StringComparer.OrdinalIgnoreCase);
+                foreach (var tableName in tableNames)
+                {
+                    targetSchemas[tableName] = await GetTableSchemaAsync(connection, tableName, transaction);
+                }
+
                 await ExecuteSqlAsync(connection, transaction, "SET FOREIGN_KEY_CHECKS = 0;");
 
                 foreach (var tableName in tableNames)
@@ -320,7 +326,12 @@ namespace HRMS.Model
 
                 foreach (var snapshot in snapshots)
                 {
-                    await RestoreTableAsync(connection, transaction, snapshot);
+                    if (!targetSchemas.TryGetValue(snapshot.Schema.TableName, out var targetSchema))
+                    {
+                        continue;
+                    }
+
+                    await RestoreTableAsync(connection, transaction, snapshot, targetSchema);
                 }
 
                 await ExecuteSqlAsync(connection, transaction, "SET FOREIGN_KEY_CHECKS = 1;");
@@ -457,10 +468,13 @@ ORDER BY TABLE_NAME;";
                 .ToList();
         }
 
-        private async Task<BackupTableSchema> GetTableSchemaAsync(MySqlConnection connection, string tableName)
+        private async Task<BackupTableSchema> GetTableSchemaAsync(
+            MySqlConnection connection,
+            string tableName,
+            MySqlTransaction? transaction = null)
         {
             const string columnSql = @"
-SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, IS_NULLABLE, ORDINAL_POSITION
+SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, IS_NULLABLE, ORDINAL_POSITION, COLUMN_DEFAULT, EXTRA
 FROM INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_SCHEMA = DATABASE()
   AND TABLE_NAME = @table_name
@@ -481,6 +495,11 @@ ORDER BY ORDINAL_POSITION;";
 
             await using (var columnCommand = new MySqlCommand(columnSql, connection))
             {
+                if (transaction != null)
+                {
+                    columnCommand.Transaction = transaction;
+                }
+
                 columnCommand.Parameters.AddWithValue("@table_name", tableName);
                 await using var reader = await columnCommand.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
@@ -491,13 +510,20 @@ ORDER BY ORDINAL_POSITION;";
                         DataType = reader.GetString(1),
                         ColumnType = reader.GetString(2),
                         IsNullable = string.Equals(reader.GetString(3), "YES", StringComparison.OrdinalIgnoreCase),
-                        OrdinalPosition = reader.GetInt32(4)
+                        OrdinalPosition = reader.GetInt32(4),
+                        DefaultValue = reader.IsDBNull(5) ? null : reader.GetString(5),
+                        Extra = reader.IsDBNull(6) ? string.Empty : reader.GetString(6)
                     });
                 }
             }
 
             await using (var keyCommand = new MySqlCommand(primaryKeySql, connection))
             {
+                if (transaction != null)
+                {
+                    keyCommand.Transaction = transaction;
+                }
+
                 keyCommand.Parameters.AddWithValue("@table_name", tableName);
                 await using var reader = await keyCommand.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
@@ -541,30 +567,198 @@ ORDER BY ORDINAL_POSITION;";
             return rows;
         }
 
-        private static async Task RestoreTableAsync(MySqlConnection connection, MySqlTransaction transaction, BackupTableSnapshot snapshot)
+        private static async Task RestoreTableAsync(
+            MySqlConnection connection,
+            MySqlTransaction transaction,
+            BackupTableSnapshot snapshot,
+            BackupTableSchema targetSchema)
         {
             if (snapshot.Rows.Count == 0)
             {
                 return;
             }
 
-            var columns = snapshot.Schema.Columns.OrderBy(x => x.OrdinalPosition).ToList();
-            var columnList = string.Join(", ", columns.Select(x => QuoteIdentifier(x.Name)));
-            var parameterList = string.Join(", ", columns.Select((_, index) => $"@p{index}"));
+            var sourceColumns = snapshot.Schema.Columns
+                .OrderBy(x => x.OrdinalPosition)
+                .ToList();
+            var restoreColumns = targetSchema.Columns
+                .OrderBy(x => x.OrdinalPosition)
+                .Select(targetColumn =>
+                {
+                    var sourceColumn = sourceColumns.FirstOrDefault(x =>
+                        ColumnNamesEquivalent(x.Name, targetColumn.Name));
+                    return new RestoreColumnBinding(
+                        TargetColumn: targetColumn,
+                        SourceColumn: sourceColumn,
+                        UseSourceValue: sourceColumn != null);
+                })
+                .Where(binding => binding.UseSourceValue || RequiresExplicitRestoreValue(binding.TargetColumn))
+                .ToList();
+
+            if (restoreColumns.Count == 0)
+            {
+                return;
+            }
+
+            var columnList = string.Join(", ", restoreColumns.Select(x => QuoteIdentifier(x.TargetColumn.Name)));
+            var parameterList = string.Join(", ", restoreColumns.Select((_, index) => $"@p{index}"));
             var sql = $"INSERT INTO {QuoteIdentifier(snapshot.Schema.TableName)} ({columnList}) VALUES ({parameterList});";
 
             foreach (var row in snapshot.Rows)
             {
                 await using var command = new MySqlCommand(sql, connection, transaction);
-                for (var i = 0; i < columns.Count; i++)
+                for (var i = 0; i < restoreColumns.Count; i++)
                 {
-                    row.TryGetValue(columns[i].Name, out var serialized);
-                    command.Parameters.AddWithValue($"@p{i}", DeserializeValue(columns[i], serialized));
+                    var binding = restoreColumns[i];
+                    object value;
+                    if (binding.UseSourceValue && binding.SourceColumn != null)
+                    {
+                        row.TryGetValue(binding.SourceColumn.Name, out var serialized);
+                        value = DeserializeValue(binding.SourceColumn, serialized);
+                    }
+                    else
+                    {
+                        value = BuildTargetOnlyRestoreValue(binding.TargetColumn);
+                    }
+
+                    command.Parameters.AddWithValue($"@p{i}", value);
                 }
 
                 await command.ExecuteNonQueryAsync();
             }
         }
+
+        private sealed record RestoreColumnBinding(
+            BackupColumnDefinition TargetColumn,
+            BackupColumnDefinition? SourceColumn,
+            bool UseSourceValue);
+
+        private static bool RequiresExplicitRestoreValue(BackupColumnDefinition column)
+        {
+            if (column.IsNullable)
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(column.DefaultValue))
+            {
+                return false;
+            }
+
+            if (column.Extra.Contains("auto_increment", StringComparison.OrdinalIgnoreCase) ||
+                column.Extra.Contains("generated", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static object BuildTargetOnlyRestoreValue(BackupColumnDefinition column)
+        {
+            if (IsBooleanColumn(column))
+            {
+                return false;
+            }
+
+            var dataType = column.DataType.Trim().ToLowerInvariant();
+            if (dataType is "tinyint" or "smallint" or "mediumint" or "int" or "integer")
+            {
+                return 0;
+            }
+
+            if (dataType == "bigint")
+            {
+                return 0L;
+            }
+
+            if (dataType is "decimal" or "numeric")
+            {
+                return 0m;
+            }
+
+            if (dataType == "float")
+            {
+                return 0f;
+            }
+
+            if (dataType is "double" or "real")
+            {
+                return 0d;
+            }
+
+            if (dataType == "date")
+            {
+                return DateTime.Today;
+            }
+
+            if (dataType is "datetime" or "timestamp")
+            {
+                return DateTime.Now;
+            }
+
+            if (dataType == "time")
+            {
+                return TimeSpan.Zero;
+            }
+
+            if (dataType is "binary" or "varbinary" or "tinyblob" or "blob" or "mediumblob" or "longblob")
+            {
+                return Array.Empty<byte>();
+            }
+
+            if (dataType == "json")
+            {
+                return "{}";
+            }
+
+            if (dataType == "enum")
+            {
+                return GetFirstEnumValue(column.ColumnType) ?? string.Empty;
+            }
+
+            var normalizedName = NormalizeColumnName(column.Name);
+            if (normalizedName.Contains("transactiontype", StringComparison.Ordinal))
+            {
+                return "SYNC";
+            }
+
+            if (normalizedName.Contains("status", StringComparison.Ordinal))
+            {
+                return "ACTIVE";
+            }
+
+            return string.Empty;
+        }
+
+        private static string? GetFirstEnumValue(string columnType)
+        {
+            var start = columnType.IndexOf('(');
+            var end = columnType.LastIndexOf(')');
+            if (start < 0 || end <= start)
+            {
+                return null;
+            }
+
+            var inside = columnType[(start + 1)..end];
+            var values = inside.Split(',');
+            if (values.Length == 0)
+            {
+                return null;
+            }
+
+            return values[0].Trim().Trim('\'').Replace("\\'", "'", StringComparison.Ordinal);
+        }
+
+        private static bool ColumnNamesEquivalent(string left, string right) =>
+            string.Equals(left, right, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(NormalizeColumnName(left), NormalizeColumnName(right), StringComparison.Ordinal);
+
+        private static string NormalizeColumnName(string value) =>
+            new(value
+                .Where(char.IsLetterOrDigit)
+                .Select(char.ToLowerInvariant)
+                .ToArray());
 
         private static async Task ExecuteSqlAsync(MySqlConnection connection, MySqlTransaction transaction, string sql)
         {

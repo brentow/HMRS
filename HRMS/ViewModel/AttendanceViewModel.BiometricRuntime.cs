@@ -256,6 +256,7 @@ namespace HRMS.ViewModel
                 LiveScannerStatusText = $"Matched {match.Enrollment.EmployeeName} ({match.Enrollment.BiometricUserId}). Auto-detected {nextLogType} and saved it to the database.";
                 LiveScannerBrush = SuccessBrush;
                 SetMessage($"Biometric {nextLogType} logged for {match.Enrollment.EmployeeName} and saved to the database.", SuccessBrush);
+                SystemRefreshBus.Raise("BiometricAttendanceLogged");
             }
             catch (Exception ex)
             {

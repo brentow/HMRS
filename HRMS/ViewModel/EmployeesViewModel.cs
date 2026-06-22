@@ -8,7 +8,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Data;
 using System.Windows.Media;
 
 namespace HRMS.ViewModel
@@ -22,7 +21,7 @@ namespace HRMS.ViewModel
         private int _activeEmployees;
         private int _departments;
         private int _positions;
-        private string _searchText = string.Empty;
+        private string _employeePickerSearchText = string.Empty;
         private EmployeeRowVm? _selectedEmployee;
         private string _selectedEmployeeAttendanceSummary = "Select an employee to view attendance.";
         private bool _isLoadingSelectedEmployeeAttendance;
@@ -35,20 +34,19 @@ namespace HRMS.ViewModel
         public int Departments { get => _departments; set { _departments = value; OnPropertyChanged(); } }
         public int Positions { get => _positions; set { _positions = value; OnPropertyChanged(); } }
 
-        public string SearchText
+        public string EmployeePickerSearchText
         {
-            get => _searchText;
+            get => _employeePickerSearchText;
             set
             {
-                if (_searchText == value)
+                if (_employeePickerSearchText == value)
                 {
                     return;
                 }
 
-                _searchText = value ?? string.Empty;
+                _employeePickerSearchText = value ?? string.Empty;
                 OnPropertyChanged();
-                RefreshEmployeeSearchResults();
-                EmployeesView.Refresh();
+                RefreshEmployeePickerResults();
             }
         }
 
@@ -114,15 +112,12 @@ namespace HRMS.ViewModel
         }
 
         public ObservableCollection<EmployeeRowVm> Employees { get; } = new();
-        public ObservableCollection<EmployeeRowVm> EmployeeSearchResults { get; } = new();
+        public ObservableCollection<EmployeeRowVm> EmployeePickerResults { get; } = new();
         public ObservableCollection<EmployeeAttendanceLogVm> SelectedEmployeeRecentLogs { get; } = new();
         public ObservableCollection<EmployeeAttendanceDayVm> SelectedEmployeeCurrentMonthAttendance { get; } = new();
-        public ICollectionView EmployeesView { get; }
 
         public EmployeesViewModel()
         {
-            EmployeesView = CollectionViewSource.GetDefaultView(Employees);
-            EmployeesView.Filter = FilterEmployee;
             _ = RefreshAsync();
         }
 
@@ -142,7 +137,7 @@ namespace HRMS.ViewModel
 
             var list = isEmployeeMode && (!scopedEmployeeId.HasValue || scopedEmployeeId.Value <= 0)
                 ? Array.Empty<EmployeeRowDto>()
-                : await _dataService.GetRecentEmployeesAsync(scopedEmployeeId: scopedEmployeeId);
+                : await _dataService.GetRecentEmployeesAsync(limit: 5000, scopedEmployeeId: scopedEmployeeId);
 
             if (requestVersion != _loadRequestVersion)
             {
@@ -229,17 +224,222 @@ namespace HRMS.ViewModel
                 return;
             }
 
-            EmployeesView.Refresh();
-            RefreshEmployeeSearchResults();
+            RefreshEmployeePickerResults();
+
             if (!string.IsNullOrWhiteSpace(selectedEmployeeNo))
             {
                 SelectEmployeeByNumber(selectedEmployeeNo);
             }
 
-            if (SelectedEmployee == null || !EmployeesView.Cast<EmployeeRowVm>().Any(e => ReferenceEquals(e, SelectedEmployee)))
+            if (SelectedEmployee == null || !Employees.Any(e => ReferenceEquals(e, SelectedEmployee)))
             {
-                SelectedEmployee = EmployeesView.Cast<EmployeeRowVm>().FirstOrDefault();
+                SelectedEmployee = Employees.FirstOrDefault();
             }
+        }
+
+        public void ResetEmployeePickerSearch()
+        {
+            if (string.IsNullOrEmpty(_employeePickerSearchText))
+            {
+                RefreshEmployeePickerResults();
+                return;
+            }
+
+            _employeePickerSearchText = string.Empty;
+            OnPropertyChanged(nameof(EmployeePickerSearchText));
+            RefreshEmployeePickerResults();
+        }
+
+        private void RefreshEmployeePickerResults()
+        {
+            EmployeePickerResults.Clear();
+
+            var term = EmployeePickerSearchText.Trim();
+            IEnumerable<EmployeeRowVm> matches;
+
+            if (string.IsNullOrWhiteSpace(term))
+            {
+                matches = Employees;
+            }
+            else
+            {
+                matches = Employees
+                    .Select(employee => new
+                    {
+                        Employee = employee,
+                        Score = ScoreEmployeePickerMatch(employee, term)
+                    })
+                    .Where(match => match.Score > 0)
+                    .OrderByDescending(match => match.Score)
+                    .ThenBy(match => match.Employee.Name, StringComparer.OrdinalIgnoreCase)
+                    .Select(match => match.Employee);
+            }
+
+            foreach (var employee in matches.Take(500))
+            {
+                EmployeePickerResults.Add(employee);
+            }
+        }
+
+        private static int ScoreEmployeePickerMatch(EmployeeRowVm employee, string term)
+        {
+            var normalizedTerm = NormalizePickerSearchText(term);
+            if (string.IsNullOrWhiteSpace(normalizedTerm))
+            {
+                return 0;
+            }
+
+            var tokens = SplitPickerSearchTokens(normalizedTerm);
+            var name = NormalizePickerSearchText(employee.Name);
+            var employeeNo = NormalizePickerSearchText(employee.EmployeeNo);
+            var detailText = NormalizePickerSearchText(string.Join(
+                " ",
+                employee.Department,
+                employee.Position,
+                employee.Status,
+                employee.AppointmentType,
+                employee.SalaryGrade,
+                employee.SalaryStep,
+                employee.HireDate.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture)));
+
+            var nameTokens = SplitPickerSearchTokens(name);
+            var detailTokens = SplitPickerSearchTokens(detailText);
+            var score = 0;
+
+            if (employeeNo == normalizedTerm)
+            {
+                score = Math.Max(score, 1000);
+            }
+            else if (employeeNo.Contains(normalizedTerm, StringComparison.Ordinal))
+            {
+                score = Math.Max(score, 850);
+            }
+
+            if (name == normalizedTerm)
+            {
+                score = Math.Max(score, 950);
+            }
+            else if (name.StartsWith(normalizedTerm, StringComparison.Ordinal))
+            {
+                score = Math.Max(score, 900);
+            }
+            else if (name.Contains(normalizedTerm, StringComparison.Ordinal))
+            {
+                score = Math.Max(score, 820);
+            }
+
+            var nameTokenMatches = tokens.Count(token => PickerTokenMatches(nameTokens, token));
+            if (tokens.Length > 0 && nameTokenMatches == tokens.Length)
+            {
+                score = Math.Max(score, 760 + (nameTokenMatches * 10));
+            }
+            else if (nameTokenMatches > 0)
+            {
+                score = Math.Max(score, 360 + (nameTokenMatches * 10));
+            }
+
+            if (detailText.Contains(normalizedTerm, StringComparison.Ordinal))
+            {
+                score = Math.Max(score, 430);
+            }
+
+            var detailTokenMatches = tokens.Count(token => PickerTokenMatches(detailTokens, token));
+            if (tokens.Length > 0 && detailTokenMatches == tokens.Length)
+            {
+                score = Math.Max(score, 380 + (detailTokenMatches * 10));
+            }
+            else if (detailTokenMatches > 0)
+            {
+                score = Math.Max(score, 180 + (detailTokenMatches * 10));
+            }
+
+            return score;
+        }
+
+        private static string NormalizePickerSearchText(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return string.Empty;
+            }
+
+            var normalized = new string(text
+                .Trim()
+                .ToLowerInvariant()
+                .Select(ch => char.IsLetterOrDigit(ch) ? ch : ' ')
+                .ToArray());
+
+            return string.Join(' ', normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        }
+
+        private static string[] SplitPickerSearchTokens(string text) =>
+            text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        private static bool PickerTokenMatches(IReadOnlyList<string> candidates, string token)
+        {
+            foreach (var candidate in candidates)
+            {
+                if (candidate.Contains(token, StringComparison.Ordinal) ||
+                    token.Contains(candidate, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+
+                if (token.Length >= 3 &&
+                    candidate.Length >= 3 &&
+                    PickerLevenshteinDistance(candidate, token) <= GetAllowedPickerDistance(token.Length))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static int GetAllowedPickerDistance(int length) =>
+            length <= 4 ? 1 : 2;
+
+        private static int PickerLevenshteinDistance(string left, string right)
+        {
+            if (left == right)
+            {
+                return 0;
+            }
+
+            if (left.Length == 0)
+            {
+                return right.Length;
+            }
+
+            if (right.Length == 0)
+            {
+                return left.Length;
+            }
+
+            var previous = new int[right.Length + 1];
+            var current = new int[right.Length + 1];
+
+            for (var j = 0; j <= right.Length; j++)
+            {
+                previous[j] = j;
+            }
+
+            for (var i = 1; i <= left.Length; i++)
+            {
+                current[0] = i;
+
+                for (var j = 1; j <= right.Length; j++)
+                {
+                    var substitutionCost = left[i - 1] == right[j - 1] ? 0 : 1;
+                    current[j] = Math.Min(
+                        Math.Min(current[j - 1] + 1, previous[j] + 1),
+                        previous[j - 1] + substitutionCost);
+                }
+
+                (previous, current) = (current, previous);
+            }
+
+            return previous[right.Length];
         }
 
         private async Task ApplyCurrentUserScopeAsync(AuthenticatedUser? user)
@@ -318,215 +518,6 @@ namespace HRMS.ViewModel
             }
         }
 
-        private bool FilterEmployee(object obj)
-        {
-            if (obj is not EmployeeRowVm employee)
-            {
-                return false;
-            }
-
-            if (string.IsNullOrWhiteSpace(SearchText))
-            {
-                return true;
-            }
-
-            var term = SearchText.Trim();
-
-            return ScoreEmployeeSearch(employee, term) > 0;
-        }
-
-        private void RefreshEmployeeSearchResults()
-        {
-            EmployeeSearchResults.Clear();
-
-            var term = SearchText.Trim();
-            if (string.IsNullOrWhiteSpace(term))
-            {
-                return;
-            }
-
-            var matches = Employees
-                .Select(employee => new
-                {
-                    Employee = employee,
-                    Score = ScoreEmployeeSearch(employee, term)
-                })
-                .Where(match => match.Score > 0)
-                .OrderByDescending(match => match.Score)
-                .ThenBy(match => match.Employee.Name, StringComparer.OrdinalIgnoreCase)
-                .Take(8);
-
-            foreach (var match in matches)
-            {
-                EmployeeSearchResults.Add(match.Employee);
-            }
-        }
-
-        private static int ScoreEmployeeSearch(EmployeeRowVm employee, string term)
-        {
-            var normalizedTerm = NormalizeSearchText(term);
-            if (string.IsNullOrWhiteSpace(normalizedTerm))
-            {
-                return 0;
-            }
-
-            var tokens = SplitSearchTokens(normalizedTerm);
-            var name = NormalizeSearchText(employee.Name);
-            var employeeNo = NormalizeSearchText(employee.EmployeeNo);
-            var detailText = NormalizeSearchText(string.Join(
-                " ",
-                employee.Department,
-                employee.Position,
-                employee.Status,
-                employee.AppointmentType,
-                employee.SalaryGrade,
-                employee.SalaryStep,
-                employee.TinNo,
-                employee.GsisBpNo,
-                employee.PhilHealthNo,
-                employee.PagibigMidNo,
-                employee.HireDate.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture)));
-
-            var nameTokens = SplitSearchTokens(name);
-            var detailTokens = SplitSearchTokens(detailText);
-            var score = 0;
-
-            if (employeeNo == normalizedTerm)
-            {
-                score = Math.Max(score, 1000);
-            }
-            else if (employeeNo.Contains(normalizedTerm, StringComparison.Ordinal))
-            {
-                score = Math.Max(score, 850);
-            }
-
-            if (name == normalizedTerm)
-            {
-                score = Math.Max(score, 950);
-            }
-            else if (name.StartsWith(normalizedTerm, StringComparison.Ordinal))
-            {
-                score = Math.Max(score, 900);
-            }
-            else if (name.Contains(normalizedTerm, StringComparison.Ordinal))
-            {
-                score = Math.Max(score, 820);
-            }
-
-            var nameTokenMatches = tokens.Count(token => TokenMatches(nameTokens, token));
-            if (tokens.Length > 0 && nameTokenMatches == tokens.Length)
-            {
-                score = Math.Max(score, 760 + (nameTokenMatches * 10));
-            }
-            else if (nameTokenMatches > 0)
-            {
-                score = Math.Max(score, 360 + (nameTokenMatches * 10));
-            }
-
-            if (detailText.Contains(normalizedTerm, StringComparison.Ordinal))
-            {
-                score = Math.Max(score, 430);
-            }
-
-            var detailTokenMatches = tokens.Count(token => TokenMatches(detailTokens, token));
-            if (tokens.Length > 0 && detailTokenMatches == tokens.Length)
-            {
-                score = Math.Max(score, 380 + (detailTokenMatches * 10));
-            }
-            else if (detailTokenMatches > 0)
-            {
-                score = Math.Max(score, 180 + (detailTokenMatches * 10));
-            }
-
-            return score;
-        }
-
-        private static string NormalizeSearchText(string? text)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                return string.Empty;
-            }
-
-            var normalized = new string(text
-                .Trim()
-                .ToLowerInvariant()
-                .Select(ch => char.IsLetterOrDigit(ch) ? ch : ' ')
-                .ToArray());
-
-            return string.Join(' ', normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries));
-        }
-
-        private static string[] SplitSearchTokens(string text) =>
-            text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-        private static bool TokenMatches(IReadOnlyList<string> candidates, string token)
-        {
-            foreach (var candidate in candidates)
-            {
-                if (candidate.Contains(token, StringComparison.Ordinal) ||
-                    token.Contains(candidate, StringComparison.Ordinal))
-                {
-                    return true;
-                }
-
-                if (token.Length >= 3 &&
-                    candidate.Length >= 3 &&
-                    LevenshteinDistance(candidate, token) <= GetAllowedSearchDistance(token.Length))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static int GetAllowedSearchDistance(int length) =>
-            length <= 4 ? 1 : 2;
-
-        private static int LevenshteinDistance(string left, string right)
-        {
-            if (left == right)
-            {
-                return 0;
-            }
-
-            if (left.Length == 0)
-            {
-                return right.Length;
-            }
-
-            if (right.Length == 0)
-            {
-                return left.Length;
-            }
-
-            var previous = new int[right.Length + 1];
-            var current = new int[right.Length + 1];
-
-            for (var j = 0; j <= right.Length; j++)
-            {
-                previous[j] = j;
-            }
-
-            for (var i = 1; i <= left.Length; i++)
-            {
-                current[0] = i;
-
-                for (var j = 1; j <= right.Length; j++)
-                {
-                    var substitutionCost = left[i - 1] == right[j - 1] ? 0 : 1;
-                    current[j] = Math.Min(
-                        Math.Min(current[j - 1] + 1, previous[j] + 1),
-                        previous[j - 1] + substitutionCost);
-                }
-
-                (previous, current) = (current, previous);
-            }
-
-            return previous[right.Length];
-        }
-
         public void SelectEmployee(EmployeeRowVm? employee)
         {
             if (employee == null)
@@ -535,7 +526,6 @@ namespace HRMS.ViewModel
             }
 
             SelectedEmployee = employee;
-            EmployeesView.MoveCurrentTo(employee);
         }
 
         public void SelectEmployeeByNumber(string? employeeNo)

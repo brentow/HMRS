@@ -36,63 +36,114 @@ namespace HRMS.Model
         {
             const string sql = @"
 SELECT
-    d.employee_id,
+    e.employee_id,
     COALESCE(e.employee_no,'-') employee_no,
     CONCAT(e.last_name, ', ', e.first_name, IFNULL(CONCAT(' ', e.middle_name), '')) employee_name,
-    d.work_date,
-    d.time_in,
-    d.time_out,
-    COALESCE(d.worked_minutes, 0) worked_minutes,
+    cal.work_date,
+    COALESCE(adj.requested_in, raw.time_in_raw) AS time_in,
+    COALESCE(adj.requested_out, raw.time_out_raw) AS time_out,
+    CASE
+        WHEN COALESCE(adj.requested_in, raw.time_in_raw) IS NULL
+          OR COALESCE(adj.requested_out, raw.time_out_raw) IS NULL
+        THEN 0
+        ELSE TIMESTAMPDIFF(
+            MINUTE,
+            COALESCE(adj.requested_in, raw.time_in_raw),
+            COALESCE(adj.requested_out, raw.time_out_raw))
+    END AS worked_minutes,
     COALESCE(GROUP_CONCAT(DISTINCT ar.remark_type ORDER BY ar.remark_type SEPARATOR ', '), '') remarks,
-    GREATEST(
-        COALESCE(
-            TIMESTAMPDIFF(
+    CASE
+        WHEN COALESCE(adj.requested_in, raw.time_in_raw) IS NULL THEN 0
+        ELSE GREATEST(
+            COALESCE(
+                TIMESTAMPDIFF(
+                    MINUTE,
+                    DATE_ADD(
+                        TIMESTAMP(cal.work_date, COALESCE(s.start_time, TIME('07:00:00'))),
+                        INTERVAL COALESCE(s.grace_minutes, 10) MINUTE),
+                    COALESCE(adj.requested_in, raw.time_in_raw)),
+                0),
+            0)
+    END AS late_minutes,
+    CASE
+        WHEN COALESCE(adj.requested_out, raw.time_out_raw) IS NULL THEN 0
+        ELSE GREATEST(
+            COALESCE(
+                TIMESTAMPDIFF(
                 MINUTE,
-                DATE_ADD(
-                    TIMESTAMP(d.work_date, COALESCE(s.start_time, TIME('00:00:00'))),
-                    INTERVAL COALESCE(s.grace_minutes, 0) MINUTE),
-                d.time_in),
-            0),
-        0) AS late_minutes,
-    GREATEST(
-        COALESCE(
-            TIMESTAMPDIFF(
-                MINUTE,
-                d.time_out,
+                COALESCE(adj.requested_out, raw.time_out_raw),
                 CASE
                     WHEN COALESCE(s.is_overnight, 0) = 1
-                    THEN DATE_ADD(TIMESTAMP(d.work_date, COALESCE(s.end_time, TIME('00:00:00'))), INTERVAL 1 DAY)
-                    ELSE TIMESTAMP(d.work_date, COALESCE(s.end_time, TIME('00:00:00')))
+                    THEN DATE_ADD(TIMESTAMP(cal.work_date, COALESCE(s.end_time, TIME('17:00:00'))), INTERVAL 1 DAY)
+                    ELSE TIMESTAMP(cal.work_date, COALESCE(s.end_time, TIME('17:00:00')))
                 END),
-            0),
-        0) AS early_out_minutes
-FROM v_dtr_daily_effective d
-JOIN employees e ON e.employee_id = d.employee_id
+                0),
+            0)
+    END AS early_out_minutes
+FROM employees e
+JOIN (
+    SELECT DATE_ADD(@month_start, INTERVAL n DAY) AS work_date
+    FROM (
+        SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
+        UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9
+        UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14
+        UNION ALL SELECT 15 UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19
+        UNION ALL SELECT 20 UNION ALL SELECT 21 UNION ALL SELECT 22 UNION ALL SELECT 23 UNION ALL SELECT 24
+        UNION ALL SELECT 25 UNION ALL SELECT 26 UNION ALL SELECT 27 UNION ALL SELECT 28 UNION ALL SELECT 29
+        UNION ALL SELECT 30
+    ) days
+    WHERE DATE_ADD(@month_start, INTERVAL n DAY) < @next_month
+) cal
+LEFT JOIN (
+    SELECT
+        al.employee_id,
+        DATE(al.log_time) AS work_date,
+        MIN(CASE WHEN al.log_type='IN' THEN al.log_time END) AS time_in_raw,
+        MAX(CASE WHEN al.log_type='OUT' THEN al.log_time END) AS time_out_raw
+    FROM attendance_logs al
+    WHERE al.log_time >= @month_start
+      AND al.log_time < @next_month
+    GROUP BY al.employee_id, DATE(al.log_time)
+) raw
+    ON raw.employee_id = e.employee_id
+   AND raw.work_date = cal.work_date
+LEFT JOIN attendance_adjustments adj
+    ON adj.employee_id = e.employee_id
+   AND adj.work_date = cal.work_date
+   AND adj.status = 'APPROVED'
 LEFT JOIN attendance_remarks ar
-    ON ar.employee_id = d.employee_id
-   AND ar.work_date = d.work_date
+    ON ar.employee_id = e.employee_id
+   AND ar.work_date = cal.work_date
 LEFT JOIN shift_assignments sa
-    ON sa.employee_id = d.employee_id
-   AND sa.status = 'ASSIGNED'
-   AND sa.start_date <= d.work_date
-   AND (sa.end_date IS NULL OR sa.end_date >= d.work_date)
+    ON sa.assignment_id = (
+        SELECT sa2.assignment_id
+        FROM shift_assignments sa2
+        WHERE sa2.employee_id = e.employee_id
+          AND sa2.status = 'ASSIGNED'
+          AND sa2.start_date <= cal.work_date
+          AND (sa2.end_date IS NULL OR sa2.end_date >= cal.work_date)
+        ORDER BY sa2.start_date DESC, sa2.assignment_id DESC
+        LIMIT 1
+    )
 LEFT JOIN shifts s ON s.shift_id = sa.shift_id
-WHERE YEAR(d.work_date) = @year
-  AND MONTH(d.work_date) = @month
-  AND (@employee_id IS NULL OR d.employee_id = @employee_id)
-GROUP BY d.employee_id, e.employee_no, e.last_name, e.first_name, e.middle_name,
-         d.work_date, d.time_in, d.time_out, d.worked_minutes,
+WHERE e.status = 'ACTIVE'
+  AND (@employee_id IS NULL OR e.employee_id = @employee_id)
+GROUP BY e.employee_id, e.employee_no, e.last_name, e.first_name, e.middle_name,
+         cal.work_date, raw.time_in_raw, raw.time_out_raw, adj.requested_in, adj.requested_out,
          s.start_time, s.end_time, s.grace_minutes, s.is_overnight
-ORDER BY e.employee_no, d.work_date;";
+ORDER BY e.employee_no, cal.work_date;";
 
             var list = new List<DtrDailyDto>();
             try
             {
+                var monthStart = new DateTime(year, month, 1);
+                var nextMonth = monthStart.AddMonths(1);
+
                 await using var connection = new MySqlConnection(_connectionString);
                 await connection.OpenAsync();
                 await using var command = new MySqlCommand(sql, connection);
-                command.Parameters.AddWithValue("@year", year);
-                command.Parameters.AddWithValue("@month", month);
+                command.Parameters.AddWithValue("@month_start", monthStart);
+                command.Parameters.AddWithValue("@next_month", nextMonth);
                 command.Parameters.AddWithValue("@employee_id", employeeId.HasValue && employeeId.Value > 0 ? employeeId.Value : DBNull.Value);
 
                 await using var reader = await command.ExecuteReaderAsync();

@@ -9,11 +9,6 @@ namespace HRMS.View
 {
     public partial class AttendanceWindow : UserControl
     {
-        private static readonly GridLength AdminDtrDailyHeight = new(1.1, GridUnitType.Star);
-        private static readonly GridLength AdminDtrCertificationHeight = new(0.9, GridUnitType.Star);
-        private static readonly GridLength EmployeeDtrDailyHeight = new(1, GridUnitType.Star);
-        private static readonly GridLength HiddenDtrCertificationHeight = new(0);
-
         public AttendanceWindow()
         {
             InitializeComponent();
@@ -36,8 +31,6 @@ namespace HRMS.View
 
                 var isEmployee = string.Equals(user?.RoleName, "Employee", StringComparison.OrdinalIgnoreCase);
                 ShiftAssignmentActionsColumn.Visibility = isEmployee ? Visibility.Collapsed : Visibility.Visible;
-                DtrDailyRowDefinition.Height = isEmployee ? EmployeeDtrDailyHeight : AdminDtrDailyHeight;
-                DtrCertificationRowDefinition.Height = isEmployee ? HiddenDtrCertificationHeight : AdminDtrCertificationHeight;
 
                 if (isEmployee)
                 {
@@ -67,6 +60,36 @@ namespace HRMS.View
             {
                 vm.SelectedRemarkType = "HOLIDAY";
             }
+        }
+
+        private void OpenShiftPopup_OnClick(object sender, RoutedEventArgs e)
+        {
+            ShiftPopup.IsOpen = true;
+        }
+
+        private void CloseShiftPopup_OnClick(object sender, RoutedEventArgs e)
+        {
+            ShiftPopup.IsOpen = false;
+        }
+
+        private void OpenAssignmentPopup_OnClick(object sender, RoutedEventArgs e)
+        {
+            AssignmentPopup.IsOpen = true;
+        }
+
+        private void CloseAssignmentPopup_OnClick(object sender, RoutedEventArgs e)
+        {
+            AssignmentPopup.IsOpen = false;
+        }
+
+        private void OpenRemarkPopup_OnClick(object sender, RoutedEventArgs e)
+        {
+            RemarkPopup.IsOpen = true;
+        }
+
+        private void CloseRemarkPopup_OnClick(object sender, RoutedEventArgs e)
+        {
+            RemarkPopup.IsOpen = false;
         }
     }
 }
