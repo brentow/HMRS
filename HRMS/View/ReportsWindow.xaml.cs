@@ -185,9 +185,10 @@ namespace HRMS.View
                 var categories = _reportsDataService.GetCategories(_isEmployeeMode)
                     .Select(category => new CategoryOption(category.CategoryKey, category.CategoryName))
                     .ToList();
+                categories.Insert(0, new CategoryOption(AllCategoriesKey, "All Reports"));
 
                 CategoryComboBox.ItemsSource = categories;
-                if (categories.Count == 0)
+                if (_catalog.Count == 0)
                 {
                     ReportComboBox.ItemsSource = Array.Empty<ReportOption>();
                     SelectedReportTitleText.Text = "No reports available.";
@@ -222,10 +223,22 @@ namespace HRMS.View
                 return;
             }
 
-            var reports = _reportsDataService
-                .GetReportsByCategory(selectedCategory.CategoryKey, _isEmployeeMode)
-                .Select(item => new ReportOption(item))
+            var showAllReports = string.Equals(
+                selectedCategory.CategoryKey,
+                AllCategoriesKey,
+                StringComparison.OrdinalIgnoreCase);
+
+            var catalogItems = showAllReports
+                ? _catalog
+                : _reportsDataService.GetReportsByCategory(selectedCategory.CategoryKey, _isEmployeeMode);
+            var reports = catalogItems
+                .Select(item => new ReportOption(item, includeCategory: showAllReports))
                 .ToList();
+
+            if (showAllReports)
+            {
+                reports.Insert(0, ReportOption.CreateAllReportsOverview());
+            }
 
             ReportComboBox.ItemsSource = reports;
 
@@ -271,13 +284,15 @@ namespace HRMS.View
                 var dateFrom = selectedOption.SupportsDateRange ? DateFromPicker.SelectedDate : null;
                 var dateTo = selectedOption.SupportsDateRange ? DateToPicker.SelectedDate : null;
 
-                var dataset = await _reportsDataService.LoadReportAsync(
-                    reportKey: selectedOption.Key,
-                    dateFrom: dateFrom,
-                    dateTo: dateTo,
-                    isEmployeeMode: _isEmployeeMode,
-                    employeeId: _currentEmployeeId,
-                    userId: _currentUserId > 0 ? _currentUserId : null);
+                var dataset = selectedOption.IsAllReportsOverview
+                    ? BuildAllReportsOverviewDataset()
+                    : await _reportsDataService.LoadReportAsync(
+                        reportKey: selectedOption.Key,
+                        dateFrom: dateFrom,
+                        dateTo: dateTo,
+                        isEmployeeMode: _isEmployeeMode,
+                        employeeId: _currentEmployeeId,
+                        userId: _currentUserId > 0 ? _currentUserId : null);
 
                 _currentDataset = dataset;
                 ReportDataGrid.ItemsSource = dataset.Table.DefaultView;
@@ -299,6 +314,37 @@ namespace HRMS.View
             StatusTextBlock.Text = string.IsNullOrWhiteSpace(message) ? "Ready." : message.Trim();
         }
 
+        private ReportDataset BuildAllReportsOverviewDataset()
+        {
+            var table = new DataTable("All Reports");
+            table.Columns.Add("Category", typeof(string));
+            table.Columns.Add("Report", typeof(string));
+            table.Columns.Add("Description", typeof(string));
+            table.Columns.Add("Date Filter", typeof(string));
+
+            foreach (var report in _catalog
+                         .OrderBy(item => item.CategoryName, StringComparer.OrdinalIgnoreCase)
+                         .ThenBy(item => item.ReportName, StringComparer.OrdinalIgnoreCase))
+            {
+                table.Rows.Add(
+                    report.CategoryName,
+                    report.ReportName,
+                    report.Description,
+                    report.SupportsDateRange ? "Available" : "Not required");
+            }
+
+            return new ReportDataset(
+                ReportKey: AllReportsOverviewKey,
+                CategoryName: "All Reports",
+                ReportName: "All Reports Overview",
+                Description: "Every report available to the current account, organized by category.",
+                SupportsDateRange: false,
+                GeneratedAt: DateTime.Now,
+                DateFrom: null,
+                DateTo: null,
+                Table: table);
+        }
+
         private static string BuildExportFileName(string reportName, string extension)
         {
             var safeName = new string((reportName ?? "Report")
@@ -314,22 +360,44 @@ namespace HRMS.View
             return $"{safeName}_{DateTime.Now:yyyyMMdd_HHmm}.{extension}";
         }
 
+        private const string AllCategoriesKey = "ALL";
+        private const string AllReportsOverviewKey = "ALL_REPORTS_OVERVIEW";
+
         private sealed record CategoryOption(string CategoryKey, string CategoryName);
 
         private sealed class ReportOption
         {
-            public ReportOption(ReportCatalogItem item)
+            public ReportOption(ReportCatalogItem item, bool includeCategory = false)
             {
                 Key = item.Key;
+                CategoryName = item.CategoryName;
                 ReportName = item.ReportName;
+                DisplayName = includeCategory
+                    ? $"{item.CategoryName} - {item.ReportName}"
+                    : item.ReportName;
                 Description = item.Description;
                 SupportsDateRange = item.SupportsDateRange;
             }
 
+            private ReportOption()
+            {
+                Key = AllReportsOverviewKey;
+                CategoryName = "All Reports";
+                ReportName = "All Reports Overview";
+                DisplayName = "All Reports Overview";
+                Description = "View every report available to your account in one organized list.";
+                SupportsDateRange = false;
+            }
+
+            public static ReportOption CreateAllReportsOverview() => new();
+
             public string Key { get; }
+            public string CategoryName { get; }
             public string ReportName { get; }
+            public string DisplayName { get; }
             public string Description { get; }
             public bool SupportsDateRange { get; }
+            public bool IsAllReportsOverview => string.Equals(Key, AllReportsOverviewKey, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

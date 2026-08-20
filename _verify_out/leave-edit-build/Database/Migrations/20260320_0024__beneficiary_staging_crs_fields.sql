@@ -1,0 +1,239 @@
+SET @HAS_RESIDENTSID = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'BeneficiaryStaging'
+      AND COLUMN_NAME = 'ResidentsId'
+);
+SET @ADD_RESIDENTSID_SQL = IF(
+    @HAS_RESIDENTSID = 0,
+    'ALTER TABLE BeneficiaryStaging ADD COLUMN ResidentsId BIGINT NULL',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ADD_RESIDENTSID_SQL;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @HAS_BENEFICIARYID = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'BeneficiaryStaging'
+      AND COLUMN_NAME = 'BeneficiaryId'
+);
+SET @ADD_BENEFICIARYID_SQL = IF(
+    @HAS_BENEFICIARYID = 0,
+    'ALTER TABLE BeneficiaryStaging ADD COLUMN BeneficiaryId VARCHAR(255) NULL',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ADD_BENEFICIARYID_SQL;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @HAS_FULLNAME = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'BeneficiaryStaging'
+      AND COLUMN_NAME = 'FullName'
+);
+SET @ADD_FULLNAME_SQL = IF(
+    @HAS_FULLNAME = 0,
+    'ALTER TABLE BeneficiaryStaging ADD COLUMN FullName VARCHAR(255) NULL',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ADD_FULLNAME_SQL;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @HAS_SEX = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'BeneficiaryStaging'
+      AND COLUMN_NAME = 'Sex'
+);
+SET @ADD_SEX_SQL = IF(
+    @HAS_SEX = 0,
+    'ALTER TABLE BeneficiaryStaging ADD COLUMN Sex VARCHAR(50) NULL',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ADD_SEX_SQL;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @HAS_DATEOFBIRTH = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'BeneficiaryStaging'
+      AND COLUMN_NAME = 'DateOfBirth'
+);
+SET @ADD_DATEOFBIRTH_SQL = IF(
+    @HAS_DATEOFBIRTH = 0,
+    'ALTER TABLE BeneficiaryStaging ADD COLUMN DateOfBirth VARCHAR(100) NULL',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ADD_DATEOFBIRTH_SQL;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @HAS_AGE = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'BeneficiaryStaging'
+      AND COLUMN_NAME = 'Age'
+);
+SET @ADD_AGE_SQL = IF(
+    @HAS_AGE = 0,
+    'ALTER TABLE BeneficiaryStaging ADD COLUMN Age VARCHAR(20) NULL',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ADD_AGE_SQL;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @HAS_MARITALSTATUS = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'BeneficiaryStaging'
+      AND COLUMN_NAME = 'MaritalStatus'
+);
+SET @ADD_MARITALSTATUS_SQL = IF(
+    @HAS_MARITALSTATUS = 0,
+    'ALTER TABLE BeneficiaryStaging ADD COLUMN MaritalStatus VARCHAR(100) NULL',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ADD_MARITALSTATUS_SQL;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @HAS_ISPWD = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'BeneficiaryStaging'
+      AND COLUMN_NAME = 'IsPwd'
+);
+SET @ADD_ISPWD_SQL = IF(
+    @HAS_ISPWD = 0,
+    'ALTER TABLE BeneficiaryStaging ADD COLUMN IsPwd TINYINT(1) NOT NULL DEFAULT 0',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ADD_ISPWD_SQL;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @HAS_PWDIDNO = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'BeneficiaryStaging'
+      AND COLUMN_NAME = 'PwdIdNo'
+);
+SET @ADD_PWDIDNO_SQL = IF(
+    @HAS_PWDIDNO = 0,
+    'ALTER TABLE BeneficiaryStaging ADD COLUMN PwdIdNo VARCHAR(255) NULL',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ADD_PWDIDNO_SQL;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @HAS_DISABILITYTYPE = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'BeneficiaryStaging'
+      AND COLUMN_NAME = 'DisabilityType'
+);
+SET @ADD_DISABILITYTYPE_SQL = IF(
+    @HAS_DISABILITYTYPE = 0,
+    'ALTER TABLE BeneficiaryStaging ADD COLUMN DisabilityType VARCHAR(255) NULL',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ADD_DISABILITYTYPE_SQL;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @HAS_CAUSEOFDISABILITY = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'BeneficiaryStaging'
+      AND COLUMN_NAME = 'CauseOfDisability'
+);
+SET @ADD_CAUSEOFDISABILITY_SQL = IF(
+    @HAS_CAUSEOFDISABILITY = 0,
+    'ALTER TABLE BeneficiaryStaging ADD COLUMN CauseOfDisability VARCHAR(255) NULL',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ADD_CAUSEOFDISABILITY_SQL;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @HAS_ISSENIOR = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'BeneficiaryStaging'
+      AND COLUMN_NAME = 'IsSenior'
+);
+SET @ADD_ISSENIOR_SQL = IF(
+    @HAS_ISSENIOR = 0,
+    'ALTER TABLE BeneficiaryStaging ADD COLUMN IsSenior TINYINT(1) NOT NULL DEFAULT 0',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ADD_ISSENIOR_SQL;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @HAS_SENIORIDNO = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'BeneficiaryStaging'
+      AND COLUMN_NAME = 'SeniorIdNo'
+);
+SET @ADD_SENIORIDNO_SQL = IF(
+    @HAS_SENIORIDNO = 0,
+    'ALTER TABLE BeneficiaryStaging ADD COLUMN SeniorIdNo VARCHAR(255) NULL',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ADD_SENIORIDNO_SQL;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @HAS_VERIFICATION_INDEX = (
+    SELECT COUNT(*)
+    FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'BeneficiaryStaging'
+      AND INDEX_NAME = 'idx_beneficiary_staging_verification'
+);
+SET @ADD_VERIFICATION_INDEX_SQL = IF(
+    @HAS_VERIFICATION_INDEX = 0,
+    'ALTER TABLE BeneficiaryStaging ADD INDEX idx_beneficiary_staging_verification (VerificationStatus)',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ADD_VERIFICATION_INDEX_SQL;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @HAS_BENEFICIARYID_INDEX = (
+    SELECT COUNT(*)
+    FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'BeneficiaryStaging'
+      AND INDEX_NAME = 'idx_beneficiary_staging_beneficiary_id'
+);
+SET @ADD_BENEFICIARYID_INDEX_SQL = IF(
+    @HAS_BENEFICIARYID_INDEX = 0,
+    'ALTER TABLE BeneficiaryStaging ADD INDEX idx_beneficiary_staging_beneficiary_id (BeneficiaryId)',
+    'SELECT 1'
+);
+PREPARE stmt FROM @ADD_BENEFICIARYID_INDEX_SQL;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;

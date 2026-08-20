@@ -1,4 +1,5 @@
 using HRMS.Model;
+using Microsoft.Win32;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -32,6 +33,9 @@ namespace HRMS.ViewModel
         private int _incompleteEmployees;
         private int _expiringSoonDocuments;
         private string _currentVerifierDisplayName = "HR";
+        private int? _currentVerifierEmployeeId;
+        private bool _canUploadOnBehalf;
+        private string _selectedUploadFilePath = string.Empty;
 
         private DocumentChecklistEmployeeSummaryDto? _selectedEmployee;
         private DocumentChecklistItemVm? _selectedDocument;
@@ -47,26 +51,44 @@ namespace HRMS.ViewModel
         public ObservableCollection<DocumentChecklistItemVm> Tier2Documents { get; } = new();
         public ObservableCollection<DocumentChecklistItemVm> Tier3Documents { get; } = new();
         public ObservableCollection<DocumentChecklistItemVm> Tier4Documents { get; } = new();
+        public ObservableCollection<DocumentChecklistItemVm> RequiredDocuments { get; } = new();
         public ObservableCollection<ExpiringDocumentDto> ExpiringDocuments { get; } = new();
-        public ObservableCollection<string> StatusOptions { get; } = new()
+        public ObservableCollection<DocumentStatusOption> StatusOptions { get; } = new()
         {
-            "not_submitted",
-            "submitted",
-            "verified",
-            "expired",
-            "waived"
+            new("not_submitted", "Not Submitted"),
+            new("submitted", "Submitted"),
+            new("verified", "Verified"),
+            new("expired", "Expired"),
+            new("waived", "Waived")
         };
 
         public ICommand RefreshCommand { get; }
         public ICommand SaveDocumentCommand { get; }
         public ICommand OpenAttachmentCommand { get; }
+        public ICommand MarkSubmittedCommand { get; }
+        public ICommand VerifyDocumentCommand { get; }
+        public ICommand BrowseUploadFileCommand { get; }
+        public ICommand UploadForEmployeeCommand { get; }
 
         public DocumentVerificationViewModel()
         {
             RefreshCommand = new AsyncRelayCommand(_ => LoadAsync());
             SaveDocumentCommand = new AsyncRelayCommand(_ => SaveSelectedDocumentAsync());
             OpenAttachmentCommand = new AsyncRelayCommand(OpenSelectedAttachmentAsync);
+            MarkSubmittedCommand = new AsyncRelayCommand(_ => MarkSelectedDocumentSubmittedAsync());
+            VerifyDocumentCommand = new AsyncRelayCommand(_ => VerifySelectedDocumentAsync());
+            BrowseUploadFileCommand = new AsyncRelayCommand(_ => BrowseUploadFileAsync());
+            UploadForEmployeeCommand = new AsyncRelayCommand(_ => UploadForEmployeeAsync());
+            SystemRefreshBus.DataChanged += OnSystemDataChanged;
             _ = LoadAsync();
+        }
+
+        private void OnSystemDataChanged(object? sender, SystemDataChangedEventArgs e)
+        {
+            if (string.Equals(e.Source, "ChecklistDocumentSubmitted", StringComparison.OrdinalIgnoreCase))
+            {
+                _ = LoadAsync();
+            }
         }
 
         public bool IsBusy
@@ -82,6 +104,7 @@ namespace HRMS.ViewModel
                 _isBusy = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CanSaveDocument));
+                OnPropertyChanged(nameof(CanUploadForEmployee));
             }
         }
 
@@ -217,10 +240,12 @@ namespace HRMS.ViewModel
                 }
 
                 _selectedEmployee = value;
+                SelectedUploadFilePath = string.Empty;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(HasSelectedEmployee));
                 OnPropertyChanged(nameof(SelectedEmployeeTitle));
                 OnPropertyChanged(nameof(SelectedEmployeeSubtitle));
+                OnPropertyChanged(nameof(CanUploadForEmployee));
 
                 if (!_suppressSelectedEmployeeLoad)
                 {
@@ -240,12 +265,14 @@ namespace HRMS.ViewModel
                 }
 
                 _selectedDocument = value;
+                SelectedUploadFilePath = string.Empty;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(HasSelectedDocument));
                 OnPropertyChanged(nameof(SelectedDocumentTitle));
                 OnPropertyChanged(nameof(SelectedDocumentHasAttachment));
                 OnPropertyChanged(nameof(SelectedDocumentAttachmentText));
                 OnPropertyChanged(nameof(CanSaveDocument));
+                OnPropertyChanged(nameof(CanUploadForEmployee));
                 ApplySelectedDocumentState();
             }
         }
@@ -262,6 +289,7 @@ namespace HRMS.ViewModel
 
                 _selectedDocumentStatus = value ?? "not_submitted";
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(IsWaivedStatus));
             }
         }
 
@@ -344,13 +372,31 @@ namespace HRMS.ViewModel
         public bool HasSelectedDocument => SelectedDocument != null;
         public bool SelectedDocumentHasAttachment => SelectedDocument?.HasAttachment == true;
         public bool CanSaveDocument => !IsBusy && SelectedDocument != null;
+        public bool CanUploadForEmployee =>
+            _canUploadOnBehalf &&
+            !IsBusy &&
+            SelectedEmployee != null &&
+            SelectedDocument != null &&
+            !string.IsNullOrWhiteSpace(SelectedUploadFilePath);
+        public bool IsWaivedStatus => string.Equals(SelectedDocumentStatus, "waived", StringComparison.OrdinalIgnoreCase);
+        public string SelectedUploadFilePath
+        {
+            get => _selectedUploadFilePath;
+            set
+            {
+                if (_selectedUploadFilePath == value) return;
+                _selectedUploadFilePath = value ?? string.Empty;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanUploadForEmployee));
+            }
+        }
         public string SelectedEmployeeTitle => SelectedEmployee == null ? "Select an employee" : SelectedEmployee.EmployeeName;
         public string SelectedEmployeeSubtitle => SelectedEmployee == null
             ? "Choose an employee to review their generated document checklist."
             : $"{SelectedEmployee.PositionName} | {SelectedEmployee.EmploymentType} | {SelectedEmployee.ProgressText} complete";
         public string SelectedDocumentTitle => SelectedDocument == null
             ? "Select a document"
-            : $"{SelectedDocument.DocumentName} ({SelectedDocument.TierLabel})";
+            : SelectedDocument.DocumentName;
         public string SelectedDocumentAttachmentText => SelectedDocument == null
             ? "Select a document to review its uploaded file."
             : SelectedDocument.HasAttachment
@@ -359,9 +405,12 @@ namespace HRMS.ViewModel
 
         public void SetCurrentUser(AuthenticatedUser? user)
         {
+            _currentVerifierEmployeeId = user?.EmployeeId;
+            _canUploadOnBehalf = AuthorizationGuard.IsAdminOrHr(user?.RoleName);
             _currentVerifierDisplayName = string.IsNullOrWhiteSpace(user?.FullName)
                 ? string.IsNullOrWhiteSpace(user?.Username) ? "HR" : user!.Username.Trim()
                 : user!.FullName.Trim();
+            OnPropertyChanged(nameof(CanUploadForEmployee));
         }
 
         public Task RefreshAsync() => LoadAsync();
@@ -444,9 +493,8 @@ namespace HRMS.ViewModel
                 RebuildChecklistCollections(checklist);
 
                 var preferredDocument = preferredChecklistId.HasValue
-                    ? Tier1Documents.Concat(Tier2Documents).Concat(Tier3Documents).Concat(Tier4Documents)
-                        .FirstOrDefault(x => x.ChecklistId == preferredChecklistId.Value)
-                    : Tier1Documents.Concat(Tier2Documents).Concat(Tier3Documents).Concat(Tier4Documents).FirstOrDefault();
+                    ? RequiredDocuments.FirstOrDefault(x => x.ChecklistId == preferredChecklistId.Value)
+                    : RequiredDocuments.FirstOrDefault();
 
                 SelectedDocument = preferredDocument;
             }
@@ -473,6 +521,25 @@ namespace HRMS.ViewModel
                 return;
             }
 
+            var requiresAttachment = string.Equals(SelectedDocumentStatus, "submitted", StringComparison.OrdinalIgnoreCase) ||
+                                     string.Equals(SelectedDocumentStatus, "verified", StringComparison.OrdinalIgnoreCase);
+            if (requiresAttachment && !SelectedDocument.HasAttachment)
+            {
+                SetMessage("An uploaded employee file is required before marking this document submitted or verified.", WarningBrush);
+                return;
+            }
+
+            if (string.Equals(SelectedDocumentStatus, "submitted", StringComparison.OrdinalIgnoreCase))
+            {
+                SelectedSubmittedDate ??= DateTime.Today;
+                SelectedVerifiedDate = null;
+            }
+            else if (string.Equals(SelectedDocumentStatus, "verified", StringComparison.OrdinalIgnoreCase))
+            {
+                SelectedSubmittedDate ??= DateTime.Today;
+                SelectedVerifiedDate ??= DateTime.Today;
+            }
+
             try
             {
                 IsBusy = true;
@@ -495,6 +562,115 @@ namespace HRMS.ViewModel
             catch (Exception ex)
             {
                 SetMessage($"Unable to save document status: {ex.Message}", ErrorBrush);
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        private async Task MarkSelectedDocumentSubmittedAsync()
+        {
+            if (SelectedDocument == null)
+            {
+                SetMessage("Select a document first.", WarningBrush);
+                return;
+            }
+
+            if (!SelectedDocument.HasAttachment)
+            {
+                SetMessage("The employee must upload the document before it can be marked submitted.", WarningBrush);
+                return;
+            }
+
+            SelectedDocumentStatus = "submitted";
+            SelectedSubmittedDate ??= DateTime.Today;
+            SelectedVerifiedDate = null;
+            await SaveSelectedDocumentAsync();
+        }
+
+        private async Task VerifySelectedDocumentAsync()
+        {
+            if (SelectedDocument == null)
+            {
+                SetMessage("Select a document first.", WarningBrush);
+                return;
+            }
+
+            if (!SelectedDocument.HasAttachment)
+            {
+                SetMessage("Open and review an uploaded file before verifying this document.", WarningBrush);
+                return;
+            }
+
+            SelectedDocumentStatus = "verified";
+            SelectedSubmittedDate ??= DateTime.Today;
+            SelectedVerifiedDate = DateTime.Today;
+            await SaveSelectedDocumentAsync();
+        }
+
+        private Task BrowseUploadFileAsync()
+        {
+            if (!_canUploadOnBehalf)
+            {
+                SetMessage("Only Admin or HR Manager can upload documents for an employee.", ErrorBrush);
+                return Task.CompletedTask;
+            }
+
+            var dialog = new OpenFileDialog
+            {
+                Title = "Select Employee Document",
+                Filter = "Supported documents (*.pdf;*.jpg;*.jpeg;*.png)|*.pdf;*.jpg;*.jpeg;*.png|PDF files (*.pdf)|*.pdf|Image files (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                SelectedUploadFilePath = dialog.FileName;
+                SetMessage("Document selected. Click Upload for Employee to submit it for review.", InfoBrush);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private async Task UploadForEmployeeAsync()
+        {
+            if (!_canUploadOnBehalf)
+            {
+                SetMessage("Only Admin or HR Manager can upload documents for an employee.", ErrorBrush);
+                return;
+            }
+
+            if (SelectedEmployee == null || SelectedDocument == null)
+            {
+                SetMessage("Select an employee and required document first.", WarningBrush);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(SelectedUploadFilePath))
+            {
+                SetMessage("Browse and select a PDF or image first.", WarningBrush);
+                return;
+            }
+
+            var checklistId = SelectedDocument.ChecklistId;
+            var documentCode = SelectedDocument.DocumentCode;
+            try
+            {
+                IsBusy = true;
+                await _dataService.AddChecklistAttachmentAsync(
+                    checklistId,
+                    SelectedEmployee.EmployeeId,
+                    SelectedUploadFilePath,
+                    _currentVerifierEmployeeId);
+                SelectedUploadFilePath = string.Empty;
+                IsBusy = false;
+                await LoadSelectedEmployeeChecklistAsync(checklistId);
+                SetMessage($"{documentCode} uploaded for {SelectedEmployee.EmployeeName} and marked Submitted.", SuccessBrush);
+                SystemRefreshBus.Raise("ChecklistDocumentSubmittedByVerifier");
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Unable to upload employee document: {ex.Message}", ErrorBrush);
             }
             finally
             {
@@ -553,9 +729,11 @@ namespace HRMS.ViewModel
             Tier2Documents.Clear();
             Tier3Documents.Clear();
             Tier4Documents.Clear();
+            RequiredDocuments.Clear();
 
             foreach (var item in checklist.Select(DocumentChecklistItemVm.FromDto))
             {
+                RequiredDocuments.Add(item);
                 switch (item.DocumentTier)
                 {
                     case 1:
@@ -583,6 +761,7 @@ namespace HRMS.ViewModel
             Tier2Documents.Clear();
             Tier3Documents.Clear();
             Tier4Documents.Clear();
+            RequiredDocuments.Clear();
         }
 
         private void ApplySelectedDocumentState()
@@ -660,6 +839,8 @@ namespace HRMS.ViewModel
         private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
+
+    public sealed record DocumentStatusOption(string Key, string Label);
 
     public class DocumentChecklistItemVm
     {

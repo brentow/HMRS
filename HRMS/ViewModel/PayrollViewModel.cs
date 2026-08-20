@@ -63,6 +63,7 @@ namespace HRMS.ViewModel
         private string _selectedRunStatusFilter = "All";
         private string _releaseSearchText = string.Empty;
         private long? _selectedGovernmentPeriodId;
+        private long? _selectedGovernmentEmployeeId;
         private string _selectedGovernmentContributionType = "ALL";
 
         private string _newPeriodCode = string.Empty;
@@ -84,12 +85,15 @@ namespace HRMS.ViewModel
         private int _runEditorLoadVersion;
         private bool _isApplyingRunEditorValues;
         private int _runDtrMinusMinutes;
+        private decimal _runAbsentDays;
         private PayrollDeductionResult _runDeductionPreview = new();
 
         private PayrollRunVm? _selectedRun;
         private long? _selectedReleaseRunId;
         private string _releaseRemarks = string.Empty;
         private string _payrollConcernDetails = string.Empty;
+        private PayrollConcernVm? _selectedPayrollConcern;
+        private string _concernResolutionNotes = string.Empty;
         private decimal _governmentReportEmployeeShareTotal;
         private decimal _governmentReportEmployerShareTotal;
         private decimal _governmentReportRemittanceTotal;
@@ -146,6 +150,15 @@ namespace HRMS.ViewModel
         public string YtdGrossPayText => $"PHP {YtdGrossPay:N2}";
         public string YtdDeductionsText => $"PHP {YtdDeductions:N2}";
         public string YtdNetPayText => $"PHP {YtdNetPay:N2}";
+        public int VisiblePayrollRunCount => PayrollRuns
+            .Select(x => x.EmployeeId)
+            .Distinct()
+            .Count();
+        public int SelectedPayrollRunCount => PayrollRuns.Count(x => x.IsSelectedForBulk);
+        public string SelectedPayrollRunCountText => $"{SelectedPayrollRunCount} selected";
+        public string VisiblePayrollGrossText => $"PHP {PayrollRuns.Sum(x => x.GrossPay):N2}";
+        public string VisiblePayrollDeductionsText => $"PHP {PayrollRuns.Sum(x => x.DeductionsTotal):N2}";
+        public string VisiblePayrollNetText => $"PHP {PayrollRuns.Sum(x => x.NetPay):N2}";
         public long GgmsAllocationId
         {
             get => _ggmsAllocationId;
@@ -272,6 +285,8 @@ namespace HRMS.ViewModel
                 OnPropertyChanged(nameof(PeriodsTabLabel));
                 OnPropertyChanged(nameof(RunsTabLabel));
                 OnPropertyChanged(nameof(ReleaseTabLabel));
+                OnPropertyChanged(nameof(DeductionsTabLabel));
+                OnPropertyChanged(nameof(ConcernsTabLabel));
                 OnPropertyChanged(nameof(RunActionsHeader));
                 OnPropertyChanged(nameof(ReleaseActionsHeader));
                 OnPropertyChanged(nameof(CanReportPayrollConcern));
@@ -280,14 +295,16 @@ namespace HRMS.ViewModel
         public bool IsAdminOrHrMode => !IsEmployeeMode;
         public string PageHeaderTitle => IsEmployeeMode ? "My Payroll" : "Payroll";
         public string PageHeaderSubtitle => IsEmployeeMode
-            ? "Review your payroll runs and released payslips."
+            ? "Review your released payroll and download official payslips."
             : "Generate payroll, review net pay, and release payslips.";
-        public string RunsCardLabel => IsEmployeeMode ? "My Payroll Runs" : "Payroll Runs";
+        public string RunsCardLabel => IsEmployeeMode ? "My Released Payroll" : "Payroll Runs";
         public string ReleasesCardLabel => IsEmployeeMode ? "My Released Payslips" : "Released Payslips";
         public string NetPayCardLabel => IsEmployeeMode ? "My Total Net Pay" : "Total Net Pay";
         public string PeriodsTabLabel => IsEmployeeMode ? "Payroll Periods" : "Payroll Periods";
-        public string RunsTabLabel => IsEmployeeMode ? "My Payroll Runs" : "Payroll Runs";
+        public string RunsTabLabel => IsEmployeeMode ? "My Released Payroll" : "Payroll Runs";
         public string ReleaseTabLabel => IsEmployeeMode ? "My Payslip Release Logs" : "Payslip Release Logs";
+        public string DeductionsTabLabel => IsEmployeeMode ? "My Deductions" : "Deductions";
+        public string ConcernsTabLabel => IsEmployeeMode ? "My Payroll Concerns" : "Payroll Concerns";
         public string RunActionsHeader => IsEmployeeMode ? "My Actions" : "Actions";
         public string ReleaseActionsHeader => IsEmployeeMode ? "My Actions" : "Actions";
         public bool CanReportPayrollConcern =>
@@ -310,6 +327,28 @@ namespace HRMS.ViewModel
                 OnPropertyChanged();
             }
         }
+
+        public PayrollConcernVm? SelectedPayrollConcern
+        {
+            get => _selectedPayrollConcern;
+            set
+            {
+                if (_selectedPayrollConcern == value) return;
+                _selectedPayrollConcern = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string ConcernResolutionNotes
+        {
+            get => _concernResolutionNotes;
+            set
+            {
+                if (_concernResolutionNotes == value) return;
+                _concernResolutionNotes = value ?? string.Empty;
+                OnPropertyChanged();
+            }
+        }
         public string SelectedRunPeriodLabel => SelectedRun?.PeriodCode ?? "-";
         public string SelectedRunGeneratedLabel => SelectedRun?.GeneratedAtText ?? "-";
         public string SelectedRunStatusLabel => SelectedRun?.Status ?? "-";
@@ -325,6 +364,10 @@ namespace HRMS.ViewModel
             SelectedGovernmentPeriodId.GetValueOrDefault() > 0
                 ? PeriodOptions.FirstOrDefault(x => x.Id == SelectedGovernmentPeriodId.GetValueOrDefault())?.Label ?? "Selected period"
                 : "All payroll periods";
+        public string GovernmentReportEmployeeLabel =>
+            SelectedGovernmentEmployeeId.GetValueOrDefault() > 0
+                ? DeductionEmployeeOptions.FirstOrDefault(x => x.Id == SelectedGovernmentEmployeeId.GetValueOrDefault())?.Label ?? "Selected employee"
+                : "All employees";
         public decimal GovernmentReportEmployeeShareTotal
         {
             get => _governmentReportEmployeeShareTotal;
@@ -466,6 +509,24 @@ namespace HRMS.ViewModel
             }
         }
 
+        public long? SelectedGovernmentEmployeeId
+        {
+            get => _selectedGovernmentEmployeeId;
+            set
+            {
+                var normalized = value.GetValueOrDefault();
+                if (_selectedGovernmentEmployeeId == normalized)
+                {
+                    return;
+                }
+
+                _selectedGovernmentEmployeeId = normalized;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(GovernmentReportEmployeeLabel));
+                ApplyGovernmentContributionRows();
+            }
+        }
+
         public string SelectedGovernmentContributionType
         {
             get => _selectedGovernmentContributionType;
@@ -553,7 +614,10 @@ namespace HRMS.ViewModel
                 var dtrMinusText = _runDtrMinusMinutes > 0
                     ? $" | DTR Minus: PHP {_runDeductionPreview.LateDeduction:N2} ({_runDtrMinusMinutes} min)"
                     : string.Empty;
-                return $"{retirementLabel}: PHP {retirementAmount:N2} | PhilHealth: PHP {_runDeductionPreview.PhilHealthContribution:N2} | Pag-IBIG: PHP {_runDeductionPreview.PagIBIGContribution:N2} | Tax: PHP {_runDeductionPreview.TaxWithheld:N2}{dtrMinusText}";
+                var absenceText = _runAbsentDays > 0m
+                    ? $" | Absence: PHP {_runDeductionPreview.AbsenceDeduction:N2} ({_runAbsentDays:0.##} day(s))"
+                    : string.Empty;
+                return $"{retirementLabel}: PHP {retirementAmount:N2} | PhilHealth: PHP {_runDeductionPreview.PhilHealthContribution:N2} | Pag-IBIG: PHP {_runDeductionPreview.PagIBIGContribution:N2} | Tax: PHP {_runDeductionPreview.TaxWithheld:N2}{absenceText}{dtrMinusText}";
             }
         }
 
@@ -584,15 +648,18 @@ namespace HRMS.ViewModel
         public ObservableCollection<string> PeriodStatusFilters { get; } = new() { "All", "OPEN", "LOCKED", "POSTED", "CANCELLED" };
         public ObservableCollection<string> EditablePeriodStatuses { get; } = new() { "OPEN", "LOCKED", "POSTED", "CANCELLED" };
         public ObservableCollection<string> RunStatusFilters { get; } = new() { "All", "DRAFT", "GENERATED", "APPROVED", "RELEASED", "VOID" };
-        public ObservableCollection<string> EditableRunStatuses { get; } = new() { "DRAFT", "GENERATED", "APPROVED", "RELEASED", "VOID" };
+        public ObservableCollection<string> EditableRunStatuses { get; } = new() { "DRAFT", "GENERATED", "APPROVED", "VOID" };
         public ObservableCollection<string> GovernmentContributionTypeOptions { get; } = new() { "ALL", "SSS", "GSIS", "PHILHEALTH", "PAGIBIG" };
 
         public ObservableCollection<PayrollLookupOptionVm> PeriodOptions { get; } = new();
+        public ObservableCollection<PayrollLookupOptionVm> PayrollPeriodOptions { get; } = new();
         public ObservableCollection<PayrollLookupOptionVm> EmployeeOptions { get; } = new();
+        public ObservableCollection<PayrollLookupOptionVm> DeductionEmployeeOptions { get; } = new();
         public ObservableCollection<PayrollLookupOptionVm> RunOptions { get; } = new();
         public ObservableCollection<PayrollPeriodVm> PayrollPeriods { get; } = new();
         public ObservableCollection<PayrollRunVm> PayrollRuns { get; } = new();
         public ObservableCollection<PayrollReleaseLogVm> PayslipReleases { get; } = new();
+        public ObservableCollection<PayrollConcernVm> PayrollConcerns { get; } = new();
         public ObservableCollection<PayrollGovernmentContributionRowVm> GovernmentContributionRows { get; } = new();
 
         public ICommand RefreshCommand { get; }
@@ -601,6 +668,10 @@ namespace HRMS.ViewModel
         public ICommand DeletePeriodCommand { get; }
         public ICommand UpsertRunCommand { get; }
         public ICommand GenerateAllRunsCommand { get; }
+        public ICommand ApproveRunCommand { get; }
+        public ICommand ApproveSelectedRunsCommand { get; }
+        public ICommand ReleaseSelectedRunsCommand { get; }
+        public ICommand ToggleSelectAllRunsCommand { get; }
         public ICommand SelectRunCommand { get; }
         public ICommand SaveRunStatusCommand { get; }
         public ICommand DeleteRunCommand { get; }
@@ -608,6 +679,9 @@ namespace HRMS.ViewModel
         public ICommand DownloadPayslipCommand { get; }
         public ICommand PrintPayslipCommand { get; }
         public ICommand ReportPayrollConcernCommand { get; }
+        public ICommand ReviewPayrollConcernCommand { get; }
+        public ICommand ResolvePayrollConcernCommand { get; }
+        public ICommand RejectPayrollConcernCommand { get; }
         public ICommand ExportGovernmentReportCommand { get; }
         public ICommand SaveGovernmentReportPdfCommand { get; }
         public ICommand ViewAllDeductionsCommand { get; }
@@ -626,6 +700,10 @@ namespace HRMS.ViewModel
             DeletePeriodCommand = new AsyncRelayCommand(DeletePeriodAsync);
             UpsertRunCommand = new AsyncRelayCommand(_ => UpsertRunAsync());
             GenerateAllRunsCommand = new AsyncRelayCommand(_ => GenerateAllRunsAsync());
+            ApproveRunCommand = new AsyncRelayCommand(ApproveRunAsync);
+            ApproveSelectedRunsCommand = new AsyncRelayCommand(_ => ApproveSelectedRunsAsync());
+            ReleaseSelectedRunsCommand = new AsyncRelayCommand(_ => ReleaseSelectedRunsAsync());
+            ToggleSelectAllRunsCommand = new AsyncRelayCommand(_ => ToggleSelectAllRunsAsync());
             SelectRunCommand = new AsyncRelayCommand(SelectRunAsync);
             SaveRunStatusCommand = new AsyncRelayCommand(SaveRunStatusAsync);
             DeleteRunCommand = new AsyncRelayCommand(DeleteRunAsync);
@@ -633,6 +711,9 @@ namespace HRMS.ViewModel
             DownloadPayslipCommand = new AsyncRelayCommand(DownloadPayslipAsync);
             PrintPayslipCommand = new AsyncRelayCommand(PrintPayslipAsync);
             ReportPayrollConcernCommand = new AsyncRelayCommand(ReportPayrollConcernAsync);
+            ReviewPayrollConcernCommand = new AsyncRelayCommand(p => UpdatePayrollConcernAsync(p, "IN_REVIEW"));
+            ResolvePayrollConcernCommand = new AsyncRelayCommand(p => UpdatePayrollConcernAsync(p, "RESOLVED"));
+            RejectPayrollConcernCommand = new AsyncRelayCommand(p => UpdatePayrollConcernAsync(p, "REJECTED"));
             ExportGovernmentReportCommand = new AsyncRelayCommand(_ => ExportGovernmentReportAsync());
             SaveGovernmentReportPdfCommand = new AsyncRelayCommand(_ => SaveGovernmentReportPdfAsync());
             ViewAllDeductionsCommand = new AsyncRelayCommand(_ => SwitchGovernmentContributionType("ALL"));
@@ -680,15 +761,17 @@ namespace HRMS.ViewModel
 
                 var scopedEmployeeId = IsEmployeeMode ? _currentEmployeeId : null;
 
-                var statsTask = _dataService.GetStatsAsync(scopedEmployeeId);
-                var periodsTask = _dataService.GetPeriodsAsync(limit: 400, employeeId: scopedEmployeeId);
+                var statsTask = _dataService.GetStatsAsync(scopedEmployeeId, releasedOnly: IsEmployeeMode);
+                var periodsTask = _dataService.GetPeriodsAsync(limit: 400, employeeId: scopedEmployeeId, releasedOnly: IsEmployeeMode);
                 var employeesTask = _dataService.GetEmployeesAsync(scopedEmployeeId);
-                var runsTask = _dataService.GetRunsAsync(limit: 700, employeeId: scopedEmployeeId);
+                var runsTask = _dataService.GetRunsAsync(limit: 700, employeeId: scopedEmployeeId, releasedOnly: IsEmployeeMode);
                 var releasesTask = _dataService.GetReleaseLogsAsync(limit: 700, employeeId: scopedEmployeeId);
                 var ggmsAllocationTask = LoadGgmsAllocationAsync();
-                var governmentContributionTask = IsAdminOrHrMode
-                    ? _dataService.GetGovernmentContributionSourcesAsync(limit: 1500)
-                    : Task.FromResult<IReadOnlyList<PayrollGovernmentContributionSourceDto>>(Array.Empty<PayrollGovernmentContributionSourceDto>());
+                var governmentContributionTask = _dataService.GetGovernmentContributionSourcesAsync(
+                    limit: 1500,
+                    employeeId: scopedEmployeeId,
+                    releasedOnly: IsEmployeeMode);
+                var concernsTask = _dataService.GetPayrollConcernsAsync(scopedEmployeeId, limit: 500);
 
                 var stats = await statsTask;
                 var periods = await periodsTask;
@@ -696,6 +779,7 @@ namespace HRMS.ViewModel
                 var runs = await runsTask;
                 var releases = await releasesTask;
                 var governmentContributions = await governmentContributionTask;
+                var concerns = await concernsTask;
                 await ggmsAllocationTask;
 
                 TotalPeriods = stats.TotalPeriods;
@@ -709,6 +793,12 @@ namespace HRMS.ViewModel
                 RebuildReleaseRows(releases);
                 RebuildOptions(periods, employees, runs);
                 RebuildGovernmentContributionSources(governmentContributions);
+                PayrollConcerns.Clear();
+                foreach (var concern in concerns)
+                {
+                    PayrollConcerns.Add(new PayrollConcernVm(concern));
+                }
+                SelectedPayrollConcern = PayrollConcerns.FirstOrDefault();
                 RecalculateYtdTotals();
 
                 if (IsEmployeeMode && _currentEmployeeId.HasValue && _currentEmployeeId.Value > 0)
@@ -811,7 +901,9 @@ namespace HRMS.ViewModel
             {
                 var id = await _dataService.AddPeriodAsync(NewPeriodCode, NewPeriodDateFrom, NewPeriodDateTo, NewPeriodPayDate, NewPeriodStatus);
                 NewPeriodCode = string.Empty;
+                SelectedRunPeriodId = id;
                 await RefreshAsync();
+                SelectedRunPeriodId = id;
                 SetMessage($"Payroll period #{id} created.", SuccessBrush);
                 SystemRefreshBus.Raise("PayrollPeriodAdded");
             }
@@ -896,10 +988,21 @@ namespace HRMS.ViewModel
                 IsBusy = true;
                 SetMessage("Generating payroll for all active employees...", InfoBrush);
 
-                var count = await _dataService.GenerateAllRunsAsync(SelectedRunPeriodId.Value);
+                var result = await _dataService.GenerateAllRunsAsync(SelectedRunPeriodId.Value);
 
                 await RefreshAsync();
-                SetMessage($"Payroll generated for {count} employee(s).", SuccessBrush);
+                if (result.FailedCount == 0)
+                {
+                    SetMessage($"Payroll generated for {result.GeneratedCount} employee(s). No failures.", SuccessBrush);
+                }
+                else
+                {
+                    var sample = string.Join(" | ", result.FailureDetails.Take(3));
+                    var more = result.FailedCount > 3 ? $" | +{result.FailedCount - 3} more" : string.Empty;
+                    SetMessage(
+                        $"Generated: {result.GeneratedCount}. Failed: {result.FailedCount}. {sample}{more}",
+                        ErrorBrush);
+                }
                 SystemRefreshBus.Raise("PayrollBatchGenerated");
             }
             catch (Exception ex)
@@ -1023,6 +1126,156 @@ namespace HRMS.ViewModel
             }
         }
 
+        private async Task ApproveRunAsync(object? parameter)
+        {
+            if (!EnsureAdminOrHrAction("approve payroll runs"))
+            {
+                return;
+            }
+
+            if (parameter is not PayrollRunVm row)
+            {
+                SetMessage("Select a generated payroll run first.", ErrorBrush);
+                return;
+            }
+
+            if (!string.Equals(row.Status, "GENERATED", StringComparison.OrdinalIgnoreCase))
+            {
+                SetMessage("Only a GENERATED payroll run can be approved.", ErrorBrush);
+                return;
+            }
+
+            try
+            {
+                await _dataService.UpdateRunStatusAsync(
+                    row.PayrollRunId,
+                    "APPROVED",
+                    _currentUserId > 0 ? _currentUserId : null);
+                await RefreshAsync();
+                SelectedRun = PayrollRuns.FirstOrDefault(x => x.PayrollRunId == row.PayrollRunId);
+                SetMessage($"Run #{row.PayrollRunId} approved. It is now ready for payslip release.", SuccessBrush);
+                SystemRefreshBus.Raise("PayrollRunApproved");
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Unable to approve payroll run: {ex.Message}", ErrorBrush);
+            }
+        }
+
+        private Task ToggleSelectAllRunsAsync()
+        {
+            var shouldSelect = PayrollRuns.Any(x => !x.IsSelectedForBulk);
+            foreach (var row in PayrollRuns)
+            {
+                row.IsSelectedForBulk = shouldSelect;
+            }
+
+            SetMessage(shouldSelect
+                ? $"Selected {PayrollRuns.Count} visible payroll run(s)."
+                : "Payroll run selection cleared.", InfoBrush);
+            return Task.CompletedTask;
+        }
+
+        private async Task ApproveSelectedRunsAsync()
+        {
+            if (!EnsureAdminOrHrAction("approve payroll runs"))
+            {
+                return;
+            }
+
+            var selected = PayrollRuns
+                .Where(x => x.IsSelectedForBulk && x.CanApprovePayroll)
+                .ToList();
+            if (selected.Count == 0)
+            {
+                SetMessage("Select at least one GENERATED payroll run to approve.", ErrorBrush);
+                return;
+            }
+
+            try
+            {
+                foreach (var row in selected)
+                {
+                    await _dataService.UpdateRunStatusAsync(
+                        row.PayrollRunId,
+                        "APPROVED",
+                        _currentUserId > 0 ? _currentUserId : null);
+                }
+
+                await RefreshAsync();
+                SetMessage($"Approved {selected.Count} payroll run(s). They are ready for release.", SuccessBrush);
+                SystemRefreshBus.Raise("PayrollRunsBulkApproved");
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Unable to approve selected payroll runs: {ex.Message}", ErrorBrush);
+            }
+        }
+
+        private async Task ReleaseSelectedRunsAsync()
+        {
+            if (!EnsureAdminOrHrAction("release payslips"))
+            {
+                return;
+            }
+
+            var selected = PayrollRuns
+                .Where(x => x.IsSelectedForBulk && x.CanReleasePayslip)
+                .ToList();
+            if (selected.Count == 0)
+            {
+                SetMessage("Select at least one APPROVED payroll run to release.", ErrorBrush);
+                return;
+            }
+
+            if (GgmsAllocationId <= 0)
+            {
+                SetMessage("GGMS allocation is unavailable. Refresh and verify the connection before releasing payslips.", ErrorBrush);
+                return;
+            }
+
+            var released = 0;
+            var failures = new List<string>();
+            var ggmsService = new GgmsFundAllocationService(GgmsConfig.ConnectionString, GgmsOfficeId, GgmsOfficeCode);
+            foreach (var row in selected)
+            {
+                try
+                {
+                    var description = string.IsNullOrWhiteSpace(ReleaseRemarks)
+                        ? $"HRMS payroll release for {row.EmployeeNo} - {row.EmployeeName}."
+                        : ReleaseRemarks.Trim();
+                    await ggmsService.RecordPayrollDisbursementAsync(
+                        allocationId: GgmsAllocationId,
+                        amount: row.NetPay,
+                        recipientName: row.EmployeeName,
+                        purpose: $"Payroll disbursement ({row.PeriodCode})",
+                        description: description,
+                        idempotencyReference: $"PAYROLL-RUN-{row.PayrollRunId}");
+                    await _dataService.ReleasePayslipAsync(
+                        row.PayrollRunId,
+                        _currentUserId > 0 ? _currentUserId : null,
+                        ReleaseRemarks);
+                    released++;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"#{row.PayrollRunId}: {ex.Message}");
+                }
+            }
+
+            ReleaseRemarks = string.Empty;
+            await RefreshAsync();
+            if (failures.Count == 0)
+            {
+                SetMessage($"Released {released} payslip(s) successfully.", SuccessBrush);
+                SystemRefreshBus.Raise("PayslipsBulkReleased");
+            }
+            else
+            {
+                SetMessage($"Released {released} payslip(s); {failures.Count} failed. {failures[0]}", ErrorBrush);
+            }
+        }
+
         private async Task DeleteRunAsync(object? parameter)
         {
             if (!EnsureAdminOrHrAction("delete payroll runs"))
@@ -1084,6 +1337,12 @@ namespace HRMS.ViewModel
                 return;
             }
 
+            if (!string.Equals(targetRun.Status, "APPROVED", StringComparison.OrdinalIgnoreCase))
+            {
+                SetMessage("Approve the payroll run before releasing its payslip.", ErrorBrush);
+                return;
+            }
+
             var disbursementAmount = targetRun.NetPay;
             if (disbursementAmount <= 0)
             {
@@ -1094,14 +1353,6 @@ namespace HRMS.ViewModel
             if (GgmsAllocationId <= 0)
             {
                 SetMessage("GGMS allocation is not available for Office ID 18 (OFF-2026-0007). Refresh and verify connection first.", ErrorBrush);
-                return;
-            }
-
-            if (disbursementAmount > GgmsRemainingAmount)
-            {
-                SetMessage(
-                    $"Amount exceeds remaining allocation. Remaining: {GgmsRemainingAmountText}, Requested: PHP {disbursementAmount:N2}.",
-                    ErrorBrush);
                 return;
             }
 
@@ -1118,14 +1369,16 @@ namespace HRMS.ViewModel
                     amount: disbursementAmount,
                     recipientName: targetRun.EmployeeName,
                     purpose: purpose,
-                    description: description);
+                    description: description,
+                    idempotencyReference: $"PAYROLL-RUN-{runId}");
 
                 await _dataService.ReleasePayslipAsync(runId, _currentUserId > 0 ? _currentUserId : null, ReleaseRemarks);
                 ReleaseRemarks = string.Empty;
                 await RefreshAsync();
                 SelectedRun = PayrollRuns.FirstOrDefault(x => x.PayrollRunId == runId);
+                var ggmsAction = ggmsResult.AlreadyRecorded ? "GGMS post reused safely" : "GGMS posted";
                 SetMessage(
-                    $"Payslip released and GGMS posted. Run #{runId}, Txn #{ggmsResult.TransactionId}, Remaining: PHP {ggmsResult.RemainingAfter:N2}.",
+                    $"Payslip released and {ggmsAction}. Run #{runId}, Txn #{ggmsResult.TransactionId}, Remaining: PHP {ggmsResult.RemainingAfter:N2}.",
                     SuccessBrush);
                 SystemRefreshBus.Raise("PayslipReleased");
             }
@@ -1285,10 +1538,43 @@ namespace HRMS.ViewModel
                 PayrollConcernDetails = string.Empty;
                 SetMessage($"Payroll concern #{concernId} submitted for run #{run.PayrollRunId}.", SuccessBrush);
                 SystemRefreshBus.Raise("PayrollConcernReported");
+                await RefreshAsync();
             }
             catch (Exception ex)
             {
                 SetMessage($"Unable to report payroll concern: {ex.Message}", ErrorBrush);
+            }
+        }
+
+        private async Task UpdatePayrollConcernAsync(object? parameter, string nextStatus)
+        {
+            if (!EnsureAdminOrHrAction("review payroll concerns"))
+            {
+                return;
+            }
+
+            var concern = parameter as PayrollConcernVm ?? SelectedPayrollConcern;
+            if (concern == null)
+            {
+                SetMessage("Select a payroll concern first.", ErrorBrush);
+                return;
+            }
+
+            try
+            {
+                await _dataService.UpdatePayrollConcernAsync(
+                    concern.PayrollConcernId,
+                    nextStatus,
+                    ConcernResolutionNotes,
+                    _currentUserId > 0 ? _currentUserId : null);
+                ConcernResolutionNotes = string.Empty;
+                await RefreshAsync();
+                SetMessage($"Payroll concern #{concern.PayrollConcernId} updated to {nextStatus.Replace('_', ' ')}.", SuccessBrush);
+                SystemRefreshBus.Raise("PayrollConcernUpdated");
+            }
+            catch (Exception ex)
+            {
+                SetMessage($"Unable to update payroll concern: {ex.Message}", ErrorBrush);
             }
         }
 
@@ -1322,6 +1608,7 @@ namespace HRMS.ViewModel
             var employeeName = string.IsNullOrWhiteSpace(profile?.EmployeeName) ? row.EmployeeName : profile!.EmployeeName;
             var employeeNo = string.IsNullOrWhiteSpace(profile?.EmployeeNo) ? row.EmployeeNo : profile!.EmployeeNo;
             var periodText = FormatPayslipPeriod(row, profile);
+            var payrollCycleText = FormatPayrollCycle(profile);
             var payDateText = profile?.PayDate.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture) ?? "-";
             var grossIncome = row.GrossPay > 0m ? row.GrossPay : earnings.Sum(x => x.Amount);
             var deductionsTotal = row.DeductionsTotal > 0m ? row.DeductionsTotal : deductions.Sum(x => x.Amount);
@@ -1332,196 +1619,250 @@ namespace HRMS.ViewModel
             var deductionLines = deductions
                 .Select(item => new PayslipAmountLine(NormalizePayslipItemLabel(item), item.Amount))
                 .ToList();
-            var dtrMinusDeduction = deductions
-                .Where(IsDtrMinusDeduction)
-                .Sum(x => x.Amount);
-            var loanDeduction = deductions
-                .Where(IsLoanDeduction)
-                .Sum(x => x.Amount);
-            var hasDeductionDetails = dtrMinusDeduction > 0m || row.DtrMinusMinutes > 0 || loanDeduction > 0m;
+            var logoBytes = TryResolvePayslipLogoBytes(company.LogoPath);
 
             return Document.Create(container =>
             {
                 container.Page(page =>
                 {
                     page.Size(QuestPDF.Helpers.PageSizes.A4);
-                    page.Margin(36);
-                    page.DefaultTextStyle(x => x.FontSize(9.2f).FontFamily("Segoe UI"));
+                    page.MarginHorizontal(34);
+                    page.MarginVertical(28);
+                    page.DefaultTextStyle(x => x.FontSize(9f).FontFamily("Segoe UI").FontColor("#17283A"));
 
                     page.Header().Column(column =>
                     {
-                        column.Spacing(8);
-                        column.Item().BorderBottom(1).BorderColor(QColors.Grey.Lighten2).PaddingBottom(12).Row(header =>
+                        column.Item().Height(72).Border(1).BorderColor("#C9D2DC").Row(header =>
                         {
-                            header.RelativeItem().Column(text =>
+                            var logo = header.ConstantItem(78).Background("#F5F7FA").Padding(8);
+                            if (logoBytes is { Length: > 0 })
                             {
-                                text.Item().Text(companyName.ToUpperInvariant()).FontSize(14).Bold().FontColor(QColors.Blue.Darken3);
-                                text.Item().PaddingTop(2).Text(companyAddress).FontSize(8).FontColor(QColors.Grey.Darken1);
-                                text.Item().PaddingTop(4).Text(company.SerialNumber).FontSize(8).SemiBold().FontColor(QColors.Grey.Darken1);
+                                logo.Image(logoBytes).FitArea();
+                            }
+                            else
+                            {
+                                logo.AlignCenter().AlignMiddle().Text("HR").FontSize(20).Bold().FontColor("#164A73");
+                            }
+
+                            header.RelativeItem().Background("#143F63").PaddingHorizontal(16).PaddingVertical(10).Column(identity =>
+                            {
+                                identity.Item().Text(companyName.ToUpperInvariant()).FontSize(11).Bold().FontColor(QColors.White);
+                                identity.Item().PaddingTop(3).Text(companyAddress).FontSize(8).FontColor("#DDEAF4");
+                                identity.Item().PaddingTop(5).Text(company.SerialNumber).FontSize(7.5f).SemiBold().FontColor("#DDEAF4");
                             });
-                            header.ConstantItem(165).AlignRight().Column(title =>
+
+                            header.ConstantItem(172).Background("#E9EDF1").Padding(12).AlignMiddle().Column(mark =>
                             {
-                                title.Item().Text("PAYSLIP").FontSize(24).Bold().FontColor(QColors.Blue.Darken3);
-                                title.Item().Text($"Generated {generatedAt}").FontSize(7.5f).FontColor(QColors.Grey.Darken1);
+                                mark.Item().AlignRight().Text("OFFICIAL PAYROLL").FontSize(13).Bold().FontColor("#697886");
+                                mark.Item().PaddingTop(4).AlignRight().Text("Human Resource Office").FontSize(7.5f).FontColor("#7A8793");
                             });
                         });
                     });
 
-                    page.Content().PaddingTop(12).Column(column =>
+                    page.Content().Column(column =>
                     {
-                        column.Spacing(12);
+                        column.Item().PaddingTop(17).AlignCenter().Text("Payslip").FontSize(25).Bold().FontColor("#111820");
 
-                        column.Item().Border(1).BorderColor(QColors.Grey.Lighten2).PaddingVertical(8).PaddingHorizontal(12).Row(meta =>
+                        column.Item().PaddingTop(12).BorderTop(1).BorderBottom(1).BorderColor("#AEB8C2").PaddingVertical(8).Row(meta =>
                         {
                             meta.RelativeItem().AlignCenter().Column(section =>
                             {
-                                section.Item().AlignCenter().Text("PAY RUN").FontSize(7.5f).Bold().FontColor(QColors.Grey.Darken1);
-                                section.Item().AlignCenter().Text($"#{row.PayrollRunId}").FontSize(10.5f).Bold();
+                                section.Item().AlignCenter().Text("PAY RUN").FontSize(8).Bold().FontColor("#556574");
+                                section.Item().AlignCenter().Text($"#{row.PayrollRunId:N0}").FontSize(11).Bold();
                             });
                             meta.RelativeItem().AlignCenter().Column(section =>
                             {
-                                section.Item().AlignCenter().Text("PAY PERIOD").FontSize(7.5f).Bold().FontColor(QColors.Grey.Darken1);
-                                section.Item().AlignCenter().Text(periodText).FontSize(10.5f).Bold();
+                                section.Item().AlignCenter().Text("PAY PERIOD").FontSize(8).Bold().FontColor("#556574");
+                                section.Item().AlignCenter().Text(periodText).FontSize(11).Bold();
                             });
                             meta.RelativeItem().AlignCenter().Column(section =>
                             {
-                                section.Item().AlignCenter().Text("PAY DATE").FontSize(7.5f).Bold().FontColor(QColors.Grey.Darken1);
-                                section.Item().AlignCenter().Text(payDateText).FontSize(10.5f).Bold();
+                                section.Item().AlignCenter().Text("PAY DATE / CYCLE").FontSize(8).Bold().FontColor("#556574");
+                                section.Item().AlignCenter().Text($"{payDateText}  •  {payrollCycleText}").FontSize(10).Bold();
                             });
                         });
 
-                        column.Item().Border(1).BorderColor(QColors.Grey.Lighten2).Padding(12).Column(employee =>
+                        column.Item().MinHeight(550).BorderBottom(1).BorderColor("#AEB8C2").Row(body =>
                         {
-                            employee.Spacing(9);
-                            employee.Item().Row(identity =>
+                            body.ConstantItem(255).BorderRight(1).BorderColor("#AEB8C2").PaddingTop(18).PaddingRight(28).Column(employee =>
                             {
-                                identity.RelativeItem().Column(name =>
+                                employee.Spacing(5);
+                                employee.Item().AlignCenter().Text(employeeName).FontSize(13).Bold();
+                                employee.Item().AlignCenter().Text(employeeNo).FontSize(8).FontColor("#657482");
+
+                                employee.Item().PaddingTop(12).Column(profileSection =>
                                 {
-                                    name.Item().Text(employeeName).FontSize(13).Bold();
-                                    name.Item().Text(employeeNo).FontSize(9).FontColor(QColors.Grey.Darken1);
+                                    profileSection.Spacing(5);
+                                    AddProfileLine(profileSection, "Agency ID", employeeNo);
+                                    AddProfileLine(profileSection, "Salary Grade", FormatSalaryGrade(profile));
+                                    AddProfileLine(profileSection, "Date Hired", profile?.HireDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "-");
+                                    AddProfileLine(profileSection, "Position", profile?.PositionName ?? "-");
+                                    AddProfileLine(profileSection, "Department", profile?.DepartmentName ?? "-");
+                                    AddProfileLine(profileSection, "Designation", profile?.PositionName ?? "-");
+                                    AddProfileLine(profileSection, "Payroll Cycle", payrollCycleText);
+                                    AddProfileLine(profileSection, "Fund Source", company.SerialNumber);
                                 });
-                                identity.ConstantItem(150).AlignRight().Text("Employee Details").FontSize(9).SemiBold().FontColor(QColors.Blue.Darken3);
-                            });
-                            employee.Item().Row(details =>
-                            {
-                                details.RelativeItem().Column(left =>
+
+                                employee.Item().PaddingTop(9).Column(government =>
                                 {
-                                    left.Spacing(4);
-                                    AddProfileLine(left, "Employee No", employeeNo);
-                                    AddProfileLine(left, "Salary Grade", FormatSalaryGrade(profile));
-                                    AddProfileLine(left, "Date Hired", profile?.HireDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "-");
+                                    government.Spacing(5);
+                                    AddProfileLine(government, "TIN", profile?.TinNo ?? "-");
+                                    AddProfileLine(government, "GSIS / SSS", profile?.GsisNo ?? "-");
+                                    AddProfileLine(government, "Pag-IBIG", profile?.PagIbigNo ?? "-");
+                                    AddProfileLine(government, "PhilHealth", profile?.PhilHealthNo ?? "-");
                                 });
-                                details.ConstantItem(24).Text(string.Empty);
-                                details.RelativeItem().Column(right =>
+
+                                employee.Item().PaddingTop(15).BorderBottom(1).BorderColor("#8795A2").PaddingBottom(4)
+                                    .Text("Gross Income").FontSize(11).Bold();
+                                employee.Item().AlignRight().Text(FormatMoney(grossIncome)).FontSize(16).Bold();
+                                employee.Item().Text($"Monthly rate: {FormatMoney(ResolveMonthlySalaryRate(row, profile))}")
+                                    .FontSize(7.5f).FontColor("#657482");
+
+                                employee.Item().PaddingTop(18).BorderBottom(1).BorderColor("#8795A2").PaddingBottom(4)
+                                    .Text("Employer Contribution").FontSize(11).Bold();
+                                employee.Item().Table(table =>
                                 {
-                                    right.Spacing(4);
-                                    AddProfileLine(right, "Position", profile?.PositionName ?? "-");
-                                    AddProfileLine(right, "Department", profile?.DepartmentName ?? "-");
-                                    AddProfileLine(right, "Payroll Cycle", "Monthly");
+                                    table.ColumnsDefinition(columns =>
+                                    {
+                                        columns.RelativeColumn();
+                                        columns.ConstantColumn(82);
+                                    });
+
+                                    foreach (var contribution in employerContributions)
+                                    {
+                                        table.Cell().PaddingVertical(2).Text(contribution.Label);
+                                        table.Cell().PaddingVertical(2).AlignRight().Text(FormatMoney(contribution.Amount)).Bold();
+                                    }
+
+                                    table.Cell().PaddingTop(5).Text("Total").Bold();
+                                    table.Cell().PaddingTop(5).AlignRight().Text(FormatMoney(employerContributions.Sum(x => x.Amount))).Bold();
                                 });
                             });
-                        });
 
-                        column.Item().Row(tables =>
-                        {
-                            tables.RelativeItem().Column(earningsColumn =>
+                            body.RelativeItem().PaddingTop(18).PaddingLeft(18).Column(itemsSection =>
                             {
-                                AddPayslipAmountTable(
-                                    earningsColumn,
-                                    "Earnings",
-                                    earningLines,
-                                    "Gross Income",
-                                    grossIncome,
-                                    showAsDeduction: false);
-                            });
-
-                            tables.ConstantItem(18).Text(string.Empty);
-
-                            tables.RelativeItem().Column(deductionsColumn =>
-                            {
-                                AddPayslipAmountTable(
-                                    deductionsColumn,
-                                    "Deductions",
-                                    deductionLines,
-                                    "Total Deductions",
-                                    deductionsTotal,
-                                    showAsDeduction: true);
-                            });
-                        });
-
-                        if (hasDeductionDetails)
-                        {
-                            column.Item().Border(1).BorderColor(QColors.Grey.Lighten2).Padding(10).Column(details =>
-                            {
-                                details.Spacing(5);
-                                details.Item().Text("Deduction Details").FontSize(10.5f).Bold().FontColor(QColors.Blue.Darken3);
-
-                                if (dtrMinusDeduction > 0m || row.DtrMinusMinutes > 0)
+                                itemsSection.Spacing(10);
+                                itemsSection.Item().Text("ITEMS").FontSize(11).Bold();
+                                itemsSection.Item().Table(table =>
                                 {
-                                    AddDetailLine(details, "Late/undertime", "Based on Daily Time Record");
-                                    AddDetailLine(details, "DTR minus time", FormatPayslipMinusTime(row.DtrMinusMinutes));
-                                    AddDetailLine(details, "Amount deducted", FormatDeduction(dtrMinusDeduction));
-                                }
+                                    table.ColumnsDefinition(columns =>
+                                    {
+                                        columns.RelativeColumn();
+                                        columns.ConstantColumn(72);
+                                        columns.ConstantColumn(72);
+                                    });
 
-                                if (loanDeduction > 0m)
-                                {
-                                    AddDetailLine(details, "Loan", "Employee loan repayment");
-                                    AddDetailLine(details, "Loan deduction", FormatDeduction(loanDeduction));
-                                }
-                            });
-                        }
+                                    table.Header(header =>
+                                    {
+                                        header.Cell().BorderBottom(1).BorderColor("#8795A2").PaddingBottom(5).Text("Description").Bold();
+                                        header.Cell().BorderBottom(1).BorderColor("#8795A2").PaddingBottom(5).AlignRight().Text("Earnings").Bold();
+                                        header.Cell().BorderBottom(1).BorderColor("#8795A2").PaddingBottom(5).AlignRight().Text("Deductions").Bold();
+                                    });
 
-                        column.Item().Row(bottom =>
-                        {
-                            bottom.RelativeItem().Column(section =>
-                            {
-                                AddPayslipAmountTable(
-                                    section,
-                                    "Employer Contribution",
-                                    employerContributions,
-                                    "Total Employer Share",
-                                    employerContributions.Sum(x => x.Amount),
-                                    showAsDeduction: false);
-                            });
+                                    foreach (var earning in earningLines)
+                                    {
+                                        table.Cell().PaddingVertical(3).Text(earning.Label);
+                                        table.Cell().PaddingVertical(3).AlignRight().Text(FormatMoney(earning.Amount)).SemiBold();
+                                        table.Cell().PaddingVertical(3).Text(string.Empty);
+                                    }
 
-                            bottom.ConstantItem(18).Text(string.Empty);
+                                    foreach (var deduction in deductionLines)
+                                    {
+                                        table.Cell().PaddingVertical(3).Text(deduction.Label);
+                                        table.Cell().PaddingVertical(3).Text(string.Empty);
+                                        table.Cell().PaddingVertical(3).AlignRight().Text(FormatDeduction(deduction.Amount)).SemiBold();
+                                    }
 
-                            bottom.RelativeItem().Border(1).BorderColor(QColors.Blue.Lighten4).Padding(14).Column(summary =>
-                            {
-                                summary.Spacing(8);
-                                summary.Item().Text("Pay Summary").FontSize(11).Bold().FontColor(QColors.Blue.Darken3);
-                                AddSummaryLine(summary, "Gross Income", FormatMoney(grossIncome));
-                                AddSummaryLine(summary, "Deductions", FormatDeduction(deductionsTotal));
-                                summary.Item().Element(e => e.LineHorizontal(1).LineColor(QColors.Grey.Lighten2));
-                                summary.Item().Row(net =>
+                                    table.Cell().BorderTop(1).BorderColor("#8795A2").PaddingTop(7).Text("TOTAL").Bold();
+                                    table.Cell().BorderTop(1).BorderColor("#8795A2").PaddingTop(7).AlignRight().Text(FormatMoney(grossIncome)).Bold();
+                                    table.Cell().BorderTop(1).BorderColor("#8795A2").PaddingTop(7).AlignRight().Text(FormatDeduction(deductionsTotal)).Bold();
+                                });
+
+                                itemsSection.Item().PaddingTop(9).BorderTop(1).BorderBottom(1).BorderColor("#143F63").PaddingVertical(10).Row(net =>
                                 {
                                     net.RelativeItem().Text("NET PAY").FontSize(14).Bold();
-                                    net.ConstantItem(130).AlignRight().Text(FormatMoney(netPay)).FontSize(15).Bold().FontColor(QColors.Blue.Darken3);
+                                    net.ConstantItem(150).AlignRight().Text(FormatMoney(netPay)).FontSize(17).Bold().FontColor("#143F63");
                                 });
-                            });
-                        });
 
-                        column.Item().PaddingTop(14).Row(certification =>
-                        {
-                            certification.RelativeItem().Text("This is a system-generated payslip. Review payroll concerns with HR before payroll release cut-off.")
-                                .FontSize(8)
-                                .FontColor(QColors.Grey.Darken1);
-                            certification.ConstantItem(230).Column(cert =>
-                            {
-                                cert.Item().Text("Certified By:").FontSize(8).FontColor(QColors.Grey.Darken1);
-                                cert.Item().PaddingTop(14).Text(company.OwnerName).Bold();
-                                cert.Item().Width(210).Element(e => e.LineHorizontal(1).LineColor(QColors.Grey.Lighten2));
-                                cert.Item().Width(210).AlignCenter().Text("HRMO").FontSize(8).FontColor(QColors.Grey.Darken1);
+                                itemsSection.Item().PaddingTop(22).Column(cert =>
+                                {
+                                    cert.Item().Text("Certified By:").FontSize(8).FontColor("#657482");
+                                    cert.Item().PaddingTop(18).Width(240).AlignCenter().Text(company.OwnerName.ToUpperInvariant()).FontSize(11).Bold();
+                                    cert.Item().Width(240).BorderTop(1).BorderColor("#8795A2").PaddingTop(3).AlignCenter().Text("HRMO").FontSize(8).FontColor("#657482");
+                                });
                             });
                         });
                     });
 
-                    page.Footer().AlignCenter().Text("Generated by HRMS Payroll").FontSize(8).FontColor(QColors.Grey.Darken1);
+                    page.Footer().BorderTop(1).BorderColor("#D0D7DE").PaddingTop(5).Row(footer =>
+                    {
+                        footer.RelativeItem().Text("This is a system-generated official payslip.").FontSize(7.5f).FontColor("#657482");
+                        footer.RelativeItem().AlignRight().Text($"Generated {generatedAt}").FontSize(7.5f).FontColor("#657482");
+                    });
                 });
             });
         }
 
         private sealed record PayslipAmountLine(string Label, decimal Amount);
+
+        private static byte[]? TryResolvePayslipLogoBytes(string? rawLogoPath)
+        {
+            var candidates = new List<string>();
+            if (!string.IsNullOrWhiteSpace(rawLogoPath))
+            {
+                var normalized = rawLogoPath.Trim()
+                    .Replace('/', Path.DirectorySeparatorChar)
+                    .Replace('\\', Path.DirectorySeparatorChar);
+                candidates.Add(Path.IsPathFullyQualified(normalized)
+                    ? normalized
+                    : Path.Combine(AppContext.BaseDirectory, normalized));
+                candidates.Add(Path.Combine(AppContext.BaseDirectory, "Images", Path.GetFileName(normalized)));
+            }
+
+            candidates.Add(Path.Combine(AppContext.BaseDirectory, "Images", "ePRIME_logo.png"));
+
+            foreach (var candidate in candidates.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    if (File.Exists(candidate))
+                    {
+                        return File.ReadAllBytes(candidate);
+                    }
+                }
+                catch
+                {
+                    // Continue to the packaged application resource.
+                }
+            }
+
+            foreach (var uri in new[]
+                     {
+                         "pack://application:,,,/Images/ePRIME_logo.png",
+                         "pack://application:,,,/HRMS;component/Images/ePRIME_logo.png"
+                     })
+            {
+                try
+                {
+                    var resource = System.Windows.Application.GetResourceStream(new Uri(uri, UriKind.Absolute));
+                    if (resource?.Stream == null)
+                    {
+                        continue;
+                    }
+
+                    using var stream = resource.Stream;
+                    using var memory = new MemoryStream();
+                    stream.CopyTo(memory);
+                    return memory.ToArray();
+                }
+                catch
+                {
+                    // Use the text fallback when no configured logo can be read.
+                }
+            }
+
+            return null;
+        }
 
         private static void AddPayslipAmountTable(
             ColumnDescriptor column,
@@ -1753,6 +2094,47 @@ namespace HRMS.ViewModel
             return $"{profile.DateFrom:MMM d, yyyy} - {profile.DateTo:MMM d, yyyy}";
         }
 
+        private static string FormatPayrollCycle(PayrollPayslipProfileDto? profile)
+        {
+            if (profile == null)
+            {
+                return "Monthly";
+            }
+
+            var sameMonth = profile.DateFrom.Year == profile.DateTo.Year &&
+                            profile.DateFrom.Month == profile.DateTo.Month;
+            if (!sameMonth)
+            {
+                return "Custom period";
+            }
+
+            var lastDay = DateTime.DaysInMonth(profile.DateTo.Year, profile.DateTo.Month);
+            if (profile.DateFrom.Day == 1 && profile.DateTo.Day == 15)
+            {
+                return "15th cutoff";
+            }
+
+            if (profile.DateFrom.Day == 16 && profile.DateTo.Day == lastDay)
+            {
+                return "30th cutoff";
+            }
+
+            if (profile.DateFrom.Day == 1 && profile.DateTo.Day == lastDay)
+            {
+                return "Monthly";
+            }
+
+            return "Custom period";
+        }
+
+        private static decimal ResolveMonthlySalaryRate(PayrollRunVm row, PayrollPayslipProfileDto? profile)
+        {
+            var cycle = FormatPayrollCycle(profile);
+            return cycle is "15th cutoff" or "30th cutoff"
+                ? Math.Round(row.BasicPay * 2m, 2, MidpointRounding.AwayFromZero)
+                : row.BasicPay;
+        }
+
         private static string FormatSalaryGrade(PayrollPayslipProfileDto? profile)
         {
             if (profile == null || profile.SalaryGrade <= 0)
@@ -1779,9 +2161,7 @@ namespace HRMS.ViewModel
                 return "-";
             }
 
-            return normalized.Length > 28
-                ? normalized[..28]
-                : normalized;
+            return normalized;
         }
 
         private static string FormatMoney(decimal amount) =>
@@ -1932,7 +2312,7 @@ namespace HRMS.ViewModel
                     return;
                 }
 
-                ApplyRunEditorValues(0m, 0m, 0m, 0m, 0m, "GENERATED", false, string.Empty, string.Empty, 0);
+                ApplyRunEditorValues(0m, 0m, 0m, 0m, 0m, "GENERATED", false, string.Empty, string.Empty, 0, 0m);
                 return;
             }
 
@@ -1958,7 +2338,8 @@ namespace HRMS.ViewModel
                     defaults.FromExistingRun,
                     defaults.EmploymentTypeName,
                     defaults.PositionName,
-                    defaults.DtrMinusMinutes);
+                    defaults.DtrMinusMinutes,
+                    defaults.AbsentDays);
             }
             catch (Exception ex)
             {
@@ -1981,7 +2362,8 @@ namespace HRMS.ViewModel
             bool fromExistingRun,
             string employmentTypeName,
             string positionName,
-            int dtrMinusMinutes)
+            int dtrMinusMinutes,
+            decimal absentDays)
         {
             _isApplyingRunEditorValues = true;
             try
@@ -1989,6 +2371,7 @@ namespace HRMS.ViewModel
                 _runEmploymentTypeName = employmentTypeName ?? string.Empty;
                 _runPositionName = positionName ?? string.Empty;
                 _runDtrMinusMinutes = Math.Max(0, dtrMinusMinutes);
+                _runAbsentDays = Math.Max(0m, absentDays);
                 RunBasicPay = basicPay;
                 RunAllowances = allowances;
                 RunOvertimePay = overtimePay;
@@ -2007,6 +2390,7 @@ namespace HRMS.ViewModel
                         allowances: RunAllowances,
                         overtimePay: RunOvertimePay,
                         otherEarnings: RunOtherEarnings,
+                        absentDays: _runAbsentDays,
                         lateMinutes: _runDtrMinusMinutes);
                     RunDeductions = deductions;
                 }
@@ -2036,6 +2420,7 @@ namespace HRMS.ViewModel
                 allowances: RunAllowances,
                 overtimePay: RunOvertimePay,
                 otherEarnings: RunOtherEarnings,
+                absentDays: _runAbsentDays,
                 lateMinutes: _runDtrMinusMinutes);
             RunDeductions = _runDeductionPreview.TotalDeductions;
             OnPropertyChanged(nameof(RunDeductionBreakdownText));
@@ -2064,7 +2449,7 @@ namespace HRMS.ViewModel
             _allRuns.Clear();
             foreach (var run in runs)
             {
-                _allRuns.Add(new PayrollRunVm(
+                var row = new PayrollRunVm(
                     run.PayrollRunId,
                     run.PayrollPeriodId,
                     run.PeriodCode,
@@ -2082,10 +2467,21 @@ namespace HRMS.ViewModel
                     run.GeneratedAt,
                     run.LastReleasedAt,
                     run.ReleaseCount,
-                    run.DtrMinusMinutes));
+                    run.DtrMinusMinutes);
+                row.PropertyChanged += PayrollRunRow_OnPropertyChanged;
+                _allRuns.Add(row);
             }
 
             ApplyRunFilters();
+        }
+
+        private void PayrollRunRow_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(PayrollRunVm.IsSelectedForBulk))
+            {
+                OnPropertyChanged(nameof(SelectedPayrollRunCount));
+                OnPropertyChanged(nameof(SelectedPayrollRunCountText));
+            }
         }
 
         private void RecalculateYtdTotals()
@@ -2130,6 +2526,7 @@ namespace HRMS.ViewModel
             var selectedEmployee = SelectedRunEmployeeId;
             var selectedReleaseRun = SelectedReleaseRunId;
             var selectedGovernmentPeriod = SelectedGovernmentPeriodId.GetValueOrDefault(AllPeriodsOptionId);
+            var selectedGovernmentEmployee = SelectedGovernmentEmployeeId.GetValueOrDefault();
 
             PeriodOptions.Clear();
             PeriodOptions.Add(new PayrollLookupOptionVm(AllPeriodsOptionId, "All periods"));
@@ -2143,9 +2540,15 @@ namespace HRMS.ViewModel
                 SelectedRunPeriodFilterId = AllPeriodsOptionId;
             }
 
-            if (!PeriodOptions.Any(x => x.Id == selectedRunPeriod))
+            PayrollPeriodOptions.Clear();
+            foreach (var period in periods)
             {
-                SelectedRunPeriodId = AllPeriodsOptionId;
+                PayrollPeriodOptions.Add(new PayrollLookupOptionVm(period.PayrollPeriodId, period.PeriodCode));
+            }
+
+            if (!PayrollPeriodOptions.Any(x => x.Id == selectedRunPeriod))
+            {
+                SelectedRunPeriodId = PayrollPeriodOptions.Count > 0 ? PayrollPeriodOptions[0].Id : null;
             }
 
             if (!PeriodOptions.Any(x => x.Id == selectedGovernmentPeriod))
@@ -2163,6 +2566,30 @@ namespace HRMS.ViewModel
             {
                 SelectedRunEmployeeId = EmployeeOptions.Count > 0 ? EmployeeOptions[0].Id : null;
             }
+
+            DeductionEmployeeOptions.Clear();
+            if (IsAdminOrHrMode)
+            {
+                DeductionEmployeeOptions.Add(new PayrollLookupOptionVm(0, "All employees"));
+            }
+
+            foreach (var employee in employees)
+            {
+                DeductionEmployeeOptions.Add(new PayrollLookupOptionVm(employee.EmployeeId, $"{employee.EmployeeNo} - {employee.EmployeeName}"));
+            }
+            OnPropertyChanged(nameof(GovernmentReportEmployeeLabel));
+
+            var requiredEmployeeId = IsEmployeeMode
+                ? _currentEmployeeId.GetValueOrDefault()
+                : selectedGovernmentEmployee;
+            if (!DeductionEmployeeOptions.Any(x => x.Id == requiredEmployeeId))
+            {
+                requiredEmployeeId = IsAdminOrHrMode
+                    ? 0
+                    : DeductionEmployeeOptions.FirstOrDefault()?.Id ?? 0;
+            }
+
+            SelectedGovernmentEmployeeId = requiredEmployeeId;
 
             RunOptions.Clear();
             foreach (var run in runs.OrderByDescending(x => x.GeneratedAt))
@@ -2195,6 +2622,12 @@ namespace HRMS.ViewModel
                 query = query.Where(x => x.PayrollPeriodId == selectedGovernmentPeriodId);
             }
 
+            var selectedGovernmentEmployeeId = SelectedGovernmentEmployeeId.GetValueOrDefault();
+            if (selectedGovernmentEmployeeId > 0)
+            {
+                query = query.Where(x => x.EmployeeId == selectedGovernmentEmployeeId);
+            }
+
             decimal employeeShareTotal = 0m;
             decimal employerShareTotal = 0m;
             decimal remittanceTotal = 0m;
@@ -2206,7 +2639,10 @@ namespace HRMS.ViewModel
                 var deductions = PhilippinePayrollDeductions.ComputeAll(
                     source.BasicPay,
                     source.EmploymentTypeName,
-                    lateMinutes: source.DtrMinusMinutes);
+                    absentDays: source.BasicPay <= 0m ? 0m : source.AbsenceDeduction * 22m / source.BasicPay,
+                    lateMinutes: source.DtrMinusMinutes,
+                    loanDeduction: source.LoanDeduction,
+                    otherDeductions: source.OtherDeductions);
 
                 foreach (var row in BuildDeductionRows(source, deductions, SelectedGovernmentContributionType))
                 {
@@ -2381,7 +2817,10 @@ namespace HRMS.ViewModel
                 var deductions = PhilippinePayrollDeductions.ComputeAll(
                     source.BasicPay,
                     source.EmploymentTypeName,
-                    lateMinutes: source.DtrMinusMinutes);
+                    absentDays: source.BasicPay <= 0m ? 0m : source.AbsenceDeduction * 22m / source.BasicPay,
+                    lateMinutes: source.DtrMinusMinutes,
+                    loanDeduction: source.LoanDeduction,
+                    otherDeductions: source.OtherDeductions);
 
                 if (string.Equals(selectedType, "ALL", StringComparison.OrdinalIgnoreCase))
                 {
@@ -2405,8 +2844,9 @@ namespace HRMS.ViewModel
 
         private async Task ExportGovernmentReportAsync()
         {
-            if (!EnsureAdminOrHrAction("export deduction reports"))
+            if (IsEmployeeMode && (!_currentEmployeeId.HasValue || _currentEmployeeId.Value <= 0))
             {
+                SetMessage("Your employee profile is not linked to this account.", ErrorBrush);
                 return;
             }
 
@@ -2444,8 +2884,9 @@ namespace HRMS.ViewModel
 
         private async Task SaveGovernmentReportPdfAsync()
         {
-            if (!EnsureAdminOrHrAction("save deduction reports"))
+            if (IsEmployeeMode && (!_currentEmployeeId.HasValue || _currentEmployeeId.Value <= 0))
             {
+                SetMessage("Your employee profile is not linked to this account.", ErrorBrush);
                 return;
             }
 
@@ -2525,6 +2966,7 @@ namespace HRMS.ViewModel
         {
             var reportTitle = GovernmentContributionTitle;
             var periodLabel = GovernmentReportPeriodLabel;
+            var employeeLabel = GovernmentReportEmployeeLabel;
             var generatedAt = DateTime.Now.ToString("MMM dd, yyyy hh:mm tt", CultureInfo.InvariantCulture);
 
             return Document.Create(container =>
@@ -2541,6 +2983,7 @@ namespace HRMS.ViewModel
                         column.Item().Text("HRMS PAYROLL DEDUCTION REPORT").FontSize(16).Bold().FontColor(QColors.Blue.Darken3);
                         column.Item().Text(reportTitle).FontSize(12).SemiBold().FontColor(QColors.Blue.Darken2);
                         column.Item().Text($"Payroll Period: {periodLabel}");
+                        column.Item().Text($"Employee: {employeeLabel}");
                         column.Item().Text($"Generated: {generatedAt}").FontColor(QColors.Grey.Darken1);
                     });
 
@@ -2618,8 +3061,13 @@ namespace HRMS.ViewModel
             var periodLabel = selectedGovernmentPeriodId > 0
                 ? PeriodOptions.FirstOrDefault(x => x.Id == selectedGovernmentPeriodId)?.Label ?? "Period"
                 : "AllPeriods";
+            var selectedGovernmentEmployeeId = SelectedGovernmentEmployeeId.GetValueOrDefault();
+            var employeeLabel = selectedGovernmentEmployeeId > 0
+                ? GovernmentContributionRows.FirstOrDefault()?.EmployeeNo ?? "Employee"
+                : "AllEmployees";
             var safePeriodLabel = periodLabel.Replace("/", "-").Replace(" ", string.Empty);
-            return $"{contributionCode}-Report-{safePeriodLabel}-{DateTime.Now:yyyyMMdd-HHmm}.{extension}";
+            var safeEmployeeLabel = new string(employeeLabel.Where(char.IsLetterOrDigit).ToArray());
+            return $"{contributionCode}-Report-{safeEmployeeLabel}-{safePeriodLabel}-{DateTime.Now:yyyyMMdd-HHmm}.{extension}";
         }
 
         private static string GetGovernmentContributionLabel(string contributionType)
@@ -2703,6 +3151,13 @@ namespace HRMS.ViewModel
             {
                 PayrollRuns.Add(row);
             }
+
+            OnPropertyChanged(nameof(VisiblePayrollRunCount));
+            OnPropertyChanged(nameof(VisiblePayrollGrossText));
+            OnPropertyChanged(nameof(VisiblePayrollDeductionsText));
+            OnPropertyChanged(nameof(VisiblePayrollNetText));
+            OnPropertyChanged(nameof(SelectedPayrollRunCount));
+            OnPropertyChanged(nameof(SelectedPayrollRunCountText));
 
             if (selectedId.HasValue)
             {
@@ -2814,11 +3269,13 @@ namespace HRMS.ViewModel
             PeriodOptions.Clear();
             PeriodOptions.Add(new PayrollLookupOptionVm(AllPeriodsOptionId, "All periods"));
             EmployeeOptions.Clear();
+            DeductionEmployeeOptions.Clear();
             RunOptions.Clear();
             GovernmentReportEmployeeShareTotal = 0m;
             GovernmentReportEmployerShareTotal = 0m;
             GovernmentReportRemittanceTotal = 0m;
             SelectedGovernmentPeriodId = AllPeriodsOptionId;
+            SelectedGovernmentEmployeeId = null;
 
             SelectedRun = null;
             SelectedRunPeriodId = AllPeriodsOptionId;
@@ -2861,6 +3318,11 @@ namespace HRMS.ViewModel
 
         public long PayrollPeriodId { get; }
         public string PeriodCode { get; }
+        public string PayrollCycleText => PeriodCode.Contains("-15-CUTOFF", StringComparison.OrdinalIgnoreCase)
+            ? "15th cutoff"
+            : PeriodCode.Contains("-30-CUTOFF", StringComparison.OrdinalIgnoreCase)
+                ? "30th cutoff"
+                : "Monthly";
         public DateTime DateFrom { get; }
         public DateTime DateTo { get; }
         public DateTime PayDate { get; }
@@ -2900,6 +3362,7 @@ namespace HRMS.ViewModel
         private static readonly Brush VoidBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D84343"));
 
         private string _status;
+        private bool _isSelectedForBulk;
 
         public PayrollRunVm(
             long payrollRunId,
@@ -2959,6 +3422,22 @@ namespace HRMS.ViewModel
         public int ReleaseCount { get; }
         public int DtrMinusMinutes { get; }
         public bool CanOpenPayslip => ReleaseCount > 0 || string.Equals(Status, "RELEASED", StringComparison.OrdinalIgnoreCase);
+        public bool CanApprovePayroll => string.Equals(Status, "GENERATED", StringComparison.OrdinalIgnoreCase);
+        public bool CanReleasePayslip => !CanOpenPayslip && NetPay > 0m && string.Equals(Status, "APPROVED", StringComparison.OrdinalIgnoreCase);
+        public bool IsSelectedForBulk
+        {
+            get => _isSelectedForBulk;
+            set
+            {
+                if (_isSelectedForBulk == value)
+                {
+                    return;
+                }
+
+                _isSelectedForBulk = value;
+                OnPropertyChanged();
+            }
+        }
 
         public string Status
         {
@@ -2973,6 +3452,8 @@ namespace HRMS.ViewModel
                 _status = value.Trim().ToUpperInvariant();
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CanOpenPayslip));
+                OnPropertyChanged(nameof(CanApprovePayroll));
+                OnPropertyChanged(nameof(CanReleasePayslip));
                 OnPropertyChanged(nameof(StatusText));
                 OnPropertyChanged(nameof(StatusBrush));
                 OnPropertyChanged(nameof(ReleasedText));
@@ -3008,6 +3489,44 @@ namespace HRMS.ViewModel
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string? name = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
+    public sealed class PayrollConcernVm
+    {
+        public PayrollConcernVm(PayrollConcernDto concern)
+        {
+            PayrollConcernId = concern.PayrollConcernId;
+            PayrollRunId = concern.PayrollRunId;
+            PeriodCode = concern.PeriodCode;
+            EmployeeId = concern.EmployeeId;
+            EmployeeNo = concern.EmployeeNo;
+            EmployeeName = concern.EmployeeName;
+            ConcernDetails = concern.ConcernDetails;
+            Status = concern.Status;
+            CreatedAt = concern.CreatedAt;
+            ResolutionNotes = concern.ResolutionNotes;
+        }
+
+        public long PayrollConcernId { get; }
+        public long PayrollRunId { get; }
+        public string PeriodCode { get; }
+        public int EmployeeId { get; }
+        public string EmployeeNo { get; }
+        public string EmployeeName { get; }
+        public string ConcernDetails { get; }
+        public string Status { get; }
+        public DateTime CreatedAt { get; }
+        public string ResolutionNotes { get; }
+        public string CreatedAtText => CreatedAt.ToString("MMM dd, yyyy hh:mm tt", CultureInfo.InvariantCulture);
+        public string StatusText => Status switch
+        {
+            "IN_REVIEW" => "Reviewing",
+            "RESOLVED" => "Resolved",
+            "REJECTED" => "Rejected",
+            _ => "Open"
+        };
+        public bool CanStartReview => string.Equals(Status, "OPEN", StringComparison.OrdinalIgnoreCase);
+        public bool CanClose => string.Equals(Status, "IN_REVIEW", StringComparison.OrdinalIgnoreCase);
     }
 
     public class PayrollGovernmentContributionRowVm

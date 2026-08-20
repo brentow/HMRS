@@ -14,6 +14,11 @@ namespace HRMS.Model
         int ReleasedPayslips,
         decimal TotalNetPay);
 
+    public record PayrollGenerationResult(
+        int GeneratedCount,
+        int FailedCount,
+        IReadOnlyList<string> FailureDetails);
+
     public record PayrollEmployeeOptionDto(
         int EmployeeId,
         string EmployeeNo,
@@ -59,6 +64,18 @@ namespace HRMS.Model
         string ReleasedBy,
         string Remarks);
 
+    public record PayrollConcernDto(
+        long PayrollConcernId,
+        long PayrollRunId,
+        string PeriodCode,
+        int EmployeeId,
+        string EmployeeNo,
+        string EmployeeName,
+        string ConcernDetails,
+        string Status,
+        DateTime CreatedAt,
+        string ResolutionNotes);
+
     public record PayrollRunItemDto(
         long PayrollRunItemId,
         long PayrollRunId,
@@ -95,7 +112,8 @@ namespace HRMS.Model
         bool FromExistingRun,
         string EmploymentTypeName,
         string PositionName,
-        int DtrMinusMinutes);
+        int DtrMinusMinutes,
+        decimal AbsentDays);
 
     public record PayrollGovernmentContributionSourceDto(
         long PayrollRunId,
@@ -110,6 +128,9 @@ namespace HRMS.Model
         string EmploymentTypeName,
         decimal BasicPay,
         int DtrMinusMinutes,
+        decimal AbsenceDeduction,
+        decimal LoanDeduction,
+        decimal OtherDeductions,
         string RunStatus);
 
     internal record PayrollEmployeeCompensationDto(
@@ -135,7 +156,7 @@ namespace HRMS.Model
             _consolidatedTransactionSyncService = new ConsolidatedTransactionSyncService(GgmsConfig.ConnectionString);
         }
 
-        public async Task<PayrollStatsDto> GetStatsAsync(int? employeeId = null)
+        public async Task<PayrollStatsDto> GetStatsAsync(int? employeeId = null, bool releasedOnly = false)
         {
             const string sql = @"
 SELECT
@@ -147,6 +168,7 @@ SELECT
               FROM payroll_runs pr
               WHERE pr.payroll_period_id = pp.payroll_period_id
                 AND pr.employee_id = @employee_id
+                AND (@released_only = 0 OR pr.status = 'RELEASED')
          )
     ) AS total_periods,
     (SELECT COUNT(*)
@@ -159,22 +181,26 @@ SELECT
                 FROM payroll_runs pr
                 WHERE pr.payroll_period_id = pp.payroll_period_id
                   AND pr.employee_id = @employee_id
+                  AND (@released_only = 0 OR pr.status = 'RELEASED')
             )
         )
     ) AS open_periods,
     (SELECT COUNT(*)
        FROM payroll_runs pr
-      WHERE @employee_id IS NULL OR pr.employee_id = @employee_id
+      WHERE (@employee_id IS NULL OR pr.employee_id = @employee_id)
+        AND (@released_only = 0 OR pr.status = 'RELEASED')
     ) AS total_runs,
     (SELECT COUNT(*)
        FROM payslip_releases prl
        JOIN payroll_runs pr ON pr.payroll_run_id = prl.payroll_run_id
-      WHERE @employee_id IS NULL OR pr.employee_id = @employee_id
+      WHERE (@employee_id IS NULL OR pr.employee_id = @employee_id)
+        AND (@released_only = 0 OR pr.status = 'RELEASED')
     ) AS released_payslips,
     COALESCE((
       SELECT SUM(pr.net_pay)
       FROM payroll_runs pr
-      WHERE @employee_id IS NULL OR pr.employee_id = @employee_id
+      WHERE (@employee_id IS NULL OR pr.employee_id = @employee_id)
+        AND (@released_only = 0 OR pr.status = 'RELEASED')
     ), 0) AS total_net_pay;";
 
             try
@@ -183,6 +209,7 @@ SELECT
                 await connection.OpenAsync();
                 await using var command = new MySqlCommand(sql, connection);
                 command.Parameters.AddWithValue("@employee_id", employeeId.HasValue ? employeeId.Value : DBNull.Value);
+                command.Parameters.AddWithValue("@released_only", releasedOnly ? 1 : 0);
                 await using var reader = await command.ExecuteReaderAsync();
 
                 if (!await reader.ReadAsync())
@@ -241,7 +268,7 @@ ORDER BY e.employee_no;";
             return rows;
         }
 
-        public async Task<IReadOnlyList<PayrollPeriodDto>> GetPeriodsAsync(string? statusFilter = null, string? search = null, int limit = 300, int? employeeId = null)
+        public async Task<IReadOnlyList<PayrollPeriodDto>> GetPeriodsAsync(string? statusFilter = null, string? search = null, int limit = 300, int? employeeId = null, bool releasedOnly = false)
         {
             const string sql = @"
 SELECT
@@ -261,6 +288,7 @@ WHERE (@status IS NULL OR pp.status = @status)
             FROM payroll_runs pr
             WHERE pr.payroll_period_id = pp.payroll_period_id
               AND pr.employee_id = @employee_id
+              AND (@released_only = 0 OR pr.status = 'RELEASED')
         )
   )
   AND (
@@ -279,6 +307,7 @@ LIMIT @limit;";
                 await using var command = new MySqlCommand(sql, connection);
                 command.Parameters.AddWithValue("@status", NormalizeStatusFilter(statusFilter));
                 command.Parameters.AddWithValue("@employee_id", employeeId.HasValue ? employeeId.Value : DBNull.Value);
+                command.Parameters.AddWithValue("@released_only", releasedOnly ? 1 : 0);
                 command.Parameters.AddWithValue("@search", string.IsNullOrWhiteSpace(search) ? string.Empty : search.Trim());
                 command.Parameters.AddWithValue("@limit", Math.Max(1, limit));
 
@@ -473,7 +502,7 @@ WHERE payroll_period_id = @payroll_period_id;";
             }
         }
 
-        public async Task<IReadOnlyList<PayrollRunDto>> GetRunsAsync(long? periodId = null, string? statusFilter = null, string? search = null, int limit = 500, int? employeeId = null)
+        public async Task<IReadOnlyList<PayrollRunDto>> GetRunsAsync(long? periodId = null, string? statusFilter = null, string? search = null, int limit = 500, int? employeeId = null, bool releasedOnly = false)
         {
             const string sql = @"
 SELECT
@@ -506,6 +535,7 @@ LEFT JOIN (
 ) rel ON rel.payroll_run_id = pr.payroll_run_id
 WHERE (@period_id IS NULL OR pr.payroll_period_id = @period_id)
   AND (@employee_id IS NULL OR pr.employee_id = @employee_id)
+  AND (@released_only = 0 OR pr.status = 'RELEASED')
   AND (@status IS NULL OR pr.status = @status)
   AND (
         @search = '' OR
@@ -526,6 +556,7 @@ LIMIT @limit;";
                 await using var command = new MySqlCommand(sql, connection);
                 command.Parameters.AddWithValue("@period_id", periodId.HasValue && periodId.Value > 0 ? periodId.Value : DBNull.Value);
                 command.Parameters.AddWithValue("@employee_id", employeeId.HasValue ? employeeId.Value : DBNull.Value);
+                command.Parameters.AddWithValue("@released_only", releasedOnly ? 1 : 0);
                 command.Parameters.AddWithValue("@status", NormalizeStatusFilter(statusFilter));
                 command.Parameters.AddWithValue("@search", string.IsNullOrWhiteSpace(search) ? string.Empty : search.Trim());
                 command.Parameters.AddWithValue("@limit", Math.Max(1, limit));
@@ -575,7 +606,11 @@ LIMIT @limit;";
             return rows;
         }
 
-        public async Task<IReadOnlyList<PayrollGovernmentContributionSourceDto>> GetGovernmentContributionSourcesAsync(long? periodId = null, int limit = 1000)
+        public async Task<IReadOnlyList<PayrollGovernmentContributionSourceDto>> GetGovernmentContributionSourcesAsync(
+            long? periodId = null,
+            int limit = 1000,
+            int? employeeId = null,
+            bool releasedOnly = false)
         {
             const string sql = @"
 SELECT
@@ -590,12 +625,35 @@ SELECT
     CONCAT(e.last_name, ', ', e.first_name, IFNULL(CONCAT(' ', e.middle_name), '')) AS employee_name,
     COALESCE(at.type_name, 'Permanent') AS employment_type_name,
     pr.basic_pay,
+    COALESCE((
+        SELECT SUM(pri.amount)
+        FROM payroll_run_items pri
+        WHERE pri.payroll_run_id = pr.payroll_run_id
+          AND pri.item_type = 'DEDUCTION'
+          AND UPPER(pri.code) IN ('ABSENCE','ABSENCE_DEDUCTION')
+    ), 0) AS absence_deduction,
+    COALESCE((
+        SELECT SUM(pri.amount)
+        FROM payroll_run_items pri
+        WHERE pri.payroll_run_id = pr.payroll_run_id
+          AND pri.item_type = 'DEDUCTION'
+          AND UPPER(pri.code) IN ('LOAN','LOAN_DEDUCTION')
+    ), 0) AS loan_deduction,
+    COALESCE((
+        SELECT SUM(pri.amount)
+        FROM payroll_run_items pri
+        WHERE pri.payroll_run_id = pr.payroll_run_id
+          AND pri.item_type = 'DEDUCTION'
+          AND UPPER(pri.code) IN ('OTHER','OTHER_DEDUCTION')
+    ), 0) AS other_deductions,
     pr.status
 FROM payroll_runs pr
 INNER JOIN payroll_periods pp ON pp.payroll_period_id = pr.payroll_period_id
 INNER JOIN employees e ON e.employee_id = pr.employee_id
 LEFT JOIN appointment_types at ON at.appointment_type_id = e.appointment_type_id
 WHERE (@period_id IS NULL OR pr.payroll_period_id = @period_id)
+  AND (@employee_id IS NULL OR pr.employee_id = @employee_id)
+  AND (@released_only = 0 OR pr.status = 'RELEASED')
   AND COALESCE(pr.status, 'GENERATED') <> 'VOID'
 ORDER BY pp.pay_date DESC, e.employee_no
 LIMIT @limit;";
@@ -608,6 +666,8 @@ LIMIT @limit;";
                 await connection.OpenAsync();
                 await using var command = new MySqlCommand(sql, connection);
                 command.Parameters.AddWithValue("@period_id", periodId.HasValue && periodId.Value > 0 ? periodId.Value : DBNull.Value);
+                command.Parameters.AddWithValue("@employee_id", employeeId.HasValue && employeeId.Value > 0 ? employeeId.Value : DBNull.Value);
+                command.Parameters.AddWithValue("@released_only", releasedOnly ? 1 : 0);
                 command.Parameters.AddWithValue("@limit", Math.Max(1, limit));
 
                 await using (var reader = await command.ExecuteReaderAsync())
@@ -627,6 +687,9 @@ LIMIT @limit;";
                             EmploymentTypeName: reader["employment_type_name"]?.ToString() ?? "Permanent",
                             BasicPay: ToDecimal(reader["basic_pay"]),
                             DtrMinusMinutes: 0,
+                            AbsenceDeduction: ToDecimal(reader["absence_deduction"]),
+                            LoanDeduction: ToDecimal(reader["loan_deduction"]),
+                            OtherDeductions: ToDecimal(reader["other_deductions"]),
                             RunStatus: reader["status"]?.ToString() ?? "GENERATED"));
                     }
                 }
@@ -833,16 +896,55 @@ SELECT LAST_INSERT_ID();";
 
             try
             {
+                const string lifecycleSql = @"
+SELECT pp.status AS period_status, pr.status AS run_status
+FROM payroll_periods pp
+LEFT JOIN payroll_runs pr
+  ON pr.payroll_period_id = pp.payroll_period_id
+ AND pr.employee_id = @employee_id
+WHERE pp.payroll_period_id = @payroll_period_id
+LIMIT 1
+FOR UPDATE;";
+
+                await using (var lifecycleCommand = new MySqlCommand(lifecycleSql, connection, transaction))
+                {
+                    lifecycleCommand.Parameters.AddWithValue("@payroll_period_id", payrollPeriodId);
+                    lifecycleCommand.Parameters.AddWithValue("@employee_id", employeeId);
+                    await using var lifecycleReader = await lifecycleCommand.ExecuteReaderAsync();
+                    if (!await lifecycleReader.ReadAsync())
+                    {
+                        throw new InvalidOperationException("Payroll period was not found.");
+                    }
+
+                    var periodStatus = lifecycleReader["period_status"]?.ToString() ?? "OPEN";
+                    var existingRunStatus = lifecycleReader["run_status"] == DBNull.Value
+                        ? null
+                        : lifecycleReader["run_status"]?.ToString();
+
+                    if (!string.Equals(periodStatus, "OPEN", StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new InvalidOperationException($"Payroll period is {periodStatus}. Only OPEN periods can be generated or edited.");
+                    }
+
+                    if (string.Equals(existingRunStatus, "APPROVED", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(existingRunStatus, "RELEASED", StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new InvalidOperationException($"This payroll is already {existingRunStatus}. Approved or released payroll cannot be edited.");
+                    }
+                }
+
                 var compensation = await GetEmployeeCompensationAsync(connection, transaction, employeeId);
                 var effectiveBasicPay = basicPay > 0m ? basicPay : compensation.MonthlyRate;
                 var periodRange = await GetPayrollPeriodRangeAsync(connection, transaction, payrollPeriodId);
                 var dtrMinusMinutes = await GetDtrMinusMinutesAsync(connection, transaction, employeeId, periodRange.DateFrom, periodRange.DateTo);
+                var absentDays = await GetAbsentDaysAsync(connection, transaction, employeeId, periodRange.DateFrom, periodRange.DateTo);
                 var deductions = PhilippinePayrollDeductions.ComputeAll(
                     basicMonthlySalary: effectiveBasicPay,
                     employmentTypeName: compensation.EmploymentTypeName,
                     allowances: allowances,
                     overtimePay: overtimePay,
                     otherEarnings: otherEarnings,
+                    absentDays: absentDays,
                     lateMinutes: dtrMinusMinutes);
 
                 await using var command = new MySqlCommand(sql, connection, transaction);
@@ -891,7 +993,7 @@ SELECT LAST_INSERT_ID();";
         {
             if (payrollPeriodId <= 0 || employeeId <= 0)
             {
-                return new PayrollRunEditorDefaultsDto(0m, 0m, 0m, 0m, 0m, "GENERATED", false, string.Empty, string.Empty, 0);
+                return new PayrollRunEditorDefaultsDto(0m, 0m, 0m, 0m, 0m, "GENERATED", false, string.Empty, string.Empty, 0, 0m);
             }
 
             const string existingRunSql = @"
@@ -914,6 +1016,7 @@ LIMIT 1;";
                 var compensation = await GetEmployeeCompensationAsync(connection, null, employeeId);
                 var periodRange = await GetPayrollPeriodRangeAsync(connection, null, payrollPeriodId);
                 var dtrMinusMinutes = await GetDtrMinusMinutesAsync(connection, null, employeeId, periodRange.DateFrom, periodRange.DateTo);
+                var absentDays = await GetAbsentDaysAsync(connection, null, employeeId, periodRange.DateFrom, periodRange.DateTo);
 
                 await using (var existingRunCommand = new MySqlCommand(existingRunSql, connection))
                 {
@@ -932,7 +1035,8 @@ LIMIT 1;";
                             FromExistingRun: true,
                             EmploymentTypeName: compensation.EmploymentTypeName,
                             PositionName: compensation.PositionName,
-                            DtrMinusMinutes: dtrMinusMinutes);
+                            DtrMinusMinutes: dtrMinusMinutes,
+                            AbsentDays: absentDays);
                     }
                 }
 
@@ -944,6 +1048,7 @@ LIMIT 1;";
                     allowances: allowances,
                     overtimePay: 0m,
                     otherEarnings: 0m,
+                    absentDays: absentDays,
                     lateMinutes: dtrMinusMinutes);
 
                 return new PayrollRunEditorDefaultsDto(
@@ -956,11 +1061,12 @@ LIMIT 1;";
                     FromExistingRun: false,
                     EmploymentTypeName: compensation.EmploymentTypeName,
                     PositionName: compensation.PositionName,
-                    DtrMinusMinutes: dtrMinusMinutes);
+                    DtrMinusMinutes: dtrMinusMinutes,
+                    AbsentDays: absentDays);
             }
             catch (MySqlException ex) when (IsMissingObjectError(ex))
             {
-                return new PayrollRunEditorDefaultsDto(0m, 0m, 0m, 0m, 0m, "GENERATED", false, string.Empty, string.Empty, 0);
+                return new PayrollRunEditorDefaultsDto(0m, 0m, 0m, 0m, 0m, "GENERATED", false, string.Empty, string.Empty, 0, 0m);
             }
         }
 
@@ -974,7 +1080,8 @@ LIMIT 1;";
             const string sql = @"
 UPDATE payroll_runs
 SET status = @status
-WHERE payroll_run_id = @payroll_run_id;";
+WHERE payroll_run_id = @payroll_run_id
+  AND status = @previous_status;";
 
             await using var connection = new MySqlConnection(_connectionString);
             await connection.OpenAsync();
@@ -988,14 +1095,19 @@ WHERE payroll_run_id = @payroll_run_id;";
                 "payroll_runs",
                 targetId);
             var previousStatus = await GetPayrollRunStatusAsync(connection, payrollRunId);
-            var shouldWriteConsolidated = normalizedStatus == "RELEASED" &&
-                                          !string.Equals(previousStatus, "RELEASED", StringComparison.OrdinalIgnoreCase);
+            if (previousStatus == null)
+            {
+                throw new InvalidOperationException("Payroll run not found.");
+            }
+
+            ValidateRunStatusTransition(previousStatus, normalizedStatus);
 
             try
             {
                 await using var command = new MySqlCommand(sql, connection);
                 command.Parameters.AddWithValue("@payroll_run_id", payrollRunId);
                 command.Parameters.AddWithValue("@status", normalizedStatus);
+                command.Parameters.AddWithValue("@previous_status", previousStatus);
                 var affected = await command.ExecuteNonQueryAsync();
                 if (affected == 0)
                 {
@@ -1017,12 +1129,6 @@ WHERE payroll_run_id = @payroll_run_id;";
                     "SUCCESS",
                     $"Status='{normalizedStatus}'.");
 
-                if (shouldWriteConsolidated)
-                {
-                    _ = Task.Run(() => TryWriteConsolidatedRunStatusTransactionAsync(
-                        actingUserId,
-                        payrollRunId));
-                }
             }
             catch (Exception ex)
             {
@@ -1058,6 +1164,17 @@ WHERE payroll_run_id = @payroll_run_id;";
                 "PAYROLL_RUN_DELETE",
                 "payroll_runs",
                 targetId);
+
+            var currentStatus = await GetPayrollRunStatusAsync(connection, payrollRunId);
+            if (currentStatus == null)
+            {
+                throw new InvalidOperationException("Payroll run not found.");
+            }
+
+            if (string.Equals(currentStatus, "RELEASED", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Released payroll cannot be deleted. Void it through an authorized correction process instead.");
+            }
 
             try
             {
@@ -1111,7 +1228,8 @@ VALUES (@payroll_run_id, @released_by_employee_id, @remarks);";
             const string updateStatusSql = @"
 UPDATE payroll_runs
 SET status = 'RELEASED'
-WHERE payroll_run_id = @payroll_run_id;";
+WHERE payroll_run_id = @payroll_run_id
+  AND status = 'APPROVED';";
 
             await using var connection = new MySqlConnection(_connectionString);
             await connection.OpenAsync();
@@ -1128,6 +1246,39 @@ WHERE payroll_run_id = @payroll_run_id;";
 
             try
             {
+                const string lifecycleSql = @"
+SELECT pr.status AS run_status, pr.payroll_period_id,
+       EXISTS(SELECT 1 FROM payslip_releases rel WHERE rel.payroll_run_id = pr.payroll_run_id) AS already_released
+FROM payroll_runs pr
+WHERE pr.payroll_run_id = @payroll_run_id
+LIMIT 1
+FOR UPDATE;";
+
+                long payrollPeriodId;
+                await using (var lifecycleCommand = new MySqlCommand(lifecycleSql, connection, transaction))
+                {
+                    lifecycleCommand.Parameters.AddWithValue("@payroll_run_id", payrollRunId);
+                    await using var lifecycleReader = await lifecycleCommand.ExecuteReaderAsync();
+                    if (!await lifecycleReader.ReadAsync())
+                    {
+                        throw new InvalidOperationException("Payroll run not found.");
+                    }
+
+                    var currentStatus = lifecycleReader["run_status"]?.ToString() ?? "GENERATED";
+                    if (ToInt(lifecycleReader["already_released"]) > 0 ||
+                        string.Equals(currentStatus, "RELEASED", StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new InvalidOperationException("This payslip has already been released.");
+                    }
+
+                    if (!string.Equals(currentStatus, "APPROVED", StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new InvalidOperationException("Approve the payroll run before releasing its payslip.");
+                    }
+
+                    payrollPeriodId = ToLong(lifecycleReader["payroll_period_id"]);
+                }
+
                 var releasedByEmployeeId = actingUserId.HasValue && actingUserId.Value > 0
                     ? await ResolveEmployeeIdByUserIdAsync(connection, transaction, actingUserId.Value)
                     : null;
@@ -1158,6 +1309,26 @@ WHERE payroll_run_id = @payroll_run_id;";
                             "Payroll run not found.");
                         throw new InvalidOperationException("Payroll run not found.");
                     }
+                }
+
+                const string autoLockSql = @"
+UPDATE payroll_periods pp
+SET pp.status = 'LOCKED', pp.updated_at = CURRENT_TIMESTAMP
+WHERE pp.payroll_period_id = @payroll_period_id
+  AND pp.status = 'OPEN'
+  AND EXISTS (
+      SELECT 1 FROM payroll_runs pr
+      WHERE pr.payroll_period_id = pp.payroll_period_id
+  )
+  AND NOT EXISTS (
+      SELECT 1 FROM payroll_runs pr
+      WHERE pr.payroll_period_id = pp.payroll_period_id
+        AND pr.status NOT IN ('RELEASED', 'VOID')
+  );";
+                await using (var autoLockCommand = new MySqlCommand(autoLockSql, connection, transaction))
+                {
+                    autoLockCommand.Parameters.AddWithValue("@payroll_period_id", payrollPeriodId);
+                    await autoLockCommand.ExecuteNonQueryAsync();
                 }
 
                 await transaction.CommitAsync();
@@ -1222,7 +1393,15 @@ WHERE payroll_run_id = @payroll_run_id;";
 SELECT COUNT(*)
 FROM payroll_runs
 WHERE payroll_run_id = @payroll_run_id
-  AND employee_id = @employee_id;";
+  AND employee_id = @employee_id
+  AND status = 'RELEASED';";
+
+            const string existingConcernSql = @"
+SELECT COUNT(*)
+FROM payroll_concerns
+WHERE payroll_run_id = @payroll_run_id
+  AND employee_id = @employee_id
+  AND status IN ('OPEN', 'IN_REVIEW');";
 
             const string insertSql = @"
 INSERT INTO payroll_concerns (payroll_run_id, employee_id, reported_by_user_id, concern_details, status)
@@ -1254,6 +1433,17 @@ SELECT LAST_INSERT_ID();";
                             "DENIED",
                             "Selected run is not linked to the requesting employee.");
                         throw new InvalidOperationException("You can only report concern for your own payroll run.");
+                    }
+                }
+
+                await using (var existingConcernCommand = new MySqlCommand(existingConcernSql, connection))
+                {
+                    existingConcernCommand.Parameters.AddWithValue("@payroll_run_id", payrollRunId);
+                    existingConcernCommand.Parameters.AddWithValue("@employee_id", employeeId);
+                    var existing = Convert.ToInt32(await existingConcernCommand.ExecuteScalarAsync() ?? 0, CultureInfo.InvariantCulture);
+                    if (existing > 0)
+                    {
+                        throw new InvalidOperationException("You already have an open concern for this payslip. Track it in Payroll Concerns.");
                     }
                 }
 
@@ -1292,6 +1482,117 @@ SELECT LAST_INSERT_ID();";
                     ex.Message);
                 throw;
             }
+        }
+
+        public async Task<IReadOnlyList<PayrollConcernDto>> GetPayrollConcernsAsync(int? employeeId = null, int limit = 500)
+        {
+            const string sql = @"
+SELECT pc.payroll_concern_id, pc.payroll_run_id, pp.period_code,
+       pc.employee_id, COALESCE(e.employee_no, '-') AS employee_no,
+       CONCAT(e.last_name, ', ', e.first_name, IFNULL(CONCAT(' ', e.middle_name), '')) AS employee_name,
+       pc.concern_details, pc.status, pc.created_at, COALESCE(pc.resolution_notes, '') AS resolution_notes
+FROM payroll_concerns pc
+INNER JOIN payroll_runs pr ON pr.payroll_run_id = pc.payroll_run_id
+INNER JOIN payroll_periods pp ON pp.payroll_period_id = pr.payroll_period_id
+INNER JOIN employees e ON e.employee_id = pc.employee_id
+WHERE (@employee_id IS NULL OR pc.employee_id = @employee_id)
+ORDER BY FIELD(pc.status, 'OPEN', 'IN_REVIEW', 'RESOLVED', 'REJECTED'), pc.created_at DESC
+LIMIT @limit;";
+
+            var rows = new List<PayrollConcernDto>();
+            try
+            {
+                await using var connection = new MySqlConnection(_connectionString);
+                await connection.OpenAsync();
+                await using var command = new MySqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@employee_id", employeeId.HasValue && employeeId.Value > 0 ? employeeId.Value : DBNull.Value);
+                command.Parameters.AddWithValue("@limit", Math.Max(1, limit));
+                await using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    rows.Add(new PayrollConcernDto(
+                        PayrollConcernId: ToLong(reader["payroll_concern_id"]),
+                        PayrollRunId: ToLong(reader["payroll_run_id"]),
+                        PeriodCode: reader["period_code"]?.ToString() ?? "-",
+                        EmployeeId: ToInt(reader["employee_id"]),
+                        EmployeeNo: reader["employee_no"]?.ToString() ?? "-",
+                        EmployeeName: reader["employee_name"]?.ToString() ?? "-",
+                        ConcernDetails: reader["concern_details"]?.ToString() ?? "-",
+                        Status: reader["status"]?.ToString() ?? "OPEN",
+                        CreatedAt: reader["created_at"] == DBNull.Value ? DateTime.Today : Convert.ToDateTime(reader["created_at"], CultureInfo.InvariantCulture),
+                        ResolutionNotes: reader["resolution_notes"]?.ToString() ?? string.Empty));
+                }
+            }
+            catch (MySqlException ex) when (IsMissingObjectError(ex))
+            {
+                return Array.Empty<PayrollConcernDto>();
+            }
+
+            return rows;
+        }
+
+        public async Task UpdatePayrollConcernAsync(long payrollConcernId, string status, string? resolutionNotes, int? actingUserId)
+        {
+            if (payrollConcernId <= 0)
+            {
+                throw new InvalidOperationException("Select a payroll concern first.");
+            }
+
+            var nextStatus = status?.Trim().ToUpperInvariant() switch
+            {
+                "IN_REVIEW" => "IN_REVIEW",
+                "RESOLVED" => "RESOLVED",
+                "REJECTED" => "REJECTED",
+                _ => throw new InvalidOperationException("Invalid payroll concern status.")
+            };
+
+            await using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+            var targetId = payrollConcernId.ToString(CultureInfo.InvariantCulture);
+            await EnsureAdminOrHrAccessAsync(connection, actingUserId, "review payroll concerns", "PAYROLL_CONCERN_UPDATE", "payroll_concerns", targetId);
+
+            const string currentSql = "SELECT status FROM payroll_concerns WHERE payroll_concern_id = @id LIMIT 1;";
+            await using var currentCommand = new MySqlCommand(currentSql, connection);
+            currentCommand.Parameters.AddWithValue("@id", payrollConcernId);
+            var current = (await currentCommand.ExecuteScalarAsync())?.ToString()?.ToUpperInvariant();
+            if (current == null)
+            {
+                throw new InvalidOperationException("Payroll concern was not found.");
+            }
+
+            var allowed = (current == "OPEN" && nextStatus == "IN_REVIEW") ||
+                          (current == "IN_REVIEW" && nextStatus is "RESOLVED" or "REJECTED");
+            if (!allowed)
+            {
+                throw new InvalidOperationException($"Invalid concern status change: {current} to {nextStatus}.");
+            }
+
+            if (nextStatus is "RESOLVED" or "REJECTED" && string.IsNullOrWhiteSpace(resolutionNotes))
+            {
+                throw new InvalidOperationException("Resolution notes are required before closing a concern.");
+            }
+
+            const string updateSql = @"
+UPDATE payroll_concerns
+SET status = @status,
+    resolution_notes = CASE WHEN @status IN ('RESOLVED','REJECTED') THEN @notes ELSE resolution_notes END,
+    resolved_at = CASE WHEN @status IN ('RESOLVED','REJECTED') THEN CURRENT_TIMESTAMP ELSE NULL END,
+    resolved_by_user_id = CASE WHEN @status IN ('RESOLVED','REJECTED') THEN @user_id ELSE NULL END,
+    updated_at = CURRENT_TIMESTAMP
+WHERE payroll_concern_id = @id
+  AND status = @current_status;";
+            await using var updateCommand = new MySqlCommand(updateSql, connection);
+            updateCommand.Parameters.AddWithValue("@id", payrollConcernId);
+            updateCommand.Parameters.AddWithValue("@status", nextStatus);
+            updateCommand.Parameters.AddWithValue("@current_status", current);
+            updateCommand.Parameters.AddWithValue("@notes", string.IsNullOrWhiteSpace(resolutionNotes) ? DBNull.Value : resolutionNotes.Trim());
+            updateCommand.Parameters.AddWithValue("@user_id", actingUserId.HasValue && actingUserId.Value > 0 ? actingUserId.Value : DBNull.Value);
+            if (await updateCommand.ExecuteNonQueryAsync() == 0)
+            {
+                throw new InvalidOperationException("Payroll concern changed while you were reviewing it. Refresh and try again.");
+            }
+
+            await _auditLogWriter.TryWriteAsync(actingUserId, "PAYROLL_CONCERN_UPDATE", "payroll_concerns", targetId, "SUCCESS", $"Status='{nextStatus}'.");
         }
 
         private async Task TryWriteConsolidatedTransactionAsync(
@@ -2105,6 +2406,75 @@ LEFT JOIN shifts s ON s.shift_id = sa.shift_id;";
                 : Convert.ToInt32(result, CultureInfo.InvariantCulture);
         }
 
+        private static async Task<decimal> GetAbsentDaysAsync(
+            MySqlConnection connection,
+            MySqlTransaction? transaction,
+            int employeeId,
+            DateTime dateFrom,
+            DateTime dateTo)
+        {
+            if (employeeId <= 0 || dateTo.Date < dateFrom.Date)
+            {
+                return 0m;
+            }
+
+            const string sql = @"
+SELECT COALESCE(SUM(
+    CASE
+        WHEN DAYOFWEEK(cal.work_date) IN (1, 7) THEN 0
+        WHEN cal.work_date >= CURDATE() THEN 0
+        WHEN emp.hire_date IS NOT NULL AND cal.work_date < emp.hire_date THEN 0
+        WHEN COALESCE(raw.has_punch, 0) = 1 THEN 0
+        WHEN COALESCE(excused.has_excused_remark, 0) = 1 THEN 0
+        WHEN approved_leave.leave_application_id IS NOT NULL THEN 0
+        ELSE 1
+    END), 0) AS absent_days
+FROM (
+    SELECT DATE_ADD(@date_from, INTERVAL (ones.n + tens.n * 10) DAY) AS work_date
+    FROM (
+        SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
+        UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9
+    ) ones
+    CROSS JOIN (
+        SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
+        UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9
+    ) tens
+    WHERE DATE_ADD(@date_from, INTERVAL (ones.n + tens.n * 10) DAY) <= @date_to
+) cal
+INNER JOIN employees emp ON emp.employee_id = @employee_id
+LEFT JOIN (
+    SELECT DATE(log_time) AS work_date, 1 AS has_punch
+    FROM attendance_logs
+    WHERE employee_id = @employee_id
+      AND log_time >= @date_from
+      AND log_time < DATE_ADD(@date_to, INTERVAL 1 DAY)
+    GROUP BY DATE(log_time)
+) raw ON raw.work_date = cal.work_date
+LEFT JOIN (
+    SELECT work_date, 1 AS has_excused_remark
+    FROM attendance_remarks
+    WHERE employee_id = @employee_id
+      AND work_date BETWEEN @date_from AND @date_to
+      AND remark_type IN ('HOLIDAY','TO','OB','CTO','SUSPENDED','WFH')
+    GROUP BY work_date
+) excused ON excused.work_date = cal.work_date
+LEFT JOIN leave_applications approved_leave
+  ON approved_leave.employee_id = @employee_id
+ AND approved_leave.status = 'APPROVED'
+ AND cal.work_date BETWEEN approved_leave.date_from AND approved_leave.date_to;";
+
+            await using var command = transaction == null
+                ? new MySqlCommand(sql, connection)
+                : new MySqlCommand(sql, connection, transaction);
+            command.Parameters.AddWithValue("@employee_id", employeeId);
+            command.Parameters.AddWithValue("@date_from", dateFrom.Date);
+            command.Parameters.AddWithValue("@date_to", dateTo.Date);
+            var result = await command.ExecuteScalarAsync();
+            return result == null || result == DBNull.Value
+                ? 0m
+                : Convert.ToDecimal(result, CultureInfo.InvariantCulture);
+        }
+
         private static async Task ReplaceRunItemsAsync(
             MySqlConnection connection,
             MySqlTransaction transaction,
@@ -2288,6 +2658,39 @@ VALUES (@payroll_run_id, @item_type, @code, @description, @amount);";
             };
         }
 
+        private static void ValidateRunStatusTransition(string currentStatus, string nextStatus)
+        {
+            var current = NormalizeRunStatus(currentStatus);
+            var next = NormalizeRunStatus(nextStatus);
+
+            if (string.Equals(current, next, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (string.Equals(next, "RELEASED", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Use Release Payslip to change an approved payroll to RELEASED.");
+            }
+
+            if (string.Equals(current, "RELEASED", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(current, "VOID", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"{current} payroll is final and its status cannot be changed.");
+            }
+
+            var allowed =
+                (current == "DRAFT" && next == "GENERATED") ||
+                (current == "GENERATED" && next == "APPROVED") ||
+                (next == "VOID" && current is "DRAFT" or "GENERATED" or "APPROVED");
+
+            if (!allowed)
+            {
+                throw new InvalidOperationException(
+                    $"Invalid payroll status change: {current} to {next}. Use DRAFT → GENERATED → APPROVED → Release Payslip.");
+            }
+        }
+
         private static int ToInt(object value) =>
             value == DBNull.Value || value == null ? 0 : Convert.ToInt32(value, CultureInfo.InvariantCulture);
 
@@ -2314,7 +2717,7 @@ VALUES (@payroll_run_id, @item_type, @code, @description, @amount);";
         /// One-click GENERATE: creates payroll runs for ALL active employees in the given period.
         /// Uses each employee's stored monthly rate and default allowances.
         /// </summary>
-        public async Task<int> GenerateAllRunsAsync(long payrollPeriodId)
+        public async Task<PayrollGenerationResult> GenerateAllRunsAsync(long payrollPeriodId)
         {
             if (payrollPeriodId <= 0)
             {
@@ -2323,6 +2726,7 @@ VALUES (@payroll_run_id, @item_type, @code, @description, @amount);";
 
             var employees = await GetEmployeesAsync(null);
             var generated = 0;
+            var failures = new List<string>();
 
             foreach (var emp in employees)
             {
@@ -2339,13 +2743,13 @@ VALUES (@payroll_run_id, @item_type, @code, @description, @amount);";
                         status: "GENERATED");
                     generated++;
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Skip employees that fail (e.g. missing compensation data)
+                    failures.Add($"{emp.EmployeeNo} - {emp.EmployeeName}: {ex.Message}");
                 }
             }
 
-            return generated;
+            return new PayrollGenerationResult(generated, failures.Count, failures);
         }
 
         /// <summary>

@@ -107,6 +107,25 @@
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
 
+        <Style x:Key="DocumentStatusTextStyle" TargetType="TextBlock" BasedOn="{StaticResource EmployeeGridTextStyle}">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#6A7684" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding StatusKey}" Value="verified">
+                    <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding StatusKey}" Value="submitted">
+                    <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding StatusKey}" Value="expired">
+                    <Setter Property="Foreground" Value="{StaticResource ErrorBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding StatusKey}" Value="waived">
+                    <Setter Property="Foreground" Value="#8A6D20" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="WrapGridTextStyle" TargetType="TextBlock">
             <Setter Property="TextWrapping" Value="Wrap" />
             <Setter Property="VerticalAlignment" Value="Center" />
@@ -116,9 +135,7 @@
     <Grid Margin="4">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Grid Grid.Row="0" Margin="0,0,0,12">
@@ -168,56 +185,10 @@
             </StackPanel>
         </Grid>
 
-        <Grid Grid.Row="1" Margin="0,0,0,12">
+        <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="350" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="2*" />
-            </Grid.ColumnDefinitions>
-
-            <Border Grid.Column="0" Margin="6,0" Style="{StaticResource CardStyle}" Background="#F5FBFF">
-                <StackPanel>
-                    <TextBlock Text="Employees" Foreground="#6A7684" />
-                    <TextBlock Text="{Binding TotalEmployees}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
-                </StackPanel>
-            </Border>
-
-            <Border Grid.Column="1" Margin="6,0" Style="{StaticResource CardStyle}" Background="#F2FBF5">
-                <StackPanel>
-                    <TextBlock Text="Complete" Foreground="#6A7684" />
-                    <TextBlock Text="{Binding CompleteEmployees}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" />
-                </StackPanel>
-            </Border>
-
-            <Border Grid.Column="2" Margin="6,0" Style="{StaticResource CardStyle}" Background="#FFF8EC">
-                <StackPanel>
-                    <TextBlock Text="Partial" Foreground="#6A7684" />
-                    <TextBlock Text="{Binding PartialEmployees}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource WarningBrush}" />
-                </StackPanel>
-            </Border>
-
-            <Border Grid.Column="3" Margin="6,0" Style="{StaticResource CardStyle}" Background="#FFF4F4">
-                <StackPanel>
-                    <TextBlock Text="Incomplete" Foreground="#6A7684" />
-                    <TextBlock Text="{Binding IncompleteEmployees}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource ErrorBrush}" />
-                </StackPanel>
-            </Border>
-
-            <Border Grid.Column="4" Margin="6,0" Style="{StaticResource CardStyle}" Background="#F7FBFF">
-                <TextBlock Text="{Binding ActionMessage}"
-                           Foreground="{Binding ActionMessageBrush}"
-                           FontWeight="SemiBold"
-                           TextWrapping="Wrap"
-                           VerticalAlignment="Center" />
-            </Border>
-        </Grid>
-
-        <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1*" />
-                <ColumnDefinition Width="2*" />
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" Margin="6,0,10,0" Style="{StaticResource CardStyle}">
@@ -275,10 +246,20 @@
                               RowHeaderWidth="0"
                               ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Name"
-                                                Binding="{Binding EmployeeName}"
-                                                Width="*"
-                                                ElementStyle="{StaticResource EmployeeGridTextStyle}" />
+                            <DataGridTemplateColumn Header="Employee" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding EmployeeName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock FontSize="11" Foreground="#6A7684" TextTrimming="CharacterEllipsis">
+                                                <Run Text="{Binding EmployeeNo}" />
+                                                <Run Text=" · " />
+                                                <Run Text="{Binding PositionName}" />
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Progress"
                                                 Binding="{Binding ProgressText, Mode=OneWay}"
                                                 Width="90"
@@ -307,228 +288,265 @@
                     </Border>
 
                     <Border Margin="0,0,0,10" Style="{StaticResource CardStyle}">
-                        <TabControl MinHeight="320">
-                        <TabItem Header="Tier 1">
-                            <DataGrid ItemsSource="{Binding Tier1Documents}"
-                                      SelectedItem="{Binding SelectedDocument}"
-                                      AutoGenerateColumns="False"
-                                      CanUserAddRows="False"
-                                      CanUserDeleteRows="False"
-                                      IsReadOnly="True"
-                                      ColumnHeaderStyle="{StaticResource HeaderStyle}"
-                                      CellStyle="{StaticResource GridCellStyle}"
-                                      RowStyle="{StaticResource GridRowStyle}"
-                                      HeadersVisibility="Column"
-                                      RowHeaderWidth="0"
-                                      MinHeight="250"
-                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Code" Binding="{Binding DocumentCode}" Width="78" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
-                                    <DataGridTextColumn Header="Document" Binding="{Binding DocumentName}" Width="*" ElementStyle="{StaticResource WrapGridTextStyle}" />
-                                    <DataGridTextColumn Header="Status" Binding="{Binding StatusLabel, Mode=OneWay}" Width="120" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
-                                    <DataGridTextColumn Header="Submitted" Binding="{Binding SubmittedDate, StringFormat={}{0:MMM dd, yyyy}}" Width="118" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
-                                    <DataGridTextColumn Header="Expiry" Binding="{Binding ExpiryDate, StringFormat={}{0:MMM dd, yyyy}}" Width="118" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
-                                </DataGrid.Columns>
-                            </DataGrid>
-                        </TabItem>
-                        <TabItem Header="Tier 2">
-                            <DataGrid ItemsSource="{Binding Tier2Documents}"
-                                      SelectedItem="{Binding SelectedDocument}"
-                                      AutoGenerateColumns="False"
-                                      CanUserAddRows="False"
-                                      CanUserDeleteRows="False"
-                                      IsReadOnly="True"
-                                      ColumnHeaderStyle="{StaticResource HeaderStyle}"
-                                      CellStyle="{StaticResource GridCellStyle}"
-                                      RowStyle="{StaticResource GridRowStyle}"
-                                      HeadersVisibility="Column"
-                                      RowHeaderWidth="0"
-                                      MinHeight="250"
-                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Code" Binding="{Binding DocumentCode}" Width="78" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
-                                    <DataGridTextColumn Header="Document" Binding="{Binding DocumentName}" Width="*" ElementStyle="{StaticResource WrapGridTextStyle}" />
-                                    <DataGridTextColumn Header="Status" Binding="{Binding StatusLabel, Mode=OneWay}" Width="120" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
-                                    <DataGridTextColumn Header="Submitted" Binding="{Binding SubmittedDate, StringFormat={}{0:MMM dd, yyyy}}" Width="118" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
-                                    <DataGridTextColumn Header="Expiry" Binding="{Binding ExpiryDate, StringFormat={}{0:MMM dd, yyyy}}" Width="118" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
-                                </DataGrid.Columns>
-                            </DataGrid>
-                        </TabItem>
-                        <TabItem Header="Tier 3">
-                            <DataGrid ItemsSource="{Binding Tier3Documents}"
-                                      SelectedItem="{Binding SelectedDocument}"
-                                      AutoGenerateColumns="False"
-                                      CanUserAddRows="False"
-                                      CanUserDeleteRows="False"
-                                      IsReadOnly="True"
-                                      ColumnHeaderStyle="{StaticResource HeaderStyle}"
-                                      CellStyle="{StaticResource GridCellStyle}"
-                                      RowStyle="{StaticResource GridRowStyle}"
-                                      HeadersVisibility="Column"
-                                      RowHeaderWidth="0"
-                                      MinHeight="250"
-                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Code" Binding="{Binding DocumentCode}" Width="78" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
-                                    <DataGridTextColumn Header="Document" Binding="{Binding DocumentName}" Width="*" ElementStyle="{StaticResource WrapGridTextStyle}" />
-                                    <DataGridTextColumn Header="Status" Binding="{Binding StatusLabel, Mode=OneWay}" Width="120" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
-                                    <DataGridTextColumn Header="Submitted" Binding="{Binding SubmittedDate, StringFormat={}{0:MMM dd, yyyy}}" Width="118" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
-                                    <DataGridTextColumn Header="Expiry" Binding="{Binding ExpiryDate, StringFormat={}{0:MMM dd, yyyy}}" Width="118" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
-                                </DataGrid.Columns>
-                            </DataGrid>
-                        </TabItem>
-                        <TabItem Header="Tier 4">
-                            <DataGrid ItemsSource="{Binding Tier4Documents}"
-                                      SelectedItem="{Binding SelectedDocument}"
-                                      AutoGenerateColumns="False"
-                                      CanUserAddRows="False"
-                                      CanUserDeleteRows="False"
-                                      IsReadOnly="True"
-                                      ColumnHeaderStyle="{StaticResource HeaderStyle}"
-                                      CellStyle="{StaticResource GridCellStyle}"
-                                      RowStyle="{StaticResource GridRowStyle}"
-                                      HeadersVisibility="Column"
-                                      RowHeaderWidth="0"
-                                      MinHeight="250"
-                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Code" Binding="{Binding DocumentCode}" Width="78" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
-                                    <DataGridTextColumn Header="Document" Binding="{Binding DocumentName}" Width="*" ElementStyle="{StaticResource WrapGridTextStyle}" />
-                                    <DataGridTextColumn Header="Status" Binding="{Binding StatusLabel, Mode=OneWay}" Width="120" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
-                                    <DataGridTextColumn Header="Submitted" Binding="{Binding SubmittedDate, StringFormat={}{0:MMM dd, yyyy}}" Width="118" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
-                                    <DataGridTextColumn Header="Expiry" Binding="{Binding ExpiryDate, StringFormat={}{0:MMM dd, yyyy}}" Width="118" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
-                                </DataGrid.Columns>
-                            </DataGrid>
-                        </TabItem>
-                        </TabControl>
-                    </Border>
-
-                    <Border Margin="0,0,0,10" Style="{StaticResource CardStyle}" Background="#F9FBFF">
-                    <StackPanel>
-                        <TextBlock Text="{Binding SelectedDocumentTitle}"
-                                   FontWeight="Bold"
-                                   FontSize="16"
-                                   Foreground="{StaticResource PrimaryBrush}" />
-
-                        <Grid Margin="0,10,0,0">
+                        <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="1.2*" />
-                                <ColumnDefinition Width="1*" />
-                                <ColumnDefinition Width="1*" />
-                                <ColumnDefinition Width="1*" />
-                            </Grid.ColumnDefinitions>
-
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="Status" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                                <ComboBox ItemsSource="{Binding StatusOptions}"
-                                          SelectedItem="{Binding SelectedDocumentStatus}"
-                                          Style="{StaticResource ComboBoxStyle}" />
+                            <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                                <TextBlock Text="Required Employee Documents"
+                                           FontSize="16"
+                                           FontWeight="Bold"
+                                           Foreground="{StaticResource PrimaryBrush}" />
+                                <TextBlock Text="Only the requirements assigned to this employee are shown. Select one to review or upload a file."
+                                           Margin="0,3,0,0"
+                                           Foreground="#5B6A7A" />
                             </StackPanel>
-
-                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                <TextBlock Text="Submitted" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                                <Border Style="{StaticResource DateFieldBorderStyle}">
-                                    <DatePicker BorderThickness="0"
-                                                Padding="8,0"
-                                                Background="Transparent"
-                                                Language="en-GB"
-                                                SelectedDateFormat="Short"
-                                                SelectedDate="{Binding SelectedSubmittedDate}" />
-                                </Border>
-                            </StackPanel>
-
-                            <StackPanel Grid.Column="2" Margin="10,0,0,0">
-                                <TextBlock Text="Expiry" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                                <Border Style="{StaticResource DateFieldBorderStyle}">
-                                    <DatePicker BorderThickness="0"
-                                                Padding="8,0"
-                                                Background="Transparent"
-                                                Language="en-GB"
-                                                SelectedDateFormat="Short"
-                                                SelectedDate="{Binding SelectedExpiryDate}" />
-                                </Border>
-                            </StackPanel>
-
-                            <StackPanel Grid.Column="3" Margin="10,0,0,0">
-                                <TextBlock Text="Verified" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                                <Border Style="{StaticResource DateFieldBorderStyle}">
-                                    <DatePicker BorderThickness="0"
-                                                Padding="8,0"
-                                                Background="Transparent"
-                                                Language="en-GB"
-                                                SelectedDateFormat="Short"
-                                                SelectedDate="{Binding SelectedVerifiedDate}" />
-                                </Border>
-                            </StackPanel>
-
-                            <Border Grid.Row="1"
-                                    Grid.ColumnSpan="3"
-                                    Margin="0,12,10,0"
-                                    Padding="12,10"
-                                    Background="White"
-                                    BorderBrush="#D6E1F0"
-                                    BorderThickness="1"
-                                    CornerRadius="10">
-                                <StackPanel>
-                                    <TextBlock Text="Uploaded File"
-                                               Foreground="#5B6A7A"
-                                               FontWeight="SemiBold" />
-                                    <TextBlock Text="{Binding SelectedDocumentAttachmentText}"
-                                               Foreground="{StaticResource PrimaryBrush}"
-                                               TextWrapping="Wrap"
-                                               Margin="0,4,0,0" />
-                                </StackPanel>
-                            </Border>
-
-                            <StackPanel Grid.Row="1"
-                                        Grid.Column="3"
-                                        Margin="10,12,0,0"
-                                        Orientation="Vertical">
-                                <Button Style="{StaticResource PrimaryButtonStyle}"
-                                        Margin="0,0,0,8"
-                                        MinWidth="148"
-                                        Visibility="{Binding SelectedDocumentHasAttachment, Converter={StaticResource BoolToVis}}"
-                                        Command="{Binding OpenAttachmentCommand}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <materialDesign:PackIcon Kind="OpenInNew" Width="15" Height="15" Margin="0,0,6,0" />
-                                        <TextBlock Text="Open File" />
-                                    </StackPanel>
-                                </Button>
-
-                                <Button Style="{StaticResource PrimaryButtonStyle}"
-                                        MinWidth="148"
-                                        Command="{Binding SaveDocumentCommand}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <materialDesign:PackIcon Kind="ContentSaveOutline" Width="15" Height="15" Margin="0,0,6,0" />
-                                        <TextBlock Text="Save" />
-                                    </StackPanel>
-                                </Button>
-                            </StackPanel>
+                            <DataGrid Grid.Row="1"
+                                      Height="270"
+                                      ItemsSource="{Binding RequiredDocuments}"
+                                      SelectedItem="{Binding SelectedDocument}"
+                                      AutoGenerateColumns="False"
+                                      CanUserAddRows="False"
+                                      CanUserDeleteRows="False"
+                                      IsReadOnly="True"
+                                      ColumnHeaderStyle="{StaticResource HeaderStyle}"
+                                      CellStyle="{StaticResource GridCellStyle}"
+                                      RowStyle="{StaticResource GridRowStyle}"
+                                      HeadersVisibility="Column"
+                                      RowHeaderWidth="0"
+                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Code" Binding="{Binding DocumentCode}" Width="92" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
+                                    <DataGridTextColumn Header="Required Document" Binding="{Binding DocumentName}" Width="*" ElementStyle="{StaticResource WrapGridTextStyle}" />
+                                    <DataGridTextColumn Header="Status" Binding="{Binding StatusLabel, Mode=OneWay}" Width="120" ElementStyle="{StaticResource DocumentStatusTextStyle}" />
+                                    <DataGridTextColumn Header="Submitted" Binding="{Binding SubmittedDate, StringFormat={}{0:MMM dd, yyyy}}" Width="118" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
+                                    <DataGridTextColumn Header="Expiry" Binding="{Binding ExpiryDate, StringFormat={}{0:MMM dd, yyyy}}" Width="118" ElementStyle="{StaticResource EmployeeGridTextStyle}" />
+                                </DataGrid.Columns>
+                            </DataGrid>
                         </Grid>
-                    </StackPanel>
                     </Border>
 
-                    <Border Style="{StaticResource CardStyle}" MinHeight="220">
+                    <Border Margin="0,0,0,10" Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Document Review"
+                                       Foreground="#6A7684"
+                                       FontSize="12"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding SelectedDocumentTitle}"
+                                       Margin="0,2,0,0"
+                                       FontWeight="Bold"
+                                       FontSize="17"
+                                       Foreground="{StaticResource PrimaryBrush}"
+                                       TextWrapping="Wrap" />
+
+                            <Grid Margin="0,12,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.25*" />
+                                    <ColumnDefinition Width="1*" />
+                                    <ColumnDefinition Width="1*" />
+                                    <ColumnDefinition Width="1*" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Status" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                    <ComboBox ItemsSource="{Binding StatusOptions}"
+                                              DisplayMemberPath="Label"
+                                              SelectedValuePath="Key"
+                                              SelectedValue="{Binding SelectedDocumentStatus}"
+                                              Style="{StaticResource ComboBoxStyle}" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                    <TextBlock Text="Date Submitted" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                    <Border Style="{StaticResource DateFieldBorderStyle}">
+                                        <DatePicker BorderThickness="0" Padding="8,0" Background="Transparent"
+                                                    Language="en-GB" SelectedDateFormat="Short"
+                                                    SelectedDate="{Binding SelectedSubmittedDate}" />
+                                    </Border>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2" Margin="10,0,0,0">
+                                    <TextBlock Text="Expiry Date" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                    <Border Style="{StaticResource DateFieldBorderStyle}">
+                                        <DatePicker BorderThickness="0" Padding="8,0" Background="Transparent"
+                                                    Language="en-GB" SelectedDateFormat="Short"
+                                                    SelectedDate="{Binding SelectedExpiryDate}" />
+                                    </Border>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="3" Margin="10,0,0,0">
+                                    <TextBlock Text="Date Verified" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                    <Border Style="{StaticResource DateFieldBorderStyle}">
+                                        <DatePicker BorderThickness="0" Padding="8,0" Background="Transparent"
+                                                    Language="en-GB" SelectedDateFormat="Short"
+                                                    SelectedDate="{Binding SelectedVerifiedDate}" />
+                                    </Border>
+                                </StackPanel>
+
+                                <Border Grid.Row="1" Grid.ColumnSpan="4"
+                                        Margin="0,12,0,0" Padding="12,9"
+                                        Background="#F7FAFF" BorderBrush="#D6E1F0"
+                                        BorderThickness="1" CornerRadius="10">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <materialDesign:PackIcon Kind="FileDocumentOutline" Width="20" Height="20"
+                                                                 Foreground="{StaticResource PrimaryBrush}"
+                                                                 VerticalAlignment="Center" Margin="0,0,10,0" />
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="Employee File" Foreground="#5B6A7A" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding SelectedDocumentAttachmentText}"
+                                                       Foreground="{StaticResource PrimaryBrush}"
+                                                       TextWrapping="Wrap" Margin="0,2,0,0" />
+                                        </StackPanel>
+                                        <Button Grid.Column="2" Margin="12,0,0,0"
+                                                Style="{StaticResource PrimaryButtonStyle}"
+                                                Height="36" MinWidth="105"
+                                                Visibility="{Binding SelectedDocumentHasAttachment, Converter={StaticResource BoolToVis}}"
+                                                Command="{Binding OpenAttachmentCommand}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="OpenInNew" Width="15" Height="15" Margin="0,0,6,0" />
+                                                <TextBlock Text="Open File" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+
+                                <StackPanel Grid.Row="2" Grid.ColumnSpan="4" Margin="0,12,0,0">
+                                    <TextBlock Text="Review Notes" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                    <TextBox Style="{StaticResource InputStyle}"
+                                             Text="{Binding SelectedRemarks, UpdateSourceTrigger=PropertyChanged}" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="3" Grid.ColumnSpan="4" Margin="0,12,0,0"
+                                            Visibility="{Binding IsWaivedStatus, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="Waiver Reason" Foreground="#8A6D20" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                    <TextBox Style="{StaticResource InputStyle}"
+                                             Text="{Binding SelectedWaivedReason, UpdateSourceTrigger=PropertyChanged}"
+                                             materialDesign:HintAssist.Hint="Required when the document status is Waived" />
+                                </StackPanel>
+
+                                <Border Grid.Row="4" Grid.ColumnSpan="4" Margin="0,12,0,0"
+                                        Padding="12" Background="#F2F7FD" CornerRadius="10">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="Upload for Employee" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
+                                            <TextBlock Text="HR/Admin may attach a PDF or image to this requirement."
+                                                       Margin="0,2,0,0" FontSize="12" Foreground="#6A7684" />
+                                        </StackPanel>
+                                        <Grid Grid.Row="1" Margin="0,9,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox Grid.Column="0" Style="{StaticResource InputStyle}"
+                                                     Margin="0,0,8,0" IsReadOnly="True"
+                                                     Text="{Binding SelectedUploadFilePath}"
+                                                     materialDesign:HintAssist.Hint="Choose a PDF, JPG, JPEG, or PNG file" />
+                                            <Button Grid.Column="1" Style="{StaticResource PrimaryButtonStyle}"
+                                                    Margin="0,0,8,0" Height="38" MinWidth="105"
+                                                    Command="{Binding BrowseUploadFileCommand}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="FolderOpenOutline" Width="15" Height="15" Margin="0,0,6,0" />
+                                                    <TextBlock Text="Browse" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Grid.Column="2" Style="{StaticResource PrimaryButtonStyle}"
+                                                    Height="38" MinWidth="160"
+                                                    IsEnabled="{Binding CanUploadForEmployee}"
+                                                    Command="{Binding UploadForEmployeeCommand}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="UploadOutline" Width="15" Height="15" Margin="0,0,6,0" />
+                                                    <TextBlock Text="Upload File" />
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+
+                                <Grid Grid.Row="5" Grid.ColumnSpan="4" Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Margin="0,0,12,0" Padding="10,7" Background="#F7FAFF" CornerRadius="8"
+                                            VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding ActionMessage}"
+                                                   Foreground="{Binding ActionMessageBrush}"
+                                                   FontSize="12" FontWeight="SemiBold"
+                                                   TextWrapping="Wrap" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Style="{StaticResource PrimaryButtonStyle}"
+                                                Margin="0,0,8,0" MinWidth="145"
+                                                Command="{Binding MarkSubmittedCommand}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="FileCheckOutline" Width="15" Height="15" Margin="0,0,6,0" />
+                                                <TextBlock Text="Mark Submitted" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource PrimaryButtonStyle}"
+                                                Margin="0,0,8,0" MinWidth="110"
+                                                Background="{StaticResource SuccessBrush}"
+                                                Command="{Binding VerifyDocumentCommand}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="CheckDecagramOutline" Width="15" Height="15" Margin="0,0,6,0" />
+                                                <TextBlock Text="Verify" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource PrimaryButtonStyle}"
+                                                MinWidth="130"
+                                                Command="{Binding SaveDocumentCommand}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="ContentSaveOutline" Width="15" Height="15" Margin="0,0,6,0" />
+                                                <TextBlock Text="Save" />
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource CardStyle}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
-                        <TextBlock Grid.Row="0"
-                                   Text="Expiring Within 30 Days"
-                                   FontSize="16"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource PrimaryBrush}"
-                                   Margin="0,0,0,8" />
+                        <Grid Grid.Row="0" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Expiring Within 30 Days"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource PrimaryBrush}" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding ExpiringDocuments.Count, StringFormat={}{0} document(s)}"
+                                       Foreground="#6A7684"
+                                       VerticalAlignment="Center" />
+                        </Grid>
 
                         <DataGrid Grid.Row="1"
                                   ItemsSource="{Binding ExpiringDocuments}"
@@ -541,7 +559,7 @@
                                   RowStyle="{StaticResource GridRowStyle}"
                                   HeadersVisibility="Column"
                                   RowHeaderWidth="0"
-                                  MinHeight="150"
+                                  MaxHeight="190"
                                   ScrollViewer.VerticalScrollBarVisibility="Auto">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Emp No" Binding="{Binding EmployeeNo}" Width="95" />
@@ -558,32 +576,5 @@
             </ScrollViewer>
         </Grid>
 
-        <Border Grid.Row="3" Margin="6,12,6,0" Style="{StaticResource CardStyle}" Background="#F9FBFF">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.4*" />
-                    <ColumnDefinition Width="1.6*" />
-                </Grid.ColumnDefinitions>
-
-                <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                    <TextBlock Text="Waived Reason" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                    <TextBox Style="{StaticResource InputStyle}"
-                             Text="{Binding SelectedWaivedReason, UpdateSourceTrigger=PropertyChanged}" />
-                </StackPanel>
-
-                <StackPanel Grid.Column="1">
-                    <TextBlock Text="Remarks" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                    <TextBox MinHeight="38"
-                             Padding="10,8"
-                             BorderBrush="#D6E1F0"
-                             BorderThickness="1"
-                             Background="#F7FAFF"
-                             Foreground="{StaticResource PrimaryBrush}"
-                             AcceptsReturn="True"
-                             TextWrapping="Wrap"
-                             Text="{Binding SelectedRemarks, UpdateSourceTrigger=PropertyChanged}" />
-                </StackPanel>
-            </Grid>
-        </Border>
     </Grid>
 </UserControl>

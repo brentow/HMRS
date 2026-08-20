@@ -493,6 +493,7 @@ namespace DigitalPersonaOneTouchBridge
     {
         private readonly string _outputPath;
         private readonly int _timeoutMs;
+        private readonly bool _isHeadless;
         private readonly System.Windows.Forms.Timer _timeoutTimer;
         private readonly Label _statusLabel;
         private readonly Label _instructionLabel;
@@ -503,21 +504,30 @@ namespace DigitalPersonaOneTouchBridge
         private bool _completed;
         private string _selectedReaderSerialNumber = string.Empty;
 
-        protected BridgeFormBase(string outputPath, int timeoutMs)
+        protected BridgeFormBase(string outputPath, int timeoutMs, bool isHeadless = false)
         {
             _outputPath = outputPath;
             _timeoutMs = timeoutMs;
+            _isHeadless = isHeadless;
             Text = "HRMS Fingerprint Capture";
-            ShowInTaskbar = true;
+            ShowInTaskbar = !isHeadless;
             StartPosition = FormStartPosition.CenterScreen;
             ClientSize = new Size(520, 244);
             MinimumSize = new Size(520, 244);
             MaximizeBox = false;
             MinimizeBox = false;
-            TopMost = true;
+            TopMost = !isHeadless;
             BackColor = Color.FromArgb(246, 249, 252);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             WindowState = FormWindowState.Normal;
+
+            if (isHeadless)
+            {
+                Opacity = 0;
+                FormBorderStyle = FormBorderStyle.None;
+                StartPosition = FormStartPosition.Manual;
+                Location = new Point(-32000, -32000);
+            }
 
             var headerPanel = new Panel
             {
@@ -625,7 +635,11 @@ namespace DigitalPersonaOneTouchBridge
         protected override void OnShown(EventArgs e)
         {
             base.OnShown(e);
-            Activate();
+            if (!_isHeadless)
+            {
+                Activate();
+            }
+
             BeginInvoke(new Action(StartCaptureFlow));
         }
 
@@ -1045,7 +1059,7 @@ namespace DigitalPersonaOneTouchBridge
         private readonly Verification _verification = new Verification();
 
         public IdentifyTemplateForm(string outputPath, string manifestPath, int timeoutMs)
-            : base(outputPath, timeoutMs)
+            : base(outputPath, timeoutMs, isHeadless: true)
         {
             _templates = LoadManifest(manifestPath);
             if (_templates.Count == 0)

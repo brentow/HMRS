@@ -191,6 +191,26 @@ namespace HRMS.View
             EmployeePickerPopup.IsOpen = false;
         }
 
+        private async void SelectEmployeeButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (_isEmployeeSelfMode)
+            {
+                return;
+            }
+
+            if (DataContext is EmployeesViewModel vm)
+            {
+                if (vm.Employees.Count == 0)
+                {
+                    await vm.RefreshAsync();
+                }
+
+                vm.ResetEmployeePickerSearch();
+            }
+
+            EmployeePickerPopup.IsOpen = true;
+        }
+
         private void EmployeePickerResultsListBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (sender is not ListBox listBox || listBox.SelectedItem is not EmployeeRowVm employee)
@@ -403,6 +423,11 @@ namespace HRMS.View
                 AddEmployeeButton.Visibility = _isEmployeeSelfMode ? Visibility.Collapsed : Visibility.Visible;
             }
 
+            if (SelectEmployeeButton != null)
+            {
+                SelectEmployeeButton.Visibility = _isEmployeeSelfMode ? Visibility.Collapsed : Visibility.Visible;
+            }
+
             if (EditProfileButton != null)
             {
                 EditProfileButton.Visibility = _isEmployeeSelfMode ? Visibility.Collapsed : Visibility.Visible;
@@ -415,13 +440,13 @@ namespace HRMS.View
 
             if (PageTitleText != null)
             {
-                PageTitleText.Text = _isEmployeeSelfMode ? "My Department / Position" : "Employees";
+                PageTitleText.Text = _isEmployeeSelfMode ? "My Profile" : "Employees";
             }
 
             if (PageSubtitleText != null)
             {
                 PageSubtitleText.Text = _isEmployeeSelfMode
-                    ? "Your assignment, employment profile, salary/appointment, and government IDs."
+                    ? "Your work profile, attendance summary, salary details, and government IDs."
                     : "Employee masterlist, profile details, salary/appointment, and government IDs";
             }
         }

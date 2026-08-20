@@ -73,11 +73,6 @@ namespace HRMS.View
         private const string CrsNetworkUserDefault = "root";
         private const string CrsNetworkPasswordDefault = "";
 
-        private const string CrsRemoteHostDefault = "194.59.164.58";
-        private const string CrsRemotePortDefault = "3306";
-        private const string CrsRemoteDbDefault = "u621755393_crs";
-        private const string CrsRemoteUserDefault = "u621755393_crs_user";
-        private const string CrsRemotePasswordDefault = "Crs@2026";
         private const bool BypassSetupOtpForNow = true;
 
         private readonly LoginViewModel _viewModel;
@@ -116,8 +111,8 @@ namespace HRMS.View
             var isLandscape = ActualWidth >= ActualHeight;
 
             IdentityPanel.Visibility = isLandscape ? Visibility.Visible : Visibility.Collapsed;
-            IdentityColumn.Width = isLandscape ? new GridLength(1.02, GridUnitType.Star) : new GridLength(0);
-            LoginColumn.Width = isLandscape ? new GridLength(0.98, GridUnitType.Star) : new GridLength(1, GridUnitType.Star);
+            IdentityColumn.Width = isLandscape ? new GridLength(1.35, GridUnitType.Star) : new GridLength(0);
+            LoginColumn.Width = isLandscape ? new GridLength(1, GridUnitType.Star) : new GridLength(1, GridUnitType.Star);
         }
 
         #region Theme & Window chrome
@@ -344,9 +339,10 @@ namespace HRMS.View
                             || string.Equals(ggmsSettings.Host, SulopNetworkHostDefault, StringComparison.OrdinalIgnoreCase)
                             || string.Equals(crsSettings.Host, CrsNetworkHostDefault, StringComparison.OrdinalIgnoreCase);
 
+            var configuredRemoteCrs = CrsConfig.GetSettings();
             var isRemote = string.Equals(settings.Host, RemoteHostDefault, StringComparison.OrdinalIgnoreCase)
                            && string.Equals(ggmsSettings.Host, SulopRemoteHostDefault, StringComparison.OrdinalIgnoreCase)
-                           && string.Equals(crsSettings.Host, CrsRemoteHostDefault, StringComparison.OrdinalIgnoreCase);
+                           && string.Equals(crsSettings.Host, configuredRemoteCrs.Host, StringComparison.OrdinalIgnoreCase);
 
             if (isLocal)
             {
@@ -437,6 +433,8 @@ namespace HRMS.View
                         CrsPasswordTextBox.Text = CrsNetworkPasswordDefault;
                         break;
                     case DatabaseMode.Remote:
+                    {
+                        var configuredCrs = CrsConfig.GetSettings();
                         DbHostTextBox.Text = RemoteHostDefault;
                         DbPortTextBox.Text = RemotePortDefault;
                         DbNameTextBox.Text = RemoteDbDefault;
@@ -447,12 +445,13 @@ namespace HRMS.View
                         SulopNameTextBox.Text = SulopRemoteDbDefault;
                         SulopUsernameTextBox.Text = SulopRemoteUserDefault;
                         SulopPasswordTextBox.Text = SulopRemotePasswordDefault;
-                        CrsHostTextBox.Text = CrsRemoteHostDefault;
-                        CrsPortTextBox.Text = CrsRemotePortDefault;
-                        CrsNameTextBox.Text = CrsRemoteDbDefault;
-                        CrsUsernameTextBox.Text = CrsRemoteUserDefault;
-                        CrsPasswordTextBox.Text = CrsRemotePasswordDefault;
+                        CrsHostTextBox.Text = configuredCrs.Host;
+                        CrsPortTextBox.Text = configuredCrs.Port;
+                        CrsNameTextBox.Text = configuredCrs.Database;
+                        CrsUsernameTextBox.Text = configuredCrs.Username;
+                        CrsPasswordTextBox.Text = configuredCrs.Password;
                         break;
+                    }
                 }
             }
 
@@ -460,7 +459,7 @@ namespace HRMS.View
             {
                 DatabaseMode.Local => "Local preset: HRMS, GGMS, and CRS point to your local offline databases.",
                 DatabaseMode.Network => "Network preset: all hosts point to LAN IP. Keep host fields editable for current demo server.",
-                _ => "Remote preset: all hosts point to 194.59.164.58."
+                _ => "Remote preset: HRMS, GGMS, and CRS use their configured online servers."
             };
 
             UpdateDatabaseEndpointText();

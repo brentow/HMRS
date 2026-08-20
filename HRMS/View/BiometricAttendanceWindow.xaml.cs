@@ -1,6 +1,7 @@
 using HRMS.Model;
 using HRMS.ViewModel;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace HRMS.View
 {
@@ -32,6 +33,22 @@ namespace HRMS.View
         private void CloseButton_OnClick(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        private void PunchButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is string promptTitle)
+            {
+                FingerprintPromptTitle.Text = promptTitle;
+            }
+
+            FingerprintPromptOverlay.Visibility = Visibility.Visible;
+        }
+
+        private void CloseFingerprintPrompt_OnClick(object sender, RoutedEventArgs e)
+        {
+            _viewModel.CancelActivePunch();
+            FingerprintPromptOverlay.Visibility = Visibility.Collapsed;
         }
     }
 }

@@ -1,0 +1,6 @@
+# GGMS Database Connection Settings
+Server=194.59.164.58
+Port=3306
+Database=u621755393_ggms
+User=u621755393_ggms_user
+Password=Ggms@2026

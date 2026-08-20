@@ -565,6 +565,19 @@ WHERE checklist_id = @checklist_id;";
                 throw new InvalidOperationException($"Selected file not found: {normalizedPath}");
             }
 
+            var extension = Path.GetExtension(normalizedPath).ToLowerInvariant();
+            if (extension is not ".pdf" and not ".jpg" and not ".jpeg" and not ".png")
+            {
+                throw new InvalidOperationException("Only PDF, JPG, JPEG, and PNG files are allowed.");
+            }
+
+            const long maxFileSize = 10L * 1024L * 1024L;
+            var fileInfo = new FileInfo(normalizedPath);
+            if (fileInfo.Length > maxFileSize)
+            {
+                throw new InvalidOperationException("The selected file is larger than the 10 MB limit.");
+            }
+
             byte[] fileBytes;
             try
             {
@@ -627,7 +640,7 @@ WHERE checklist_id = @checklist_id
                 "@uploaded_by_employee_id",
                 uploadedByEmployeeId.HasValue && uploadedByEmployeeId.Value > 0
                     ? uploadedByEmployeeId.Value
-                    : employeeId);
+                    : DBNull.Value);
             command.Parameters.AddWithValue("@checklist_id", checklistId);
             command.Parameters.AddWithValue("@employee_id", employeeId);
 

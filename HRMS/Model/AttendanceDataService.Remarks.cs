@@ -97,6 +97,55 @@ ON DUPLICATE KEY UPDATE
             await command.ExecuteNonQueryAsync();
         }
 
+        public async Task UpdateAttendanceRemarkAsync(
+            long remarkId,
+            int employeeId,
+            DateTime workDate,
+            string? remarkType,
+            string? details,
+            int? restrictedEmployeeId = null)
+        {
+            if (remarkId <= 0)
+            {
+                throw new InvalidOperationException("Special entry is required.");
+            }
+
+            if (employeeId <= 0)
+            {
+                throw new InvalidOperationException("Employee is required.");
+            }
+
+            var normalizedRemarkType = NormalizeAttendanceRemarkType(remarkType);
+            const string sql = @"
+UPDATE attendance_remarks
+SET employee_id = @employee_id,
+    work_date = @work_date,
+    remark_type = @remark_type,
+    details = @details
+WHERE remark_id = @remark_id
+  AND (@restricted_employee_id IS NULL OR employee_id = @restricted_employee_id);";
+
+            await using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+            await using var command = new MySqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@remark_id", remarkId);
+            command.Parameters.AddWithValue("@employee_id", employeeId);
+            command.Parameters.AddWithValue("@work_date", workDate.Date);
+            command.Parameters.AddWithValue("@remark_type", normalizedRemarkType);
+            command.Parameters.AddWithValue("@details", string.IsNullOrWhiteSpace(details) ? DBNull.Value : details.Trim());
+            command.Parameters.AddWithValue(
+                "@restricted_employee_id",
+                restrictedEmployeeId.HasValue && restrictedEmployeeId.Value > 0
+                    ? restrictedEmployeeId.Value
+                    : DBNull.Value);
+
+            var affected = await command.ExecuteNonQueryAsync();
+            if (affected == 0)
+            {
+                throw new InvalidOperationException("Special entry was not found or you do not have permission to edit it.");
+            }
+        }
+
         public async Task DeleteAttendanceRemarkAsync(long remarkId, int? employeeId = null)
         {
             if (remarkId <= 0)

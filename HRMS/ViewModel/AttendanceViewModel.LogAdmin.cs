@@ -47,6 +47,22 @@ namespace HRMS.ViewModel
         public ICommand ImportLogsCsvCommand { get; private set; } = null!;
         public ICommand ExportLogsCsvCommand { get; private set; } = null!;
         public ICommand PrintLogsReportCommand { get; private set; } = null!;
+        private AttendanceEmployeeLogSummaryVm? _selectedEmployeeLogSummary;
+
+        public AttendanceEmployeeLogSummaryVm? SelectedEmployeeLogSummary
+        {
+            get => _selectedEmployeeLogSummary;
+            set
+            {
+                if (ReferenceEquals(_selectedEmployeeLogSummary, value))
+                {
+                    return;
+                }
+
+                _selectedEmployeeLogSummary = value;
+                OnPropertyChanged();
+            }
+        }
 
         public int? SelectedManualLogEmployeeId
         {
@@ -178,6 +194,154 @@ namespace HRMS.ViewModel
             ManualLogType = ManualLogTypes.First();
             ManualLogSource = ManualLogSources.First();
             SelectedManualLogDeviceId = 0;
+        }
+
+        public IReadOnlyList<AttendanceEmployeeDailyLogVm> GetEmployeeDailyLogs(string employeeNo)
+        {
+            if (string.IsNullOrWhiteSpace(employeeNo))
+            {
+                return Array.Empty<AttendanceEmployeeDailyLogVm>();
+            }
+
+            return BuildEmployeeDailyLogs(employeeNo);
+        }
+
+        private void RebuildEmployeeLogSummaries(IReadOnlyList<AttendanceLogVm> logs)
+        {
+            EmployeeLogSummaries.Clear();
+
+            foreach (var group in logs
+                         .GroupBy(x => new { x.EmployeeNo, x.EmployeeName })
+                         .OrderBy(x => x.Key.EmployeeName, StringComparer.InvariantCultureIgnoreCase))
+            {
+                var latest = group
+                    .OrderByDescending(x => x.LogTime)
+                    .ThenByDescending(x => x.LogId)
+                    .First();
+
+                EmployeeLogSummaries.Add(new AttendanceEmployeeLogSummaryVm(
+                    group.Key.EmployeeNo,
+                    group.Key.EmployeeName,
+                    latest.LogTime,
+                    group.Count()));
+            }
+
+            if (SelectedEmployeeLogSummary != null)
+            {
+                SelectedEmployeeLogSummary = EmployeeLogSummaries.FirstOrDefault(x =>
+                    string.Equals(x.EmployeeNo, SelectedEmployeeLogSummary.EmployeeNo, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (SelectedEmployeeLogSummary == null && EmployeeLogSummaries.Count > 0)
+            {
+                SelectedEmployeeLogSummary = EmployeeLogSummaries[0];
+            }
+
+            RebuildEmployeeDailyLogs(SelectedEmployeeLogSummary?.EmployeeNo);
+        }
+
+        private void RebuildEmployeeDailyLogs(string? employeeNo)
+        {
+            EmployeeDailyLogs.Clear();
+            if (string.IsNullOrWhiteSpace(employeeNo))
+            {
+                return;
+            }
+
+            foreach (var row in BuildEmployeeDailyLogs(employeeNo))
+            {
+                EmployeeDailyLogs.Add(row);
+            }
+        }
+
+        private List<AttendanceEmployeeDailyLogVm> BuildEmployeeDailyLogs(string employeeNo)
+        {
+            var rows = new List<AttendanceEmployeeDailyLogVm>();
+
+            var employeeLogs = _filteredLogs
+                .Where(x => string.Equals(x.EmployeeNo, employeeNo, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(x => x.LogTime.Date)
+                .ThenBy(x => x.LogTime)
+                .ThenBy(x => x.LogId)
+                .ToList();
+
+            foreach (var dayGroup in employeeLogs.GroupBy(x => x.LogTime.Date).OrderByDescending(x => x.Key))
+            {
+                var dayLogs = dayGroup.OrderBy(x => x.LogTime).ThenBy(x => x.LogId).ToList();
+
+                string morningIn = "--";
+                string morningOut = "--";
+                string afternoonIn = "--";
+                string afternoonOut = "--";
+
+                foreach (var log in dayLogs)
+                {
+                    var label = log.LogTimeText;
+                    var isMorning = log.LogTime.TimeOfDay < new TimeSpan(12, 0, 0);
+
+                    if (string.Equals(log.LogType, "IN", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (isMorning && morningIn == "--")
+                        {
+                            morningIn = label;
+                        }
+                        else if (afternoonIn == "--")
+                        {
+                            afternoonIn = label;
+                        }
+                    }
+                    else if (string.Equals(log.LogType, "OUT", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (isMorning && morningOut == "--")
+                        {
+                            morningOut = label;
+                        }
+                        else if (afternoonOut == "--")
+                        {
+                            afternoonOut = label;
+                        }
+                    }
+                }
+
+                var notes = BuildDailyLogNotes(dayLogs);
+                rows.Add(new AttendanceEmployeeDailyLogVm(
+                    dayGroup.Key,
+                    morningIn,
+                    morningOut,
+                    afternoonIn,
+                    afternoonOut,
+                    dayLogs.Count,
+                    notes));
+            }
+
+            return rows;
+        }
+
+        private static string BuildDailyLogNotes(IReadOnlyList<AttendanceLogVm> dayLogs)
+        {
+            var breakCount = dayLogs.Count(x =>
+                string.Equals(x.LogType, "BREAK_IN", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(x.LogType, "BREAK_OUT", StringComparison.OrdinalIgnoreCase));
+
+            var sources = dayLogs
+                .Select(x => x.Source)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var noteParts = new List<string>();
+            if (breakCount > 0)
+            {
+                noteParts.Add($"{breakCount} break log(s)");
+            }
+
+            if (sources.Count > 0)
+            {
+                noteParts.Add(string.Join(", ", sources));
+            }
+
+            return noteParts.Count == 0 ? "Regular punch sequence" : string.Join(" | ", noteParts);
         }
 
         private void SyncLogsAdminLookups()

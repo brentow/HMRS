@@ -454,7 +454,7 @@
                             </Button.Style>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <materialDesign:PackIcon Kind="Domain" Style="{StaticResource SidebarNavIconStyle}" />
-                                <TextBlock Text="My Department / Position" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
+                                <TextBlock Text="My Profile" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
                             </StackPanel>
                         </Button>
 
@@ -748,12 +748,12 @@
                                     <MenuItem x:Name="PayrollRunsMenuItem"
                                               Header="Payroll"
                                               Click="PayrollRunsMenuItem_OnClick" />
-                                    <MenuItem x:Name="DeductionsMenuItem"
-                                              Header="Deductions"
-                                              Click="DeductionsNavButton_OnClick" />
                                     <MenuItem x:Name="PayslipMenuItem"
                                               Header="Payslip"
                                               Click="PayslipNavButton_OnClick" />
+                                    <MenuItem x:Name="DeductionsMenuItem"
+                                              Header="Deductions"
+                                              Click="DeductionsNavButton_OnClick" />
                                 </ContextMenu>
                             </Button.ContextMenu>
                             <Button.Style>
@@ -807,23 +807,6 @@
                                     </StackPanel>
                                 </Button>
 
-                                <Button x:Name="DeductionsNavButton"
-                                        Click="DeductionsNavButton_OnClick">
-                                    <Button.Style>
-                                        <Style BasedOn="{StaticResource SubNavButtonStyle}" TargetType="Button">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsPayrollVisible}" Value="True">
-                                                    <Setter Property="Background" Value="#2D5783"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <materialDesign:PackIcon Kind="CalculatorVariantOutline" Width="18" Height="18" Margin="0,0,10,0" Foreground="White" VerticalAlignment="Center" />
-                                        <TextBlock Text="Deductions" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
-                                    </StackPanel>
-                                </Button>
-
                                 <Button x:Name="PayslipNavButton"
                                         Click="PayslipNavButton_OnClick">
                                     <Button.Style>
@@ -838,6 +821,23 @@
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <materialDesign:PackIcon Kind="ReceiptTextOutline" Width="18" Height="18" Margin="0,0,10,0" Foreground="White" VerticalAlignment="Center" />
                                         <TextBlock Text="Payslip" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
+                                    </StackPanel>
+                                </Button>
+
+                                <Button x:Name="DeductionsNavButton"
+                                        Click="DeductionsNavButton_OnClick">
+                                    <Button.Style>
+                                        <Style BasedOn="{StaticResource SubNavButtonStyle}" TargetType="Button">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsPayrollVisible}" Value="True">
+                                                    <Setter Property="Background" Value="#2D5783"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <materialDesign:PackIcon Kind="ReceiptTextOutline" Width="18" Height="18" Margin="0,0,10,0" Foreground="White" VerticalAlignment="Center" />
+                                        <TextBlock Text="Deductions" Tag="NavLabel" Style="{StaticResource SidebarNavTextStyle}" />
                                     </StackPanel>
                                 </Button>
                             </StackPanel>

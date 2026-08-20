@@ -397,6 +397,168 @@ VALUES
             }
         }
 
+        public async Task UpdateOwnSubmittedLeaveRequestAsync(
+            long leaveApplicationId,
+            int employeeId,
+            int leaveTypeId,
+            DateTime dateFrom,
+            DateTime dateTo,
+            decimal? daysRequested,
+            string? reason,
+            int actingUserId)
+        {
+            if (leaveApplicationId <= 0)
+            {
+                throw new InvalidOperationException("Invalid leave request.");
+            }
+
+            if (employeeId <= 0)
+            {
+                throw new InvalidOperationException("Employee is required.");
+            }
+
+            if (leaveTypeId <= 0)
+            {
+                throw new InvalidOperationException("Leave type is required.");
+            }
+
+            if (actingUserId <= 0)
+            {
+                throw new InvalidOperationException("A valid employee session is required.");
+            }
+
+            var from = dateFrom.Date;
+            var to = dateTo.Date;
+            if (to < from)
+            {
+                (from, to) = (to, from);
+            }
+
+            var computedDays = Math.Max(1m, Convert.ToDecimal((to - from).TotalDays + 1, CultureInfo.InvariantCulture));
+            var finalDays = daysRequested.HasValue && daysRequested.Value > 0 ? daysRequested.Value : computedDays;
+            var targetId = leaveApplicationId.ToString(CultureInfo.InvariantCulture);
+
+            const string overlapSql = @"
+SELECT COUNT(*)
+FROM leave_applications
+WHERE employee_id = @employee_id
+  AND leave_application_id <> @leave_application_id
+  AND status NOT IN ('REJECTED', 'CANCELLED')
+  AND @date_from <= date_to
+  AND @date_to >= date_from;";
+
+            const string updateSql = @"
+UPDATE leave_applications
+SET
+    leave_type_id = @leave_type_id,
+    date_from = @date_from,
+    date_to = @date_to,
+    days_requested = @days_requested,
+    reason = @reason
+WHERE leave_application_id = @leave_application_id
+  AND employee_id = @employee_id
+  AND status = 'SUBMITTED';";
+
+            const string deleteDaysSql = @"
+DELETE FROM leave_application_days
+WHERE leave_application_id = @leave_application_id;";
+
+            const string insertDaySql = @"
+INSERT INTO leave_application_days
+    (leave_application_id, leave_date, day_fraction, half_day_part)
+VALUES
+    (@leave_application_id, @leave_date, 1.00, NULL);";
+
+            await using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var actorEmployeeId = await ResolveEmployeeIdByUserIdAsync(connection, actingUserId);
+            if (!actorEmployeeId.HasValue || actorEmployeeId.Value != employeeId)
+            {
+                await _auditLogWriter.TryWriteAsync(
+                    actingUserId,
+                    "LEAVE_REQUEST_EDIT",
+                    "leave_applications",
+                    targetId,
+                    "DENIED",
+                    "Actor attempted to edit a leave request not owned by the linked employee.");
+                throw new InvalidOperationException("You can only edit your own submitted leave request.");
+            }
+
+            await using var transaction = await connection.BeginTransactionAsync();
+            try
+            {
+                await using (var overlap = new MySqlCommand(overlapSql, connection, transaction))
+                {
+                    overlap.Parameters.AddWithValue("@employee_id", employeeId);
+                    overlap.Parameters.AddWithValue("@leave_application_id", leaveApplicationId);
+                    overlap.Parameters.AddWithValue("@date_from", from);
+                    overlap.Parameters.AddWithValue("@date_to", to);
+                    var overlapCount = Convert.ToInt32(await overlap.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
+                    if (overlapCount > 0)
+                    {
+                        throw new InvalidOperationException("The updated dates overlap another active leave request.");
+                    }
+                }
+
+                await using (var update = new MySqlCommand(updateSql, connection, transaction))
+                {
+                    update.Parameters.AddWithValue("@leave_application_id", leaveApplicationId);
+                    update.Parameters.AddWithValue("@employee_id", employeeId);
+                    update.Parameters.AddWithValue("@leave_type_id", leaveTypeId);
+                    update.Parameters.AddWithValue("@date_from", from);
+                    update.Parameters.AddWithValue("@date_to", to);
+                    update.Parameters.AddWithValue("@days_requested", finalDays);
+                    update.Parameters.AddWithValue("@reason", string.IsNullOrWhiteSpace(reason) ? DBNull.Value : reason.Trim());
+
+                    var affected = await update.ExecuteNonQueryAsync();
+                    if (affected == 0)
+                    {
+                        throw new InvalidOperationException("Only your submitted request can be edited. It may already have been reviewed.");
+                    }
+                }
+
+                await using (var deleteDays = new MySqlCommand(deleteDaysSql, connection, transaction))
+                {
+                    deleteDays.Parameters.AddWithValue("@leave_application_id", leaveApplicationId);
+                    await deleteDays.ExecuteNonQueryAsync();
+                }
+
+                await using (var insertDay = new MySqlCommand(insertDaySql, connection, transaction))
+                {
+                    insertDay.Parameters.Add("@leave_application_id", MySqlDbType.Int64).Value = leaveApplicationId;
+                    insertDay.Parameters.Add("@leave_date", MySqlDbType.Date);
+
+                    for (var date = from; date <= to; date = date.AddDays(1))
+                    {
+                        insertDay.Parameters["@leave_date"].Value = date;
+                        await insertDay.ExecuteNonQueryAsync();
+                    }
+                }
+
+                await transaction.CommitAsync();
+                await _auditLogWriter.TryWriteAsync(
+                    actingUserId,
+                    "LEAVE_REQUEST_EDIT",
+                    "leave_applications",
+                    targetId,
+                    "SUCCESS",
+                    $"Employee updated submitted request to leave_type_id={leaveTypeId}, {from:yyyy-MM-dd} through {to:yyyy-MM-dd}.");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                await _auditLogWriter.TryWriteAsync(
+                    actingUserId,
+                    "LEAVE_REQUEST_EDIT",
+                    "leave_applications",
+                    targetId,
+                    "FAILED",
+                    ex.Message);
+                throw;
+            }
+        }
+
         public async Task UpdateLeaveRequestStatusAsync(long leaveApplicationId, string status, string? decisionRemarks, int? actingUserId)
         {
             if (leaveApplicationId <= 0)
@@ -480,6 +642,8 @@ WHERE leave_application_id = @leave_application_id;";
                     targetId,
                     "SUCCESS",
                     $"Status='{normalizedStatus}'.");
+
+                await RecalculateApprovedLeaveUsageAsync(connection, leaveApplicationId);
             }
             catch (MySqlException ex) when (IsUnknownColumnError(ex))
             {
@@ -511,6 +675,8 @@ WHERE leave_application_id = @leave_application_id;";
                     targetId,
                     "SUCCESS",
                     $"Status='{normalizedStatus}'.");
+
+                await RecalculateApprovedLeaveUsageAsync(connection, leaveApplicationId);
             }
             catch (Exception ex)
             {
@@ -609,6 +775,8 @@ WHERE leave_application_id = @leave_application_id
                     targetId,
                     "SUCCESS",
                     "Employee cancelled pending leave request.");
+
+                await RecalculateApprovedLeaveUsageAsync(connection, leaveApplicationId);
             }
             catch (MySqlException ex) when (IsUnknownColumnError(ex))
             {
@@ -636,6 +804,8 @@ WHERE leave_application_id = @leave_application_id
                     targetId,
                     "SUCCESS",
                     "Employee cancelled pending leave request.");
+
+                await RecalculateApprovedLeaveUsageAsync(connection, leaveApplicationId);
             }
             catch (Exception ex)
             {
@@ -1338,6 +1508,95 @@ FROM employees
                     : $"Role '{roleName}' is not allowed.");
 
             AuthorizationGuard.DemandAdminOrHr(roleName, actionLabel);
+        }
+
+        private static async Task RecalculateApprovedLeaveUsageAsync(MySqlConnection connection, long leaveApplicationId)
+        {
+            const string requestSql = @"
+SELECT employee_id, leave_type_id, YEAR(date_from) AS leave_year
+FROM leave_applications
+WHERE leave_application_id = @leave_application_id
+LIMIT 1;";
+
+            int employeeId;
+            int leaveTypeId;
+            int leaveYear;
+
+            await using (var requestCommand = new MySqlCommand(requestSql, connection))
+            {
+                requestCommand.Parameters.AddWithValue("@leave_application_id", leaveApplicationId);
+                await using var reader = await requestCommand.ExecuteReaderAsync();
+                if (!await reader.ReadAsync())
+                {
+                    return;
+                }
+
+                employeeId = ToInt(reader["employee_id"]);
+                leaveTypeId = ToInt(reader["leave_type_id"]);
+                leaveYear = ToInt(reader["leave_year"]);
+            }
+
+            if (employeeId <= 0 || leaveTypeId <= 0 || leaveYear <= 0)
+            {
+                return;
+            }
+
+            const string ensureBalanceSql = @"
+INSERT INTO leave_balances
+    (employee_id, leave_type_id, year, opening_credits, earned, used, adjustments, as_of_date)
+SELECT
+    @employee_id,
+    lt.leave_type_id,
+    @leave_year,
+    COALESCE(lt.default_credits_per_year, 0),
+    0.00,
+    0.00,
+    0.00,
+    CURDATE()
+FROM leave_types lt
+WHERE lt.leave_type_id = @leave_type_id
+ON DUPLICATE KEY UPDATE
+    as_of_date = VALUES(as_of_date),
+    updated_at = CURRENT_TIMESTAMP;";
+
+            await using (var ensureCommand = new MySqlCommand(ensureBalanceSql, connection))
+            {
+                ensureCommand.Parameters.AddWithValue("@employee_id", employeeId);
+                ensureCommand.Parameters.AddWithValue("@leave_type_id", leaveTypeId);
+                ensureCommand.Parameters.AddWithValue("@leave_year", leaveYear);
+                await ensureCommand.ExecuteNonQueryAsync();
+            }
+
+            const string updateUsageSql = @"
+UPDATE leave_balances lb
+JOIN (
+    SELECT
+        la.employee_id,
+        la.leave_type_id,
+        YEAR(la.date_from) AS leave_year,
+        COALESCE(SUM(CASE WHEN la.status = 'APPROVED' THEN la.days_requested ELSE 0 END), 0) AS approved_days
+    FROM leave_applications la
+    WHERE la.employee_id = @employee_id
+      AND la.leave_type_id = @leave_type_id
+      AND YEAR(la.date_from) = @leave_year
+    GROUP BY la.employee_id, la.leave_type_id, YEAR(la.date_from)
+) usage_totals
+    ON usage_totals.employee_id = lb.employee_id
+   AND usage_totals.leave_type_id = lb.leave_type_id
+   AND usage_totals.leave_year = lb.year
+SET
+    lb.used = usage_totals.approved_days,
+    lb.as_of_date = CURDATE(),
+    lb.updated_at = CURRENT_TIMESTAMP
+WHERE lb.employee_id = @employee_id
+  AND lb.leave_type_id = @leave_type_id
+  AND lb.year = @leave_year;";
+
+            await using var updateCommand = new MySqlCommand(updateUsageSql, connection);
+            updateCommand.Parameters.AddWithValue("@employee_id", employeeId);
+            updateCommand.Parameters.AddWithValue("@leave_type_id", leaveTypeId);
+            updateCommand.Parameters.AddWithValue("@leave_year", leaveYear);
+            await updateCommand.ExecuteNonQueryAsync();
         }
 
         private static bool IsMissingObjectError(MySqlException ex) =>

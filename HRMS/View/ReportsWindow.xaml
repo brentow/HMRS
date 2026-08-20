@@ -12,6 +12,87 @@
     <UserControl.Resources>
         <Color x:Key="PrimaryColor">#1E4368</Color>
         <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
+
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#DCE8F5" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="14" />
+        </Style>
+
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="42" />
+            <Setter Property="MinWidth" Value="120" />
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="9">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+            <Setter Property="Background" Value="#EAF2FB" />
+            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="#D1E3F7" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <Style x:Key="FilterLabelStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#5B6A7A" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+
+        <Style x:Key="ReportHeaderStyle" TargetType="DataGridColumnHeader">
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Background" Value="#F2F7FD" />
+            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="BorderBrush" Value="#DFEAF6" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="ReportCellStyle" TargetType="DataGridCell">
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="#173B61" />
+            <Setter Property="TextBlock.TextAlignment" Value="Center" />
+            <Setter Property="TextBlock.VerticalAlignment" Value="Center" />
+            <Setter Property="TextBlock.TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style x:Key="ReportRowStyle" TargetType="DataGridRow">
+            <Setter Property="MinHeight" Value="44" />
+            <Setter Property="Background" Value="White" />
+            <Style.Triggers>
+                <Trigger Property="AlternationIndex" Value="1">
+                    <Setter Property="Background" Value="#F8FBFF" />
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#E7F1FC" />
+                    <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
 
     <Grid Margin="6">
@@ -48,12 +129,8 @@
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                 <Button Width="190"
-                        Height="38"
                         Margin="10,0,8,0"
-                        Background="{StaticResource PrimaryBrush}"
-                        Foreground="White"
-                        BorderThickness="0"
-                        FontWeight="SemiBold"
+                        Style="{StaticResource PrimaryButtonStyle}"
                         Command="{Binding DataContext.ShowDashboardCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                         <materialDesign:PackIcon Kind="ArrowLeft" Width="15" Height="15" Margin="0,0,6,0" />
@@ -62,11 +139,7 @@
                 </Button>
 
                 <Button Width="130"
-                        Height="38"
-                        Background="{StaticResource PrimaryBrush}"
-                        Foreground="White"
-                        BorderThickness="0"
-                        FontWeight="SemiBold"
+                        Style="{StaticResource PrimaryButtonStyle}"
                         Click="RefreshButton_OnClick">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                         <materialDesign:PackIcon Kind="Refresh" Width="15" Height="15" Margin="0,0,6,0" />
@@ -78,33 +151,31 @@
 
         <Border Grid.Row="1"
                 Margin="0,0,0,10"
-                Padding="10"
-                Background="#F8FBFF"
-                BorderBrush="#DBE7F4"
-                BorderThickness="1"
-                CornerRadius="10">
+                Style="{StaticResource CardStyle}"
+                Background="#F7FAFE">
             <Grid>
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="190" />
+                    <ColumnDefinition Width="330" />
                     <ColumnDefinition Width="170" />
-                    <ColumnDefinition Width="260" />
-                    <ColumnDefinition Width="150" />
-                    <ColumnDefinition Width="150" />
+                    <ColumnDefinition Width="170" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Text="Category" Foreground="#5B6A7A" Margin="0,0,0,4" />
-                <TextBlock Grid.Column="1" Text="Report" Foreground="#5B6A7A" Margin="0,0,0,4" />
-                <TextBlock Grid.Column="2" Text="Date From" Foreground="#5B6A7A" Margin="0,0,0,4" />
-                <TextBlock Grid.Column="3" Text="Date To" Foreground="#5B6A7A" Margin="0,0,0,4" />
+                <TextBlock Text="Show" Style="{StaticResource FilterLabelStyle}" />
+                <TextBlock Grid.Column="1" Text="Choose Report" Style="{StaticResource FilterLabelStyle}" />
+                <TextBlock Grid.Column="2" Text="Date From" Style="{StaticResource FilterLabelStyle}" />
+                <TextBlock Grid.Column="3" Text="Date To" Style="{StaticResource FilterLabelStyle}" />
 
                 <ComboBox x:Name="CategoryComboBox"
                           Grid.Row="1"
                           Margin="0,0,10,0"
-                          Height="36"
+                          Height="40"
                           SelectionChanged="CategoryComboBox_OnSelectionChanged"
                           DisplayMemberPath="CategoryName" />
 
@@ -112,81 +183,73 @@
                           Grid.Column="1"
                           Grid.Row="1"
                           Margin="0,0,10,0"
-                          Height="36"
+                          Height="40"
                           SelectionChanged="ReportComboBox_OnSelectionChanged"
-                          DisplayMemberPath="ReportName" />
+                          DisplayMemberPath="DisplayName" />
 
                 <DatePicker x:Name="DateFromPicker"
                             Grid.Column="2"
                             Grid.Row="1"
                             Margin="0,0,10,0"
-                            Height="36"
+                            Height="40"
                             SelectedDateFormat="Short" />
 
                 <DatePicker x:Name="DateToPicker"
                             Grid.Column="3"
                             Grid.Row="1"
                             Margin="0,0,10,0"
-                            Height="36"
+                            Height="40"
                             SelectedDateFormat="Short" />
 
                 <Button Grid.Column="4"
                         Grid.Row="1"
-                        Width="120"
-                        Height="36"
-                        Background="#2B5E92"
-                        Foreground="White"
-                        BorderThickness="0"
-                        FontWeight="SemiBold"
+                        Width="130"
+                        Height="40"
+                        Style="{StaticResource PrimaryButtonStyle}"
                         Click="LoadReportButton_OnClick">
-                    Load Report
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="TableSearch" Width="16" Height="16" Margin="0,0,7,0" />
+                        <TextBlock Text="Load Report" />
+                    </StackPanel>
                 </Button>
             </Grid>
         </Border>
 
-        <Border Grid.Row="2"
+        <!-- Kept only as hidden code-behind targets; report context is already clear in the filters. -->
+        <StackPanel Grid.Row="2" Visibility="Collapsed">
+            <TextBlock x:Name="SelectedReportTitleText" />
+            <TextBlock x:Name="SelectedReportDescriptionText" />
+        </StackPanel>
+
+        <Border Grid.Row="3"
                 Margin="0,0,0,10"
-                Padding="10"
-                Background="#F9FCFF"
-                BorderBrush="#DBE7F4"
+                Background="White"
+                BorderBrush="#DCE8F5"
                 BorderThickness="1"
-                CornerRadius="10">
-            <StackPanel>
-                <TextBlock x:Name="SelectedReportTitleText"
-                           Text="No report selected."
-                           Foreground="#1E4368"
-                           FontWeight="SemiBold"
-                           FontSize="14" />
-                <TextBlock x:Name="SelectedReportDescriptionText"
-                           Margin="0,2,0,0"
-                           Text="Choose a category and report, then click Load Report."
-                           Foreground="#5B6A7A"
-                           TextWrapping="Wrap" />
-            </StackPanel>
+                CornerRadius="10"
+                ClipToBounds="True">
+            <DataGrid x:Name="ReportDataGrid"
+                      AutoGenerateColumns="True"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      CanUserResizeRows="False"
+                      IsReadOnly="True"
+                      HeadersVisibility="Column"
+                      GridLinesVisibility="None"
+                      BorderThickness="0"
+                      RowHeaderWidth="0"
+                      AlternationCount="2"
+                      ColumnHeaderStyle="{StaticResource ReportHeaderStyle}"
+                      CellStyle="{StaticResource ReportCellStyle}"
+                      RowStyle="{StaticResource ReportRowStyle}"
+                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                      ScrollViewer.VerticalScrollBarVisibility="Auto" />
         </Border>
 
-        <DataGrid x:Name="ReportDataGrid"
-                  Grid.Row="3"
-                  Margin="0,0,0,10"
-                  AutoGenerateColumns="True"
-                  CanUserAddRows="False"
-                  CanUserDeleteRows="False"
-                  CanUserResizeRows="False"
-                  IsReadOnly="True"
-                  HeadersVisibility="Column"
-                  GridLinesVisibility="Horizontal"
-                  BorderBrush="#DBE7F4"
-                  BorderThickness="1"
-                  RowHeaderWidth="0"
-                  AlternatingRowBackground="#F9FBFF"
-                  AlternationCount="2" />
-
         <Border Grid.Row="4"
-                Padding="10"
-                Background="#F8FBFF"
-                BorderBrush="#DBE7F4"
-                BorderThickness="1"
-                CornerRadius="10">
+                Style="{StaticResource CardStyle}"
+                Padding="12"
+                Background="#F8FBFF">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -208,13 +271,9 @@
 
                 <Button Grid.Column="1"
                         Width="128"
-                        Height="36"
                         Margin="10,0,0,0"
-                        Background="#EAF2FB"
-                        Foreground="#1E4368"
-                        BorderBrush="#D1E3F7"
-                        BorderThickness="1"
-                        FontWeight="SemiBold"
+                        Height="40"
+                        Style="{StaticResource SecondaryButtonStyle}"
                         Click="ExportExcelButton_OnClick">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                         <materialDesign:PackIcon Kind="FileExcelBox" Width="16" Height="16" Margin="0,0,6,0" />
@@ -224,13 +283,9 @@
 
                 <Button Grid.Column="2"
                         Width="120"
-                        Height="36"
                         Margin="10,0,0,0"
-                        Background="#F0F6FF"
-                        Foreground="#1E4368"
-                        BorderBrush="#D1E3F7"
-                        BorderThickness="1"
-                        FontWeight="SemiBold"
+                        Height="40"
+                        Style="{StaticResource SecondaryButtonStyle}"
                         Click="ExportPdfButton_OnClick">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                         <materialDesign:PackIcon Kind="FilePdfBox" Width="16" Height="16" Margin="0,0,6,0" />
@@ -240,12 +295,9 @@
 
                 <Button Grid.Column="3"
                         Width="94"
-                        Height="36"
                         Margin="10,0,0,0"
-                        Background="#2B5E92"
-                        Foreground="White"
-                        BorderThickness="0"
-                        FontWeight="SemiBold"
+                        Height="40"
+                        Style="{StaticResource PrimaryButtonStyle}"
                         Click="LoadReportButton_OnClick">
                     Reload
                 </Button>

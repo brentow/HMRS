@@ -1352,7 +1352,17 @@ namespace HRMS.ViewModel
         public string PositionName { get => _positionName; set => SetField(ref _positionName, value ?? "-"); }
         public string EmploymentType { get => _employmentType; set => SetField(ref _employmentType, string.IsNullOrWhiteSpace(value) ? "CASUAL" : value); }
         public int Vacancies { get => _vacancies; set => SetField(ref _vacancies, value < 1 ? 1 : value); }
-        public string Status { get => _status; set => SetField(ref _status, string.IsNullOrWhiteSpace(value) ? "OPEN" : value); }
+        public string Status
+        {
+            get => _status;
+            set
+            {
+                if (SetField(ref _status, string.IsNullOrWhiteSpace(value) ? "OPEN" : value))
+                {
+                    Raise(nameof(DisplayStatus));
+                }
+            }
+        }
 
         public DateTime OpenDate
         {
@@ -1374,6 +1384,7 @@ namespace HRMS.ViewModel
                 if (SetField(ref _closeDate, value?.Date))
                 {
                     Raise(nameof(CloseDateText));
+                    Raise(nameof(DisplayStatus));
                 }
             }
         }
@@ -1381,6 +1392,12 @@ namespace HRMS.ViewModel
         public int ApplicationCount { get => _applicationCount; set => SetField(ref _applicationCount, value); }
         public string OpenDateText => OpenDate.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture);
         public string CloseDateText => CloseDate?.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture) ?? "-";
+        public string DisplayStatus =>
+            string.Equals(Status, "OPEN", StringComparison.OrdinalIgnoreCase) &&
+            CloseDate.HasValue &&
+            CloseDate.Value.Date < DateTime.Today
+                ? "EXPIRED"
+                : Status.ToUpperInvariant();
     }
 
     public sealed class ApplicantRowVm : RecruitmentNotifyVm

@@ -54,7 +54,10 @@ namespace HRMS.ViewModel
         private string _fileValidationText = "No blocking issue detected.";
         private Brush _fileValidationBrush = SuccessBrush;
         private bool _hasBlockingFileConflict;
+        private long? _editingLeaveApplicationId;
         private string _selectedRequestTimeline = "No request selected.";
+        private string _selectedRequestBalanceSummary = "Select a request to check balance.";
+        private string _selectedRequestOutcomeSummary = "Select a request to see what happens next.";
 
         private string _balanceSearchText = string.Empty;
         private int _selectedBalanceYearFilter;
@@ -114,10 +117,29 @@ namespace HRMS.ViewModel
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsAdminOrHrMode));
                 OnPropertyChanged(nameof(CanCancelSelectedRequest));
+                OnPropertyChanged(nameof(CanEditSelectedRequest));
+                OnPropertyChanged(nameof(CanDecideSelectedRequest));
+                OnPropertyChanged(nameof(PageHeaderTitle));
+                OnPropertyChanged(nameof(PageHeaderSubtitle));
+                OnPropertyChanged(nameof(RequestsTabHeader));
+                OnPropertyChanged(nameof(BalancesTabHeader));
+                OnPropertyChanged(nameof(AttachmentsTabHeader));
+                OnPropertyChanged(nameof(FileLeaveTitle));
             }
         }
 
         public bool IsAdminOrHrMode => !IsEmployeeMode;
+        public string PageHeaderTitle => IsEmployeeMode ? "My Leave" : "Leave Administration";
+        public string PageHeaderSubtitle => IsEmployeeMode
+            ? "File leave, check your balance, and track your requests."
+            : "Simple flow: check request, review balance, approve or reject.";
+        public string RequestsTabHeader => IsEmployeeMode ? "My Leave Requests" : "Leave Requests";
+        public string BalancesTabHeader => IsEmployeeMode ? "My Leave Balances" : "Leave Balances";
+        public string AttachmentsTabHeader => IsEmployeeMode ? "My Attachments" : "Attachments";
+        public string FileLeaveTitle => IsEmployeeMode ? "File My Leave" : "File Leave";
+        public bool IsEditingLeaveRequest => _editingLeaveApplicationId.HasValue;
+        public string LeaveFormTitle => IsEditingLeaveRequest ? "Edit My Leave Request" : FileLeaveTitle;
+        public string LeaveFormSubmitText => IsEditingLeaveRequest ? "Save Changes" : FileLeaveTitle;
 
         public string RequestSearchText
         {
@@ -164,6 +186,8 @@ namespace HRMS.ViewModel
                 _selectedRequest = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CanCancelSelectedRequest));
+                OnPropertyChanged(nameof(CanEditSelectedRequest));
+                OnPropertyChanged(nameof(CanDecideSelectedRequest));
                 if (_selectedRequest != null)
                 {
                     DecisionRemarks = _selectedRequest.DecisionRemarksRaw;
@@ -272,7 +296,15 @@ namespace HRMS.ViewModel
         public string FileReason
         {
             get => _fileReason;
-            set { if (_fileReason != value) { _fileReason = value ?? string.Empty; OnPropertyChanged(); } }
+            set
+            {
+                if (_fileReason != value)
+                {
+                    _fileReason = value ?? string.Empty;
+                    OnPropertyChanged();
+                    UpdateFileLeavePreview();
+                }
+            }
         }
 
         public string FileBalancePreviewText
@@ -337,12 +369,56 @@ namespace HRMS.ViewModel
             }
         }
 
+        public string SelectedRequestBalanceSummary
+        {
+            get => _selectedRequestBalanceSummary;
+            private set
+            {
+                if (_selectedRequestBalanceSummary == value)
+                {
+                    return;
+                }
+
+                _selectedRequestBalanceSummary = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string SelectedRequestOutcomeSummary
+        {
+            get => _selectedRequestOutcomeSummary;
+            private set
+            {
+                if (_selectedRequestOutcomeSummary == value)
+                {
+                    return;
+                }
+
+                _selectedRequestOutcomeSummary = value;
+                OnPropertyChanged();
+            }
+        }
+
         public bool CanCancelSelectedRequest =>
             IsEmployeeMode &&
             SelectedRequest != null &&
             SelectedRequest.EmployeeId > 0 &&
             _currentEmployeeId.HasValue &&
             SelectedRequest.EmployeeId == _currentEmployeeId.Value &&
+            (string.Equals(SelectedRequest.Status, "SUBMITTED", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(SelectedRequest.Status, "RECOMMENDED", StringComparison.OrdinalIgnoreCase));
+
+        public bool CanEditSelectedRequest =>
+            IsEmployeeMode &&
+            SelectedRequest != null &&
+            SelectedRequest.EmployeeId > 0 &&
+            _currentEmployeeId.HasValue &&
+            SelectedRequest.EmployeeId == _currentEmployeeId.Value &&
+            string.Equals(SelectedRequest.Status, "SUBMITTED", StringComparison.OrdinalIgnoreCase);
+
+        public bool CanDecideSelectedRequest =>
+            IsAdminOrHrMode &&
+            SelectedRequest != null &&
             (string.Equals(SelectedRequest.Status, "SUBMITTED", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(SelectedRequest.Status, "RECOMMENDED", StringComparison.OrdinalIgnoreCase));
 
@@ -579,13 +655,51 @@ namespace HRMS.ViewModel
             QueueRefresh();
         }
 
+        public event EventHandler? LeaveRequestSaved;
+
         public void SetCurrentUser(int userId, string username, string? roleName)
         {
             _currentUserId = userId;
             _currentUsername = string.IsNullOrWhiteSpace(username) ? "-" : username.Trim();
             IsEmployeeMode = string.Equals(roleName?.Trim(), "Employee", StringComparison.OrdinalIgnoreCase);
+            SelectedRequestStatusFilter = IsEmployeeMode ? "All" : "Pending";
             _currentEmployeeId = null;
             QueueRefresh();
+        }
+
+        public void BeginNewLeaveRequest()
+        {
+            SetEditingLeaveApplicationId(null);
+            SelectedFileEmployeeId = IsEmployeeMode && _currentEmployeeId.HasValue
+                ? _currentEmployeeId.Value
+                : SelectedFileEmployeeId ?? EmployeeOptions.FirstOrDefault()?.EmployeeId;
+            SelectedFileLeaveTypeId = LeaveTypeOptions.FirstOrDefault()?.LeaveTypeId;
+            FileDateFrom = DateTime.Today;
+            FileDateTo = DateTime.Today;
+            FileReason = string.Empty;
+            RecalculateRequestedDays();
+            UpdateFileLeavePreview();
+        }
+
+        public bool BeginEditSelectedRequest()
+        {
+            if (!CanEditSelectedRequest || SelectedRequest == null)
+            {
+                SetMessage("Only your own submitted request can be edited before HR review.", ErrorBrush);
+                return false;
+            }
+
+            var request = SelectedRequest;
+            SetEditingLeaveApplicationId(request.LeaveApplicationId);
+            SelectedFileEmployeeId = request.EmployeeId;
+            SelectedFileLeaveTypeId = request.LeaveTypeId;
+            FileDateFrom = request.DateFrom;
+            FileDateTo = request.DateTo;
+            FileDaysRequested = request.DaysRequested;
+            FileReason = request.Reason == "-" ? string.Empty : request.Reason;
+            UpdateFileLeavePreview();
+            SetMessage($"Editing leave request #{request.LeaveApplicationId}.", InfoBrush);
+            return true;
         }
 
         public async Task RefreshAsync()
@@ -742,6 +856,7 @@ namespace HRMS.ViewModel
             _hasBlockingFileConflict = false;
             OnPropertyChanged(nameof(CanFileLeaveRequest));
             SelectedRequestTimeline = "No request selected.";
+            SelectedRequestBalanceSummary = "Select a request to check balance.";
         }
 
         private async Task FileLeaveAsync()
@@ -777,8 +892,36 @@ namespace HRMS.ViewModel
                 return;
             }
 
+            if (string.IsNullOrWhiteSpace(FileReason))
+            {
+                SetMessage("Enter a reason for the leave request.", ErrorBrush);
+                return;
+            }
+
             try
             {
+                if (_editingLeaveApplicationId.HasValue)
+                {
+                    var editedRequestId = _editingLeaveApplicationId.Value;
+                    await _dataService.UpdateOwnSubmittedLeaveRequestAsync(
+                        editedRequestId,
+                        SelectedFileEmployeeId.Value,
+                        SelectedFileLeaveTypeId.Value,
+                        FileDateFrom,
+                        FileDateTo,
+                        FileDaysRequested,
+                        FileReason,
+                        _currentUserId);
+
+                    SetEditingLeaveApplicationId(null);
+                    await RefreshAsync();
+                    SelectedRequest = LeaveRequests.FirstOrDefault(x => x.LeaveApplicationId == editedRequestId);
+                    SetMessage($"Leave request #{editedRequestId} updated successfully.", SuccessBrush);
+                    SystemRefreshBus.Raise("LeaveRequestUpdated");
+                    LeaveRequestSaved?.Invoke(this, EventArgs.Empty);
+                    return;
+                }
+
                 var leaveApplicationId = await _dataService.AddLeaveRequestAsync(
                     SelectedFileEmployeeId.Value,
                     SelectedFileLeaveTypeId.Value,
@@ -793,6 +936,7 @@ namespace HRMS.ViewModel
                 SelectedRequest = LeaveRequests.FirstOrDefault(x => x.LeaveApplicationId == leaveApplicationId);
                 SetMessage($"Leave request #{leaveApplicationId} filed successfully.", SuccessBrush);
                 SystemRefreshBus.Raise("LeaveRequestFiled");
+                LeaveRequestSaved?.Invoke(this, EventArgs.Empty);
             }
             catch (Exception ex)
             {
@@ -898,8 +1042,22 @@ namespace HRMS.ViewModel
 
                 DecisionRemarks = string.Empty;
                 await RefreshAsync();
+
+                if (string.Equals(status, "APPROVED", StringComparison.OrdinalIgnoreCase))
+                {
+                    SelectedRequestStatusFilter = "Approved";
+                }
+                else if (string.Equals(status, "REJECTED", StringComparison.OrdinalIgnoreCase))
+                {
+                    SelectedRequestStatusFilter = "Rejected";
+                }
+
                 SelectedRequest = LeaveRequests.FirstOrDefault(x => x.LeaveApplicationId == request.LeaveApplicationId);
-                SetMessage($"Leave request #{request.LeaveApplicationId} marked as {ToSimpleStatusDisplay(status)}.", SuccessBrush);
+                SetMessage(
+                    string.Equals(status, "APPROVED", StringComparison.OrdinalIgnoreCase)
+                        ? $"Leave request #{request.LeaveApplicationId} approved. Leave credits, employee notification, dashboard, reports, and DTR visibility were updated."
+                        : $"Leave request #{request.LeaveApplicationId} marked as {ToSimpleStatusDisplay(status)}. Showing the updated request.",
+                    SuccessBrush);
                 SystemRefreshBus.Raise("LeaveRequestStatusUpdated");
             }
             catch (Exception ex)
@@ -1469,7 +1627,10 @@ namespace HRMS.ViewModel
             if (SelectedRequest == null)
             {
                 SelectedRequestTimeline = "No request selected.";
+                SelectedRequestBalanceSummary = "Select a request to check balance.";
+                SelectedRequestOutcomeSummary = "Select a request to see what happens next.";
                 OnPropertyChanged(nameof(CanCancelSelectedRequest));
+                OnPropertyChanged(nameof(CanDecideSelectedRequest));
                 return;
             }
 
@@ -1499,7 +1660,45 @@ namespace HRMS.ViewModel
             }
 
             SelectedRequestTimeline = timeline;
+            SelectedRequestBalanceSummary = BuildSelectedRequestBalanceSummary(SelectedRequest);
+            SelectedRequestOutcomeSummary = BuildSelectedRequestOutcomeSummary(SelectedRequest);
             OnPropertyChanged(nameof(CanCancelSelectedRequest));
+            OnPropertyChanged(nameof(CanEditSelectedRequest));
+            OnPropertyChanged(nameof(CanDecideSelectedRequest));
+        }
+
+        private string BuildSelectedRequestOutcomeSummary(LeaveRequestVm request)
+        {
+            var days = request.DaysRequested.ToString("0.##", CultureInfo.InvariantCulture);
+            return request.Status switch
+            {
+                "APPROVED" => IsEmployeeMode
+                    ? $"Approved by HR/Admin. {days} day(s) are now counted as used {request.LeaveTypeName} credits. The approved dates appear in your leave history, notifications, reports, and DTR remarks."
+                    : $"Complete. {days} day(s) were added to the employee's used {request.LeaveTypeName} credits. The employee can see the approval in My Leave and notifications; the dates also appear in reports and DTR remarks.",
+                "REJECTED" => IsEmployeeMode
+                    ? "The request was rejected. No leave credits were deducted. Check the decision remarks for the reason."
+                    : "Complete. No leave credits were deducted. The employee can see the rejection and decision remarks in My Leave and notifications.",
+                "CANCELLED" => "The request is cancelled and does not consume leave credits.",
+                "RECOMMENDED" => "Still pending final HR/Admin approval. Leave credits have not been deducted yet.",
+                _ => IsEmployeeMode
+                    ? "Waiting for HR/Admin review. Leave credits will only be deducted after approval."
+                    : "Review the balance and request details, add an optional approval note or a required rejection reason, then approve or reject."
+            };
+        }
+
+        private string BuildSelectedRequestBalanceSummary(LeaveRequestVm request)
+        {
+            var balance = _allBalances.FirstOrDefault(x =>
+                x.EmployeeId == request.EmployeeId &&
+                x.LeaveTypeId == request.LeaveTypeId &&
+                x.Year == request.DateFrom.Year);
+
+            var defaultCredits = LeaveTypeOptions.FirstOrDefault(x => x.LeaveTypeId == request.LeaveTypeId)?.DefaultCredits ?? 0m;
+            var availableCredits = balance?.AvailableCredits ?? defaultCredits;
+            var remainingCredits = availableCredits - request.DaysRequested;
+            var balanceNote = balance == null ? "Default credits" : "Current balance";
+
+            return $"{balanceNote}: {availableCredits:0.##} day(s) | Request: {request.DaysRequested:0.##} day(s) | After approval: {remainingCredits:0.##} day(s)";
         }
 
         private void UpdateFileLeavePreview()
@@ -1538,6 +1737,7 @@ namespace HRMS.ViewModel
 
             var hasOverlap = _allRequests.Any(x =>
                 x.EmployeeId == employeeId &&
+                (!_editingLeaveApplicationId.HasValue || x.LeaveApplicationId != _editingLeaveApplicationId.Value) &&
                 !string.Equals(x.Status, "REJECTED", StringComparison.OrdinalIgnoreCase) &&
                 !string.Equals(x.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase) &&
                 from <= x.DateTo.Date &&
@@ -1565,6 +1765,11 @@ namespace HRMS.ViewModel
                 errors.Add("Insufficient leave credits for this request.");
             }
 
+            if (string.IsNullOrWhiteSpace(FileReason))
+            {
+                errors.Add("Reason is required.");
+            }
+
             if (weekendDays > 0)
             {
                 warnings.Add($"{weekendDays} weekend day(s) detected in the selected range.");
@@ -1590,6 +1795,20 @@ namespace HRMS.ViewModel
             }
 
             OnPropertyChanged(nameof(CanFileLeaveRequest));
+        }
+
+        private void SetEditingLeaveApplicationId(long? leaveApplicationId)
+        {
+            if (_editingLeaveApplicationId == leaveApplicationId)
+            {
+                return;
+            }
+
+            _editingLeaveApplicationId = leaveApplicationId;
+            OnPropertyChanged(nameof(IsEditingLeaveRequest));
+            OnPropertyChanged(nameof(LeaveFormTitle));
+            OnPropertyChanged(nameof(LeaveFormSubmitText));
+            UpdateFileLeavePreview();
         }
 
         private void RecalculateRequestedDays()

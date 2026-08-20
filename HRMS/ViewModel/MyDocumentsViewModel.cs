@@ -295,7 +295,7 @@ namespace HRMS.ViewModel
             var dialog = new OpenFileDialog
             {
                 Title = "Select Required Document",
-                Filter = "All files (*.*)|*.*"
+                Filter = "Supported documents (*.pdf;*.jpg;*.jpeg;*.png)|*.pdf;*.jpg;*.jpeg;*.png|PDF files (*.pdf)|*.pdf|Image files (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png"
             };
 
             var result = dialog.ShowDialog();

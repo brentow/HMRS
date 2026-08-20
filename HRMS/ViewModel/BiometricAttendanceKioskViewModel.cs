@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -28,6 +29,7 @@ namespace HRMS.ViewModel
         private readonly AsyncRelayCommand _refreshCommand;
         private readonly AsyncRelayCommand _timeInCommand;
         private readonly AsyncRelayCommand _timeOutCommand;
+        private CancellationTokenSource? _activePunchCancellation;
 
         private BiometricEmployeeOption? _selectedEmployee;
         private BiometricDeviceOption? _selectedDevice;
@@ -49,7 +51,7 @@ namespace HRMS.ViewModel
         private string _missingText = "No missing punch";
         private string _workedText = "0h 0m";
         private string _lastPunchText = "No punch yet";
-        private string _actionMessage = "Choose an employee, then click Time In or Time Out to scan fingerprint.";
+        private string _actionMessage = "Choose Time In or Time Out, then scan a finger to identify the employee.";
         private Brush _actionMessageBrush = InfoBrush;
 
         private static EmployeeShiftScheduleDto DefaultShift { get; } = new(
@@ -93,8 +95,8 @@ namespace HRMS.ViewModel
 
         public string PageTitle => _isEmployeeScoped ? "My Biometric Attendance" : "Biometric Attendance";
         public string PageSubtitle => _isEmployeeScoped
-            ? "Record your own Time In or Time Out and review today's punches."
-            : "Select employee, then scan fingerprint for Time In or Time Out.";
+            ? "Scan your fingerprint to record your Time In or Time Out."
+            : "The fingerprint reader identifies the employee automatically.";
         public string EmployeePanelTitle => _isEmployeeScoped ? "My Attendance" : "Employee";
         public string EmployeePanelSubtitle => _isEmployeeScoped
             ? "Employee access is limited to your own attendance."
@@ -132,8 +134,8 @@ namespace HRMS.ViewModel
             }
         }
 
-        public string SelectedEmployeeName => SelectedEmployee?.EmployeeName ?? "No employee selected";
-        public string SelectedEmployeeNo => SelectedEmployee?.EmployeeNo ?? "-";
+        public string SelectedEmployeeName => SelectedEmployee?.EmployeeName ?? "Scan fingerprint to identify";
+        public string SelectedEmployeeNo => SelectedEmployee?.EmployeeNo ?? "Ready for biometric identification";
 
         public BiometricDeviceOption? SelectedDevice
         {
@@ -176,9 +178,8 @@ namespace HRMS.ViewModel
 
         public bool CanPunch =>
             !IsBusy &&
-            SelectedEmployee != null &&
             SelectedDevice != null &&
-            (!_isEmployeeScoped || SelectedEmployee.EmployeeId == _scopedEmployeeId);
+            (!_isEmployeeScoped || SelectedEmployee?.EmployeeId == _scopedEmployeeId);
 
         public string CurrentDateText
         {
@@ -439,15 +440,15 @@ namespace HRMS.ViewModel
                 SelectedEmployee = _isEmployeeScoped
                     ? Employees.FirstOrDefault()
                     : previousEmployeeId.HasValue
-                        ? Employees.FirstOrDefault(x => x.EmployeeId == previousEmployeeId.Value) ?? Employees.FirstOrDefault()
-                        : Employees.FirstOrDefault();
+                        ? Employees.FirstOrDefault(x => x.EmployeeId == previousEmployeeId.Value)
+                        : null;
                 SelectedDevice = previousDeviceId.HasValue
                     ? Devices.FirstOrDefault(x => x.DeviceId == previousDeviceId.Value) ?? Devices.FirstOrDefault()
                     : Devices.FirstOrDefault();
                 _suppressSelectionLoad = false;
                 OnPropertyChanged(nameof(CanChangeDevice));
 
-                if (SelectedEmployee == null)
+                if (Employees.Count == 0 || (_isEmployeeScoped && SelectedEmployee == null))
                 {
                     ClearDay(_isEmployeeScoped ? "Your account is not linked to an active employee." : "No active employees found.");
                     SetMessage(
@@ -458,16 +459,28 @@ namespace HRMS.ViewModel
                 }
                 else if (SelectedDevice == null)
                 {
-                    await LoadSelectedEmployeeDayAsync();
+                    if (SelectedEmployee != null)
+                    {
+                        await LoadSelectedEmployeeDayAsync();
+                    }
+
                     SetMessage("No active biometric device found. Add or activate a device in Attendance Timekeeping Hub first.", WarningBrush);
                 }
                 else
                 {
-                    await LoadSelectedEmployeeDayAsync();
+                    if (SelectedEmployee != null)
+                    {
+                        await LoadSelectedEmployeeDayAsync();
+                    }
+                    else
+                    {
+                        ClearDay("Scan a fingerprint to load today's attendance.");
+                    }
+
                     SetMessage(
                         _isEmployeeScoped
                             ? $"Your attendance is ready. Device: {SelectedDevice.DeviceName}. Click Time In or Time Out, then scan your finger."
-                            : $"Attendance ready. Device: {SelectedDevice.DeviceName}. Select employee, click Time In or Time Out, then scan fingerprint.",
+                            : $"Reader ready. Click Time In or Time Out, then scan a finger to identify the employee.",
                         SuccessBrush);
                 }
             }
@@ -484,9 +497,9 @@ namespace HRMS.ViewModel
 
         private async Task PunchAsync(string logType)
         {
-            if (SelectedEmployee == null)
+            if (_isEmployeeScoped && SelectedEmployee == null)
             {
-                SetMessage("Choose an employee first.", WarningBrush);
+                SetMessage("Your account is not linked to an active employee profile.", WarningBrush);
                 return;
             }
 
@@ -496,24 +509,39 @@ namespace HRMS.ViewModel
                 return;
             }
 
-            if (_isEmployeeScoped && SelectedEmployee.EmployeeId != _scopedEmployeeId)
+            if (_isEmployeeScoped && SelectedEmployee!.EmployeeId != _scopedEmployeeId)
             {
                 SetMessage("Employee mode can only punch your own attendance.", ErrorBrush);
                 return;
             }
 
+            var punchCancellation = new CancellationTokenSource();
+            _activePunchCancellation = punchCancellation;
             IsBusy = true;
             try
             {
-                var matchedEnrollment = await ScanSelectedEmployeeFingerprintAsync(logType);
+                var matchedEnrollment = await ScanSelectedEmployeeFingerprintAsync(logType, punchCancellation.Token);
                 if (matchedEnrollment == null)
                 {
                     return;
                 }
 
+                var recognizedEmployee = Employees.FirstOrDefault(
+                    employee => employee.EmployeeId == matchedEnrollment.Enrollment.EmployeeId);
+                if (recognizedEmployee == null)
+                {
+                    SetMessage("Fingerprint recognized, but the employee profile is not active.", WarningBrush);
+                    return;
+                }
+
+                _suppressSelectionLoad = true;
+                SelectedEmployee = recognizedEmployee;
+                _suppressSelectionLoad = false;
+
+                punchCancellation.Token.ThrowIfCancellationRequested();
                 var punchTime = DateTime.Now;
                 await _dataService.AddAttendanceLogAsync(
-                    SelectedEmployee.EmployeeId,
+                    recognizedEmployee.EmployeeId,
                     deviceId: SelectedDevice.DeviceId,
                     logTime: punchTime,
                     logType: logType,
@@ -521,24 +549,44 @@ namespace HRMS.ViewModel
                 await _dataService.MarkDeviceSyncedNowAsync(SelectedDevice.DeviceId);
 
                 await LoadSelectedEmployeeDayAsync();
-                SetMessage($"{logType} saved for {SelectedEmployee.EmployeeName} at {punchTime:hh:mm tt} using {SelectedDevice.DeviceName}.", SuccessBrush);
+                SetMessage($"Welcome, {recognizedEmployee.EmployeeName}. {logType} recorded at {punchTime:hh:mm tt}.", SuccessBrush);
                 SystemRefreshBus.Raise("BiometricAttendanceLogged");
             }
-            catch (Exception ex)
+            catch (OperationCanceledException)
             {
-                SetMessage($"Unable to complete {logType} fingerprint scan: {ex.Message}", ErrorBrush);
+                SetMessage($"{logType} fingerprint scan cancelled.", InfoBrush);
+            }
+            catch (Exception)
+            {
+                SetMessage($"The fingerprint scan could not be completed. Check the reader and try {logType} again.", ErrorBrush);
             }
             finally
             {
+                if (ReferenceEquals(_activePunchCancellation, punchCancellation))
+                {
+                    _activePunchCancellation = null;
+                }
+
+                punchCancellation.Dispose();
                 IsBusy = false;
             }
         }
 
-        private async Task<BiometricMatchedEnrollment?> ScanSelectedEmployeeFingerprintAsync(string logType)
+        public void CancelActivePunch()
         {
-            if (SelectedEmployee == null)
+            if (_activePunchCancellation is { IsCancellationRequested: false } cancellation)
             {
-                SetMessage("Choose an employee first.", WarningBrush);
+                cancellation.Cancel();
+            }
+        }
+
+        private async Task<BiometricMatchedEnrollment?> ScanSelectedEmployeeFingerprintAsync(
+            string logType,
+            CancellationToken cancellationToken)
+        {
+            if (_isEmployeeScoped && SelectedEmployee == null)
+            {
+                SetMessage("Your account is not linked to an active employee profile.", WarningBrush);
                 return null;
             }
 
@@ -556,13 +604,17 @@ namespace HRMS.ViewModel
                 return null;
             }
 
-            if (!gallery.Any(x => x.EmployeeId == SelectedEmployee.EmployeeId))
+            if (_isEmployeeScoped && !gallery.Any(x => x.EmployeeId == SelectedEmployee!.EmployeeId))
             {
-                SetMessage($"{SelectedEmployee.EmployeeName} has no enrolled fingerprint template for {selectedDevice.DeviceName}.", WarningBrush);
+                SetMessage("No enrolled fingerprint was found for your profile on this reader.", WarningBrush);
                 return null;
             }
 
-            SetMessage($"Waiting for fingerprint scan on {selectedDevice.DeviceName} before {logType} for {SelectedEmployee.EmployeeName}.", InfoBrush);
+            SetMessage(
+                _isEmployeeScoped
+                    ? $"Place your finger on {selectedDevice.DeviceName} to record {logType}."
+                    : $"Place a finger on {selectedDevice.DeviceName}. HRMS will identify the employee automatically.",
+                InfoBrush);
 
             var match = await _digitalPersonaRuntimeService.IdentifyAsync(
                 gallery.Select(x => new BiometricStoredTemplate(
@@ -575,23 +627,22 @@ namespace HRMS.ViewModel
                     x.DeviceName,
                     x.TemplateData,
                     x.TemplateFormat,
-                    x.TemplateEncoding)).ToList());
+                    x.TemplateEncoding)).ToList(),
+                cancellationToken: cancellationToken);
 
             if (match == null)
             {
-                SetMessage($"Fingerprint scanned on {selectedDevice.DeviceName}, but no matching employee was found.", WarningBrush);
+                SetMessage("Fingerprint not recognized. Use an enrolled finger, place it flat on the reader, and try again.", WarningBrush);
                 return null;
             }
 
-            if (match.Enrollment.EmployeeId != SelectedEmployee.EmployeeId)
+            if (_isEmployeeScoped && match.Enrollment.EmployeeId != SelectedEmployee!.EmployeeId)
             {
-                SetMessage(
-                    $"Fingerprint belongs to {match.Enrollment.EmployeeName}, not {SelectedEmployee.EmployeeName}. Punch was not saved.",
-                    ErrorBrush);
+                SetMessage("This fingerprint does not belong to your employee profile. Attendance was not recorded.", WarningBrush);
                 return null;
             }
 
-            SetMessage($"Fingerprint matched {SelectedEmployee.EmployeeName} on {selectedDevice.DeviceName}. Saving {logType}...", InfoBrush);
+            SetMessage($"Fingerprint recognized: {match.Enrollment.EmployeeName}. Recording {logType}...", SuccessBrush);
             return match;
         }
 
@@ -958,6 +1009,7 @@ namespace HRMS.ViewModel
 
         public void Dispose()
         {
+            CancelActivePunch();
             _clockTimer.Stop();
         }
 

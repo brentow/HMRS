@@ -15,7 +15,8 @@ namespace HRMS.Model
 
     public sealed record GgmsDisbursementResult(
         long TransactionId,
-        decimal RemainingAfter);
+        decimal RemainingAfter,
+        bool AlreadyRecorded);
 
     public sealed class GgmsFundAllocationService
     {
@@ -76,7 +77,8 @@ LIMIT 1;";
             decimal amount,
             string recipientName,
             string purpose,
-            string? description)
+            string? description,
+            string idempotencyReference)
         {
             if (allocationId <= 0)
             {
@@ -97,6 +99,13 @@ LIMIT 1;";
             {
                 throw new InvalidOperationException("Purpose is required.");
             }
+
+            if (string.IsNullOrWhiteSpace(idempotencyReference))
+            {
+                throw new InvalidOperationException("A payroll transaction reference is required.");
+            }
+
+            var referenceMarker = $"[HRMS:{idempotencyReference.Trim()}]";
 
             const string lockAllocationSql = @"
 SELECT
@@ -145,6 +154,14 @@ VALUES
     NOW()
 );";
 
+            const string existingTransactionSql = @"
+SELECT id
+FROM tbl_transaction
+WHERE office_id = @office_id
+  AND description LIKE CONCAT('%', @reference_marker, '%')
+ORDER BY id DESC
+LIMIT 1;";
+
             await using var connection = new MySqlConnection(_connectionString);
             await connection.OpenAsync();
             await using var transaction = await connection.BeginTransactionAsync();
@@ -165,6 +182,21 @@ VALUES
                     }
 
                     remainingBefore = ToDecimal(reader["remaining_amount"]);
+                }
+
+                await using (var existingCommand = new MySqlCommand(existingTransactionSql, connection, transaction))
+                {
+                    existingCommand.Parameters.AddWithValue("@office_id", _officeId);
+                    existingCommand.Parameters.AddWithValue("@reference_marker", referenceMarker);
+                    var existing = await existingCommand.ExecuteScalarAsync();
+                    if (existing != null && existing != DBNull.Value)
+                    {
+                        await transaction.CommitAsync();
+                        return new GgmsDisbursementResult(
+                            TransactionId: Convert.ToInt64(existing, CultureInfo.InvariantCulture),
+                            RemainingAfter: remainingBefore,
+                            AlreadyRecorded: true);
+                    }
                 }
 
                 if (amount > remainingBefore)
@@ -188,7 +220,10 @@ VALUES
                     txCommand.Parameters.AddWithValue("@amount", amount);
                     txCommand.Parameters.AddWithValue("@purpose", purpose.Trim());
                     txCommand.Parameters.AddWithValue("@recipient_name", recipientName.Trim());
-                    txCommand.Parameters.AddWithValue("@description", string.IsNullOrWhiteSpace(description) ? DBNull.Value : description.Trim());
+                    var transactionDescription = string.IsNullOrWhiteSpace(description)
+                        ? referenceMarker
+                        : $"{description.Trim()} {referenceMarker}";
+                    txCommand.Parameters.AddWithValue("@description", transactionDescription);
                     await txCommand.ExecuteNonQueryAsync();
                     transactionId = txCommand.LastInsertedId;
                 }
@@ -196,7 +231,8 @@ VALUES
                 await transaction.CommitAsync();
                 return new GgmsDisbursementResult(
                     TransactionId: transactionId,
-                    RemainingAfter: remainingBefore - amount);
+                    RemainingAfter: remainingBefore - amount,
+                    AlreadyRecorded: false);
             }
             catch
             {

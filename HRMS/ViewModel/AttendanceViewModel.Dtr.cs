@@ -1,5 +1,6 @@
 using HRMS.Model;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
@@ -19,6 +20,7 @@ namespace HRMS.ViewModel
         private int _selectedDtrYear;
         private int _selectedDtrMonth;
         private int? _selectedDtrEmployeeId;
+        private DtrEmployeeSummaryVm? _selectedDtrEmployeeSummary;
         private string _dtrSummaryText = "No DTR loaded.";
         private int _dtrTotalWorkedDays;
         private int _dtrTotalWorkedMinutes;
@@ -26,17 +28,22 @@ namespace HRMS.ViewModel
         private int _dtrLateCount;
         private int _dtrAbsentCount;
         private int _dtrLeaveOrHolidayCount;
+        private int _dtrUndertimeMinutes;
+        private int _dtrOvertimeMinutes;
+        private decimal _dtrAttendanceDeduction;
         private DtrCertificationRowVm? _selectedDtrCertification;
         private string _dtrCertificationRemarks = string.Empty;
 
         public ObservableCollection<LookupOptionVm> DtrEmployeeOptions { get; } = new();
         public ObservableCollection<LookupOptionVm> DtrMonthOptions { get; } = new();
         public ObservableCollection<int> DtrYearOptions { get; } = new();
+        public ObservableCollection<DtrEmployeeSummaryVm> DtrEmployeeSummaries { get; } = new();
         public ObservableCollection<DtrDailyRowVm> DtrDailyRows { get; } = new();
         public ObservableCollection<DtrCertificationRowVm> DtrCertificationRows { get; } = new();
 
         public ICommand LoadDtrCommand { get; private set; } = null!;
         public ICommand ExportDtrCsvCommand { get; private set; } = null!;
+        public ICommand ShowDtrWindowCommand { get; private set; } = null!;
         public ICommand CertifyDtrCommand { get; private set; } = null!;
         public ICommand VerifyDtrCommand { get; private set; } = null!;
         public ICommand ClearDtrCertificationCommand { get; private set; } = null!;
@@ -101,6 +108,21 @@ namespace HRMS.ViewModel
             }
         }
 
+        public DtrEmployeeSummaryVm? SelectedDtrEmployeeSummary
+        {
+            get => _selectedDtrEmployeeSummary;
+            set
+            {
+                if (ReferenceEquals(_selectedDtrEmployeeSummary, value))
+                {
+                    return;
+                }
+
+                _selectedDtrEmployeeSummary = value;
+                OnPropertyChanged();
+            }
+        }
+
         public int DtrTotalWorkedDays
         {
             get => _dtrTotalWorkedDays;
@@ -133,6 +155,41 @@ namespace HRMS.ViewModel
         }
 
         public string DtrTotalWorkedHoursText => FormatMinutes(DtrTotalWorkedMinutes);
+        public string DtrActionLabel => "View / Print";
+        public string DtrUndertimeText => FormatMinutes(DtrUndertimeMinutes);
+        public string DtrOvertimeText => FormatMinutes(DtrOvertimeMinutes);
+        public string DtrAttendanceDeductionText => $"PHP {DtrAttendanceDeduction:N2}";
+
+        public async Task<IReadOnlyList<DtrDailyRowVm>> GetEmployeeDtrRowsForViewAsync(int employeeId)
+        {
+            if (employeeId <= 0)
+            {
+                return Array.Empty<DtrDailyRowVm>();
+            }
+
+            if (IsEmployeeMode &&
+                (!_currentEmployeeId.HasValue || _currentEmployeeId.Value <= 0 || _currentEmployeeId.Value != employeeId))
+            {
+                throw new InvalidOperationException("You can only view your own DTR.");
+            }
+
+            var rows = await _dataService.GetDtrDailyRowsAsync(SelectedDtrYear, SelectedDtrMonth, employeeId);
+            return rows.Select(row => new DtrDailyRowVm(
+                row.EmployeeId,
+                row.EmployeeNo,
+                row.EmployeeName,
+                row.WorkDate,
+                row.TimeIn,
+                row.TimeOut,
+                row.WorkedMinutes,
+                row.Remarks,
+                row.LateMinutes,
+                row.EarlyOutMinutes,
+                row.OvertimeMinutes,
+                row.ScheduledMinutes,
+                row.AttendanceDeduction,
+                row.StatusCode)).ToArray();
+        }
 
         public int DtrPresentCount
         {
@@ -191,6 +248,42 @@ namespace HRMS.ViewModel
 
                 _dtrLeaveOrHolidayCount = value;
                 OnPropertyChanged();
+            }
+        }
+
+        public int DtrUndertimeMinutes
+        {
+            get => _dtrUndertimeMinutes;
+            private set
+            {
+                if (_dtrUndertimeMinutes == value) return;
+                _dtrUndertimeMinutes = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(DtrUndertimeText));
+            }
+        }
+
+        public int DtrOvertimeMinutes
+        {
+            get => _dtrOvertimeMinutes;
+            private set
+            {
+                if (_dtrOvertimeMinutes == value) return;
+                _dtrOvertimeMinutes = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(DtrOvertimeText));
+            }
+        }
+
+        public decimal DtrAttendanceDeduction
+        {
+            get => _dtrAttendanceDeduction;
+            private set
+            {
+                if (_dtrAttendanceDeduction == value) return;
+                _dtrAttendanceDeduction = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(DtrAttendanceDeductionText));
             }
         }
 
@@ -255,6 +348,7 @@ namespace HRMS.ViewModel
 
             LoadDtrCommand = new AsyncRelayCommand(_ => LoadDtrAsync());
             ExportDtrCsvCommand = new AsyncRelayCommand(_ => ExportDtrCsvAsync());
+            ShowDtrWindowCommand = new AsyncRelayCommand(_ => Task.CompletedTask);
             CertifyDtrCommand = new AsyncRelayCommand(_ => CertifySelectedDtrAsync());
             VerifyDtrCommand = new AsyncRelayCommand(_ => VerifySelectedDtrAsync());
             ClearDtrCertificationCommand = new AsyncRelayCommand(_ => ClearSelectedDtrCertificationAsync());
@@ -291,8 +385,14 @@ namespace HRMS.ViewModel
                         row.WorkedMinutes,
                         row.Remarks,
                         row.LateMinutes,
-                        row.EarlyOutMinutes));
+                        row.EarlyOutMinutes,
+                        row.OvertimeMinutes,
+                        row.ScheduledMinutes,
+                        row.AttendanceDeduction,
+                        row.StatusCode));
                 }
+
+                RebuildDtrEmployeeSummaries();
 
                 DtrCertificationRows.Clear();
                 foreach (var row in certRows)
@@ -314,12 +414,12 @@ namespace HRMS.ViewModel
                     ? DtrCertificationRows.FirstOrDefault(x => x.EmployeeId == selectedEmployeeId.Value)
                     : null;
 
-                DtrTotalWorkedDays = DtrCertificationRows.Sum(x => x.WorkedDays);
-                DtrTotalWorkedMinutes = DtrCertificationRows.Sum(x => x.WorkedMinutes);
+                DtrTotalWorkedDays = DtrDailyRows.Count(x => x.IsPresent);
+                DtrTotalWorkedMinutes = DtrDailyRows.Sum(x => x.WorkedMinutes);
                 UpdateDtrSummaryCounts();
                 DtrSummaryText = DtrDailyRows.Count == 0
                     ? "No attendance records found."
-                    : $"{DtrDailyRows.Count} records | {DtrCertificationRows.Count} employees";
+                    : $"{DtrDailyRows.Count} daily records | {DtrEmployeeSummaries.Count} employee(s) | Attendance deductions: {DtrAttendanceDeductionText}";
                 OnPropertyChanged(nameof(IsDtrEmpty));
 
                 if (!silent)
@@ -367,7 +467,7 @@ namespace HRMS.ViewModel
                 var path = dialog.FileName;
 
                 var builder = new StringBuilder();
-                builder.AppendLine("Employee No,Employee Name,Date,Day,AM Arrival,AM Departure,PM Arrival,PM Departure,Worked Minutes,Worked Hours,Late Minutes,Early Out Minutes,Attendance Flag,Remarks");
+                builder.AppendLine("Employee No,Employee Name,Date,Day,AM Arrival,AM Departure,PM Arrival,PM Departure,Scheduled Minutes,Worked Minutes,Worked Hours,Late Minutes,Undertime Minutes,Overtime Minutes,Status,Attendance Deduction,Remarks");
 
                 foreach (var row in DtrDailyRows)
                 {
@@ -380,11 +480,14 @@ namespace HRMS.ViewModel
                         Csv(row.AmDeparture),
                         Csv(row.PmArrival),
                         Csv(row.PmDeparture),
+                        Csv(row.ScheduledMinutes.ToString(CultureInfo.InvariantCulture)),
                         Csv(row.WorkedMinutes.ToString(CultureInfo.InvariantCulture)),
                         Csv(row.WorkedHoursText),
                         Csv(row.LateMinutes.ToString(CultureInfo.InvariantCulture)),
                         Csv(row.EarlyOutMinutes.ToString(CultureInfo.InvariantCulture)),
-                        Csv(row.AttendanceFlag),
+                        Csv(row.OvertimeMinutes.ToString(CultureInfo.InvariantCulture)),
+                        Csv(row.StatusDisplay),
+                        Csv(row.AttendanceDeduction.ToString("0.00", CultureInfo.InvariantCulture)),
                         Csv(row.Remarks)));
                 }
 
@@ -527,7 +630,101 @@ namespace HRMS.ViewModel
                 x.StatusDisplay == "Holiday" ||
                 x.StatusDisplay == "Travel Order" ||
                 x.StatusDisplay == "Official Business");
+            DtrUndertimeMinutes = DtrDailyRows.Sum(x => x.EarlyOutMinutes);
+            DtrOvertimeMinutes = DtrDailyRows.Sum(x => x.OvertimeMinutes);
+            DtrAttendanceDeduction = DtrDailyRows.Sum(x => x.AttendanceDeduction);
         }
+
+        private void RebuildDtrEmployeeSummaries()
+        {
+            DtrEmployeeSummaries.Clear();
+
+            foreach (var group in DtrDailyRows
+                         .GroupBy(x => new { x.EmployeeId, x.EmployeeNo, x.EmployeeName })
+                         .OrderBy(x => x.Key.EmployeeName, StringComparer.InvariantCultureIgnoreCase))
+            {
+                DtrEmployeeSummaries.Add(new DtrEmployeeSummaryVm(
+                    group.Key.EmployeeId,
+                    group.Key.EmployeeNo,
+                    group.Key.EmployeeName,
+                    group.Count(x => x.IsPresent),
+                    group.Count(x => x.LateMinutes > 0),
+                    group.Count(x => x.StatusDisplay == "Absent"),
+                    group.Count(x => x.StatusDisplay == "On Leave"),
+                    group.Sum(x => x.EarlyOutMinutes),
+                    group.Sum(x => x.OvertimeMinutes),
+                    group.Sum(x => x.AttendanceDeduction),
+                    group.Sum(x => x.WorkedMinutes)));
+            }
+
+            if (SelectedDtrEmployeeSummary != null)
+            {
+                SelectedDtrEmployeeSummary = DtrEmployeeSummaries.FirstOrDefault(x => x.EmployeeId == SelectedDtrEmployeeSummary.EmployeeId);
+            }
+
+            if (SelectedDtrEmployeeSummary == null && DtrEmployeeSummaries.Count > 0)
+            {
+                SelectedDtrEmployeeSummary = DtrEmployeeSummaries[0];
+            }
+        }
+
+        public IReadOnlyList<DtrDailyRowVm> GetEmployeeDtrRows(int employeeId)
+        {
+            if (employeeId <= 0)
+            {
+                return Array.Empty<DtrDailyRowVm>();
+            }
+
+            return DtrDailyRows
+                .Where(x => x.EmployeeId == employeeId)
+                .OrderBy(x => x.WorkDate)
+                .ToList();
+        }
+    }
+
+    public class DtrEmployeeSummaryVm
+    {
+        public DtrEmployeeSummaryVm(
+            int employeeId,
+            string employeeNo,
+            string employeeName,
+            int presentDays,
+            int lateDays,
+            int absentDays,
+            int leaveDays,
+            int undertimeMinutes,
+            int overtimeMinutes,
+            decimal attendanceDeduction,
+            int workedMinutes)
+        {
+            EmployeeId = employeeId;
+            EmployeeNo = string.IsNullOrWhiteSpace(employeeNo) ? "-" : employeeNo.Trim();
+            EmployeeName = string.IsNullOrWhiteSpace(employeeName) ? "-" : employeeName.Trim();
+            PresentDays = presentDays;
+            LateDays = lateDays;
+            AbsentDays = absentDays;
+            LeaveDays = leaveDays;
+            UndertimeMinutes = undertimeMinutes;
+            OvertimeMinutes = overtimeMinutes;
+            AttendanceDeduction = attendanceDeduction;
+            WorkedMinutes = workedMinutes;
+        }
+
+        public int EmployeeId { get; }
+        public string EmployeeNo { get; }
+        public string EmployeeName { get; }
+        public int PresentDays { get; }
+        public int LateDays { get; }
+        public int AbsentDays { get; }
+        public int LeaveDays { get; }
+        public int UndertimeMinutes { get; }
+        public int OvertimeMinutes { get; }
+        public decimal AttendanceDeduction { get; }
+        public int WorkedMinutes { get; }
+        public string WorkedHoursText => WorkedMinutes <= 0 ? "0h 0m" : $"{WorkedMinutes / 60}h {WorkedMinutes % 60}m";
+        public string UndertimeText => UndertimeMinutes <= 0 ? "-" : $"{UndertimeMinutes / 60}h {UndertimeMinutes % 60}m";
+        public string OvertimeText => OvertimeMinutes <= 0 ? "-" : $"{OvertimeMinutes / 60}h {OvertimeMinutes % 60}m";
+        public string AttendanceDeductionText => AttendanceDeduction <= 0m ? "-" : $"PHP {AttendanceDeduction:N2}";
     }
 
     public class DtrDailyRowVm
@@ -551,7 +748,11 @@ namespace HRMS.ViewModel
             int workedMinutes,
             string remarks,
             int lateMinutes,
-            int earlyOutMinutes)
+            int earlyOutMinutes,
+            int overtimeMinutes,
+            int scheduledMinutes,
+            decimal attendanceDeduction,
+            string statusCode)
         {
             EmployeeId = employeeId;
             EmployeeNo = string.IsNullOrWhiteSpace(employeeNo) ? "-" : employeeNo.Trim();
@@ -563,6 +764,10 @@ namespace HRMS.ViewModel
             Remarks = string.IsNullOrWhiteSpace(remarks) ? "-" : remarks.Trim();
             LateMinutes = lateMinutes;
             EarlyOutMinutes = earlyOutMinutes;
+            OvertimeMinutes = overtimeMinutes;
+            ScheduledMinutes = scheduledMinutes;
+            AttendanceDeduction = attendanceDeduction;
+            StatusCode = string.IsNullOrWhiteSpace(statusCode) ? "PENDING" : statusCode.Trim().ToUpperInvariant();
         }
 
         public int EmployeeId { get; }
@@ -575,6 +780,10 @@ namespace HRMS.ViewModel
         public string Remarks { get; }
         public int LateMinutes { get; }
         public int EarlyOutMinutes { get; }
+        public int OvertimeMinutes { get; }
+        public int ScheduledMinutes { get; }
+        public decimal AttendanceDeduction { get; }
+        public string StatusCode { get; }
         public bool IsPresent => TimeIn.HasValue || TimeOut.HasValue || WorkedMinutes > 0;
 
         public string DateText => WorkDate == DateTime.MinValue ? "-" : WorkDate.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture);
@@ -588,56 +797,29 @@ namespace HRMS.ViewModel
         public string WorkedHoursText => FormatMinutes(WorkedMinutes);
         public string UndertimeText => EarlyOutMinutes > 0 ? $"{EarlyOutMinutes}m" : "-";
         public string LateText => LateMinutes > 0 ? $"{LateMinutes}m" : "-";
+        public string OvertimeText => OvertimeMinutes > 0 ? $"{OvertimeMinutes}m" : "-";
+        public string AttendanceDeductionText => AttendanceDeduction > 0m ? $"PHP {AttendanceDeduction:N2}" : "-";
         public string StatusDisplay
         {
             get
             {
-                var remarks = Remarks.ToUpperInvariant();
-                if (remarks.Contains("HOLIDAY", StringComparison.OrdinalIgnoreCase))
+                return StatusCode switch
                 {
-                    return "Holiday";
-                }
-
-                if (remarks.Contains("TO", StringComparison.OrdinalIgnoreCase) ||
-                    remarks.Contains("TRAVEL", StringComparison.OrdinalIgnoreCase))
-                {
-                    return "Travel Order";
-                }
-
-                if (remarks.Contains("OB", StringComparison.OrdinalIgnoreCase) ||
-                    remarks.Contains("OFFICIAL", StringComparison.OrdinalIgnoreCase))
-                {
-                    return "Official Business";
-                }
-
-                if (remarks.Contains("LEAVE", StringComparison.OrdinalIgnoreCase) ||
-                    remarks.Contains("CTO", StringComparison.OrdinalIgnoreCase))
-                {
-                    return "On Leave";
-                }
-
-                if (!IsPresent && WorkDate.Date > DateTime.Today)
-                {
-                    return "Pending";
-                }
-
-                if (!IsPresent &&
-                    (WorkDate.DayOfWeek == DayOfWeek.Saturday || WorkDate.DayOfWeek == DayOfWeek.Sunday))
-                {
-                    return "Weekend";
-                }
-
-                if (!IsPresent)
-                {
-                    return "Absent";
-                }
-
-                if (LateMinutes > 0)
-                {
-                    return "Late";
-                }
-
-                return "Present";
+                    "PRESENT" => "Present",
+                    "LATE" => "Late",
+                    "UNDERTIME" => "Undertime",
+                    "LATE_UNDERTIME" => "Late / Undertime",
+                    "OVERTIME" => "Overtime",
+                    "ABSENT" => "Absent",
+                    "LEAVE" => "On Leave",
+                    "HOLIDAY" => "Holiday",
+                    "WEEKEND" => "Weekend",
+                    "PENDING" => "Pending",
+                    "INCOMPLETE" => "Incomplete Punch",
+                    "TRAVEL_ORDER" => "Travel Order",
+                    "OFFICIAL_BUSINESS" => "Official Business",
+                    _ => "Present"
+                };
             }
         }
 
@@ -645,23 +827,36 @@ namespace HRMS.ViewModel
         {
             "Present" => PresentBrush,
             "Late" => LateBrush,
+            "Undertime" => LateBrush,
+            "Late / Undertime" => LateBrush,
+            "Overtime" => PresentBrush,
             "Absent" => AbsentBrush,
             "On Leave" => LeaveBrush,
             "Holiday" => HolidayBrush,
             "Weekend" => WeekendBrush,
             "Pending" => PendingBrush,
+            "Incomplete Punch" => AbsentBrush,
             "Travel Order" => HolidayBrush,
             "Official Business" => LeaveBrush,
             _ => DefaultBrush
         };
 
-        public string AttendanceFlag => LateMinutes > 0 && EarlyOutMinutes > 0
-            ? $"Late {LateMinutes}m / Early {EarlyOutMinutes}m"
-            : LateMinutes > 0
-                ? $"Late {LateMinutes}m"
-                : EarlyOutMinutes > 0
-                    ? $"Early out {EarlyOutMinutes}m"
-                    : "On time";
+        public string AttendanceFlag
+        {
+            get
+            {
+                if (StatusDisplay is "Absent" or "On Leave" or "Holiday" or "Weekend" or "Pending" or "Incomplete Punch")
+                {
+                    return StatusDisplay;
+                }
+
+                var parts = new System.Collections.Generic.List<string>();
+                if (LateMinutes > 0) parts.Add($"Late {LateMinutes}m");
+                if (EarlyOutMinutes > 0) parts.Add($"Undertime {EarlyOutMinutes}m");
+                if (OvertimeMinutes > 0) parts.Add($"OT {OvertimeMinutes}m");
+                return parts.Count == 0 ? "On time" : string.Join(" / ", parts);
+            }
+        }
 
         private static string FormatMinutes(int workedMinutes)
         {

@@ -6,20 +6,20 @@ namespace HRMS.Model
 {
     public sealed class CrsConnectionSettings
     {
-        public string Host { get; set; } = "194.59.164.58";
+        public string Host { get; set; } = "127.0.0.1";
         public string Port { get; set; } = "3306";
-        public string Database { get; set; } = "u621755393_crs";
-        public string Username { get; set; } = "u621755393_crs_user";
-        public string Password { get; set; } = "Crs@2026";
+        public string Database { get; set; } = "crs_db";
+        public string Username { get; set; } = "hrms_app";
+        public string Password { get; set; } = string.Empty;
     }
 
     public static class CrsConfig
     {
-        private const string DefaultHost = "194.59.164.58";
+        private const string DefaultHost = "127.0.0.1";
         private const string DefaultPort = "3306";
-        private const string DefaultDatabase = "u621755393_crs";
-        private const string DefaultUser = "u621755393_crs_user";
-        private const string DefaultPassword = "Crs@2026";
+        private const string DefaultDatabase = "crs_db";
+        private const string DefaultUser = "hrms_app";
+        private const string DefaultPassword = "";
 
         private static readonly string TextSettingsFilePath = Path.Combine(AppContext.BaseDirectory, "CrsConfig.txt");
 
@@ -30,18 +30,13 @@ namespace HRMS.Model
         public static CrsConnectionSettings GetSettings()
         {
             var fileSettings = LoadFromTextFile();
-            if (fileSettings != null)
-            {
-                return Normalize(fileSettings);
-            }
-
             return Normalize(new CrsConnectionSettings
             {
-                Host = Get("CRS_DB_HOST", DefaultHost),
-                Port = Get("CRS_DB_PORT", DefaultPort),
-                Database = Get("CRS_DB_NAME", DefaultDatabase),
-                Username = Get("CRS_DB_USER", DefaultUser),
-                Password = Get("CRS_DB_PASSWORD", DefaultPassword)
+                Host = Get("CRS_DB_HOST", fileSettings?.Host ?? DefaultHost),
+                Port = Get("CRS_DB_PORT", fileSettings?.Port ?? DefaultPort),
+                Database = Get("CRS_DB_NAME", fileSettings?.Database ?? DefaultDatabase),
+                Username = Get("CRS_DB_USER", fileSettings?.Username ?? DefaultUser),
+                Password = GetPassword(fileSettings?.Password)
             });
         }
 
@@ -55,7 +50,7 @@ namespace HRMS.Model
                 $"Port={normalized.Port}",
                 $"Database={normalized.Database}",
                 $"User={normalized.Username}",
-                $"Password={normalized.Password}"
+                $"ProtectedPassword={SensitiveIdProtector.ProtectForStorage(normalized.Password) ?? string.Empty}"
             };
             File.WriteAllLines(TextSettingsFilePath, lines);
             ApplyToProcessEnvironment(normalized);
@@ -146,7 +141,7 @@ namespace HRMS.Model
                     Port = ReadValue(map, "Port") ?? string.Empty,
                     Database = ReadValue(map, "Database", "Db", "Name") ?? string.Empty,
                     Username = ReadValue(map, "User", "Username", "Uid") ?? string.Empty,
-                    Password = ReadValue(map, "Password", "Pwd") ?? string.Empty
+                    Password = ReadStoredPassword(map)
                 });
             }
             catch
@@ -155,7 +150,7 @@ namespace HRMS.Model
             }
         }
 
-        private static string? ReadValue(Dictionary<string, string> map, params string[] keys)
+        private static string? ReadValue(IReadOnlyDictionary<string, string> map, params string[] keys)
         {
             foreach (var key in keys)
             {
@@ -186,6 +181,42 @@ namespace HRMS.Model
         {
             var value = Environment.GetEnvironmentVariable(key);
             return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+        }
+
+        private static string GetPassword(string? filePassword)
+        {
+            var plainEnvironmentValue = Environment.GetEnvironmentVariable("CRS_DB_PASSWORD");
+            if (!string.IsNullOrWhiteSpace(plainEnvironmentValue))
+            {
+                return plainEnvironmentValue.Trim();
+            }
+
+            var protectedEnvironmentValue = Environment.GetEnvironmentVariable("CRS_DB_PASSWORD_PROTECTED");
+            if (!string.IsNullOrWhiteSpace(protectedEnvironmentValue))
+            {
+                return SensitiveIdProtector.UnprotectToPlaintext(protectedEnvironmentValue.Trim()) ?? string.Empty;
+            }
+
+            return filePassword ?? DefaultPassword;
+        }
+
+        private static string ReadStoredPassword(IReadOnlyDictionary<string, string> map)
+        {
+            var protectedValue = ReadValue(map, "ProtectedPassword", "PasswordProtected");
+            if (!string.IsNullOrWhiteSpace(protectedValue))
+            {
+                return SensitiveIdProtector.UnprotectToPlaintext(protectedValue.Trim()) ?? string.Empty;
+            }
+
+            var legacyPlaintextValue = ReadValue(map, "Password", "Pwd");
+            if (string.IsNullOrWhiteSpace(legacyPlaintextValue))
+            {
+                return string.Empty;
+            }
+
+            return SensitiveIdProtector.IsProtected(legacyPlaintextValue)
+                ? SensitiveIdProtector.UnprotectToPlaintext(legacyPlaintextValue.Trim()) ?? string.Empty
+                : legacyPlaintextValue.Trim();
         }
 
         private static bool IsLocalHost(string? host)

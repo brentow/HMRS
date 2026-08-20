@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Images\ePRIME_logo.ico</ApplicationIcon>
-    <DefaultItemExcludes>$(DefaultItemExcludes);_build_out\**;_tmp_obj\**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);_build_out\**;_tmp_obj\**;_verify_obj\**;_verify_out\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,6 +21,8 @@
     <Compile Remove="obj\**\*.g.i.cs" />
     <Compile Remove="obj\**\*wpftmp*.cs" />
     <Compile Remove="_tmp_obj\**\*.cs" />
+    <Compile Remove="_verify_obj\**\*.cs" />
+    <Compile Remove="_verify_out\**\*.cs" />
   </ItemGroup>
 
   <ItemGroup>

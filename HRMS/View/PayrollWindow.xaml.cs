@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using HRMS.Model;
 using HRMS.ViewModel;
+using System;
 
 namespace HRMS.View
 {
@@ -23,10 +24,12 @@ namespace HRMS.View
             if (user == null)
             {
                 _viewModel.SetCurrentUser(0, string.Empty, null);
+                ApplyEmployeeVisibility(false);
                 return;
             }
 
             _viewModel.SetCurrentUser(user.UserId, user.Username, user.RoleName);
+            ApplyEmployeeVisibility(string.Equals(user.RoleName, "Employee", StringComparison.OrdinalIgnoreCase));
         }
 
         public async Task RefreshAsync()
@@ -39,26 +42,85 @@ namespace HRMS.View
             PayrollTabControl.SelectedItem = PayrollRunsTab;
         }
 
-        public void ShowDeductionsTab()
-        {
-            PayrollTabControl.SelectedItem = DeductionsTab.Visibility == System.Windows.Visibility.Visible
-                ? DeductionsTab
-                : PayrollRunsTab;
-        }
-
         public void ShowPayslipTab()
         {
             PayrollTabControl.SelectedItem = PayslipReleasesTab;
         }
 
-        private void OpenRunDetailsPopup_OnClick(object sender, RoutedEventArgs e)
+        public void ShowDeductionsTab()
         {
-            RunDetailsPopup.IsOpen = true;
+            PayrollTabControl.SelectedItem = DeductionsTab;
         }
 
-        private void CloseRunDetailsPopup_OnClick(object sender, RoutedEventArgs e)
+        private void PayrollRunActionsButton_OnClick(object sender, RoutedEventArgs e)
         {
-            RunDetailsPopup.IsOpen = false;
+            if (sender is not Button { Tag: PayrollRunVm row } button)
+            {
+                return;
+            }
+
+            var menu = new ContextMenu
+            {
+                Style = (Style)FindResource("PayrollContextMenuStyle"),
+                PlacementTarget = button,
+                Placement = System.Windows.Controls.Primitives.PlacementMode.Left,
+                HorizontalOffset = -6
+            };
+            menu.Resources[typeof(MenuItem)] = FindResource("PayrollMenuItemStyle");
+
+            if (_viewModel.IsAdminOrHrMode && row.CanApprovePayroll)
+            {
+                menu.Items.Add(CreatePayrollMenuItem("Approve Payroll", _viewModel.ApproveRunCommand, row));
+            }
+
+            if (_viewModel.IsAdminOrHrMode && row.CanReleasePayslip)
+            {
+                menu.Items.Add(CreatePayrollMenuItem("Release Payslip", _viewModel.ReleasePayslipCommand, row));
+            }
+
+            if (row.CanOpenPayslip)
+            {
+                menu.Items.Add(CreatePayrollMenuItem("Download PDF", _viewModel.DownloadPayslipCommand, row));
+                menu.Items.Add(CreatePayrollMenuItem("Print Payslip", _viewModel.PrintPayslipCommand, row));
+            }
+
+            if (menu.Items.Count == 0)
+            {
+                menu.Items.Add(new MenuItem { Header = "No actions available", IsEnabled = false });
+            }
+
+            button.ContextMenu = menu;
+            menu.IsOpen = true;
+            e.Handled = true;
         }
+
+        private static MenuItem CreatePayrollMenuItem(string header, System.Windows.Input.ICommand command, PayrollRunVm row) =>
+            new()
+            {
+                Header = header,
+                Command = command,
+                CommandParameter = row
+            };
+
+        private void ApplyEmployeeVisibility(bool isEmployee)
+        {
+            var employeeVisibility = isEmployee ? Visibility.Collapsed : Visibility.Visible;
+
+            if (PayrollRunEmployeeColumn != null)
+            {
+                PayrollRunEmployeeColumn.Visibility = employeeVisibility;
+            }
+
+            if (PayslipReleaseEmpNoColumn != null)
+            {
+                PayslipReleaseEmpNoColumn.Visibility = employeeVisibility;
+            }
+
+            if (PayslipReleaseEmployeeColumn != null)
+            {
+                PayslipReleaseEmployeeColumn.Visibility = employeeVisibility;
+            }
+        }
+
     }
 }

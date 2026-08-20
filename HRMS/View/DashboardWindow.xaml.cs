@@ -401,8 +401,8 @@ namespace HRMS.View
             LeaveNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Leave));
             PayrollNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Payroll));
             PayrollRunsNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Payroll));
-            DeductionsNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Payroll) && !isEmployeeAccess);
             PayslipNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Payroll));
+            DeductionsNavButton.Visibility = ToVisibility(CanAccessModule(ModuleKey.Payroll));
             RecordsReportsNavButton.Visibility = ToVisibility(canTransactions || canReports || canDocuments);
             TransactionsNavButton.Visibility = ToVisibility(canTransactions);
             ReportsNavButton.Visibility = ToVisibility(canReports);
@@ -439,7 +439,7 @@ namespace HRMS.View
 
             if (PayrollNavChevronIcon != null)
             {
-                PayrollNavChevronIcon.Visibility = isEmployeeAccess ? Visibility.Collapsed : Visibility.Visible;
+                PayrollNavChevronIcon.Visibility = Visibility.Collapsed;
             }
 
             if (PayrollNavButton != null && isEmployeeAccess)
@@ -525,15 +525,16 @@ namespace HRMS.View
                 PayrollRunsMenuItem.Header = isEmployeeAccess ? "My Payroll" : "Payroll";
             }
 
-            if (DeductionsMenuItem != null)
-            {
-                DeductionsMenuItem.Visibility = ToVisibility(CanAccessModule(ModuleKey.Payroll) && !isEmployeeAccess);
-            }
-
             if (PayslipMenuItem != null)
             {
                 PayslipMenuItem.Visibility = ToVisibility(CanAccessModule(ModuleKey.Payroll));
                 PayslipMenuItem.Header = isEmployeeAccess ? "My Payslip" : "Payslip";
+            }
+
+            if (DeductionsMenuItem != null)
+            {
+                DeductionsMenuItem.Visibility = ToVisibility(CanAccessModule(ModuleKey.Payroll));
+                DeductionsMenuItem.Header = isEmployeeAccess ? "My Deductions" : "Deductions";
             }
 
             if (QuickEmployeesButton != null)
@@ -906,7 +907,7 @@ namespace HRMS.View
 
             if (PayrollNavChevronIcon != null)
             {
-                PayrollNavChevronIcon.Visibility = IsEmployeeAccess ? Visibility.Collapsed : chevronVisibility;
+                PayrollNavChevronIcon.Visibility = Visibility.Collapsed;
             }
 
             if (RecordsReportsNavChevronIcon != null)
@@ -1088,7 +1089,7 @@ namespace HRMS.View
 
         private void EmployeeDepartmentPositionNavButton_OnClick(object sender, RoutedEventArgs e)
         {
-            if (!EnsureModuleAccess(ModuleKey.Employees, "My Department / Position"))
+            if (!EnsureModuleAccess(ModuleKey.Employees, "My Profile"))
             {
                 return;
             }
@@ -1239,19 +1240,7 @@ namespace HRMS.View
 
         private void PayrollNavButton_OnClick(object sender, RoutedEventArgs e)
         {
-            if (ReferenceEquals(sender, QuickPayrollButton) || IsEmployeeAccess)
-            {
-                OpenPayrollModule(x => x.ShowPayrollTab());
-                return;
-            }
-
-            if (_navCollapsed)
-            {
-                OpenAttachedMenu(PayrollNavButton);
-                return;
-            }
-
-            ToggleSidebarGroup(PayrollSubmenuPanel, PayrollNavChevronIcon);
+            OpenPayrollModule(x => x.ShowPayrollTab());
         }
 
         private void PayrollRunsMenuItem_OnClick(object sender, RoutedEventArgs e)
@@ -1259,14 +1248,14 @@ namespace HRMS.View
             OpenPayrollModule(x => x.ShowPayrollTab());
         }
 
-        private void DeductionsNavButton_OnClick(object sender, RoutedEventArgs e)
-        {
-            OpenPayrollModule(x => x.ShowDeductionsTab());
-        }
-
         private void PayslipNavButton_OnClick(object sender, RoutedEventArgs e)
         {
             OpenPayrollModule(x => x.ShowPayslipTab());
+        }
+
+        private void DeductionsNavButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            OpenPayrollModule(x => x.ShowDeductionsTab());
         }
 
         private void TransactionsNavButton_OnClick(object sender, RoutedEventArgs e)
@@ -1443,7 +1432,7 @@ namespace HRMS.View
 
             if (normalizedQuery.Contains("department") || normalizedQuery.Contains("position"))
             {
-                if (IsEmployeeAccess && EnsureModuleAccess(ModuleKey.Employees, "My Department / Position"))
+                if (IsEmployeeAccess && EnsureModuleAccess(ModuleKey.Employees, "My Profile"))
                 {
                     OpenEmployeesModule(openProfileTab: true);
                     return;

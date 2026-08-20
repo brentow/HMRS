@@ -1,0 +1,7 @@
+# HRMS Database Connection Settings
+# Edit these values before running/publishing.
+Server=194.59.164.58
+Port=3306
+Database=u621755393_hrms3b
+User=u621755393_hrms3b_user
+Password=Hrms3b@2026

@@ -136,14 +136,14 @@
                                              Height="32"
                                              Margin="0,0,10,0"
                                              Foreground="{StaticResource PrimaryBrush}" />
-                    <TextBlock Text="Leave Administration"
+                    <TextBlock Text="{Binding PageHeaderTitle}"
                                FontSize="25"
                                FontWeight="Bold"
                                Foreground="{StaticResource PrimaryBrush}" />
                 </StackPanel>
                 <TextBlock Margin="0,2,0,0"
                            Foreground="#5B6A7A"
-                           Text="Review leave requests, balances, and attachments." />
+                           Text="{Binding PageHeaderSubtitle}" />
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
@@ -173,7 +173,7 @@
 
 
         <TabControl Grid.Row="2" Margin="6,0,6,8">
-            <TabItem Header="Leave Requests">
+            <TabItem Header="{Binding RequestsTabHeader}">
                 <Grid Margin="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -211,7 +211,7 @@
                                 Style="{StaticResource PrimaryButtonStyle}">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Plus" Width="15" Height="15" Margin="0,0,6,0" />
-                                <TextBlock Text="File Leave" />
+                                <TextBlock Text="{Binding FileLeaveTitle}" />
                             </StackPanel>
                         </Button>
 
@@ -257,7 +257,7 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="File Leave" FontSize="18" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LeaveFormTitle}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" VerticalAlignment="Center" />
                                         <Button Grid.Column="1"
                                                 Width="34"
                                                 Height="32"
@@ -286,12 +286,13 @@
                                             <ColumnDefinition Width="140" />
                                         </Grid.ColumnDefinitions>
 
-                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Employee" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                        <TextBlock x:Name="FileLeaveEmployeeLabel" Grid.Row="0" Grid.Column="0" Text="Employee" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
                                         <TextBlock Grid.Row="0" Grid.Column="1" Text="Leave Type" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,6" />
                                         <TextBlock Grid.Row="0" Grid.Column="2" Text="Date From" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,6" />
                                         <TextBlock Grid.Row="0" Grid.Column="3" Text="Date To" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,6" />
 
-                                        <ComboBox Grid.Row="1"
+                                        <ComboBox x:Name="FileLeaveEmployeeComboBox"
+                                                  Grid.Row="1"
                                                   Grid.Column="0"
                                                   Height="40"
                                                   IsEnabled="{Binding IsAdminOrHrMode}"
@@ -362,10 +363,19 @@
                                                 MinWidth="132"
                                                 IsEnabled="{Binding CanFileLeaveRequest}"
                                                 Command="{Binding FileLeaveCommand}"
-                                                Style="{StaticResource PrimaryButtonStyle}">
+                                                ToolTip="Resolve the validation messages before saving.">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsEnabled" Value="False">
+                                                            <Setter Property="Opacity" Value="0.42" />
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
                                             <StackPanel Orientation="Horizontal">
-                                                <materialDesign:PackIcon Kind="Plus" Width="15" Height="15" Margin="0,0,6,0" />
-                                                <TextBlock Text="File Leave" />
+                                                <materialDesign:PackIcon Kind="ContentSaveEditOutline" Width="15" Height="15" Margin="0,0,6,0" />
+                                                <TextBlock Text="{Binding LeaveFormSubmitText}" />
                                             </StackPanel>
                                         </Button>
                                     </StackPanel>
@@ -381,28 +391,41 @@
                             Visibility="{Binding IsAdminOrHrMode, Converter={StaticResource BoolToVis}}">
                         <Grid>
                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.2*" />
                                 <ColumnDefinition Width="1.35*" />
-                                <ColumnDefinition Width="1.65*" />
+                                <ColumnDefinition Width="1.35*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                <TextBlock Text="Review Request" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
+                                <TextBlock Text="1. Select Request" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
                                 <TextBlock Text="{Binding SelectedRequest.EmployeeName, TargetNullValue='Select a request to review', FallbackValue='Select a request to review'}" Foreground="#5B6A7A" />
                                 <TextBlock Text="{Binding SelectedRequest.DateRangeText, TargetNullValue='-', FallbackValue='-'}" Foreground="#5B6A7A" />
                                 <TextBlock Text="{Binding SelectedRequest.Reason, TargetNullValue='-', FallbackValue='-'}" Foreground="#5B6A7A" TextTrimming="CharacterEllipsis" />
+                                <Border Margin="0,6,0,0" Padding="9,3" HorizontalAlignment="Left" Background="{Binding SelectedRequest.StatusBrush, TargetNullValue=#8A98AA}" CornerRadius="11">
+                                    <TextBlock Text="{Binding SelectedRequest.StatusDisplay, TargetNullValue='No selection', FallbackValue='No selection'}" Foreground="White" FontSize="12" FontWeight="SemiBold" />
+                                </Border>
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                                <TextBlock Text="Notes" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                                <TextBox Height="40" VerticalContentAlignment="Center" Text="{Binding DecisionRemarks}" />
+                                <TextBlock Text="2. Check Balance" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <TextBlock Text="{Binding SelectedRequestBalanceSummary}" Foreground="#1E4368" TextWrapping="Wrap" />
+                                <TextBlock Margin="0,8,0,0" Text="Timeline" Foreground="#5B6A7A" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding SelectedRequestTimeline}" Foreground="#5B6A7A" TextWrapping="Wrap" />
+                                <TextBlock Margin="0,8,0,0" Text="What happens next" Foreground="#5B6A7A" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding SelectedRequestOutcomeSummary}" Foreground="#1E4368" TextWrapping="Wrap" />
                             </StackPanel>
 
-                            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Bottom">
-                                <Button Command="{Binding ApproveRequestCommand}" CommandParameter="{Binding SelectedRequest}" Style="{StaticResource SuccessButtonStyle}">
+                            <StackPanel Grid.Column="2" Margin="12,0,0,0">
+                                <TextBlock Text="3. Decision" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                <TextBox Height="40" VerticalContentAlignment="Center" Text="{Binding DecisionRemarks}" IsEnabled="{Binding CanDecideSelectedRequest}" materialDesign:HintAssist.Hint="Approval note or rejection reason" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Bottom">
+                                <Button Command="{Binding ApproveRequestCommand}" CommandParameter="{Binding SelectedRequest}" IsEnabled="{Binding CanDecideSelectedRequest}" Style="{StaticResource SuccessButtonStyle}">
                                     <TextBlock Text="Approve" />
                                 </Button>
-                                <Button Margin="8,0,0,0" Command="{Binding RejectRequestCommand}" CommandParameter="{Binding SelectedRequest}" Style="{StaticResource DangerButtonStyle}">
+                                <Button Margin="8,0,0,0" Command="{Binding RejectRequestCommand}" CommandParameter="{Binding SelectedRequest}" IsEnabled="{Binding CanDecideSelectedRequest}" Style="{StaticResource DangerButtonStyle}">
                                     <TextBlock Text="Reject" />
                                 </Button>
                             </StackPanel>
@@ -433,29 +456,42 @@
                                 <TextBlock Text="{Binding SelectedRequestTimeline}" Foreground="#1E4368" TextWrapping="Wrap" />
                                 <TextBlock Margin="0,8,0,0" Text="Decision remarks" Foreground="#5B6A7A" FontWeight="SemiBold" />
                                 <TextBlock Text="{Binding SelectedRequest.DecisionRemarks, TargetNullValue='-', FallbackValue='-'}" Foreground="#1E4368" TextWrapping="Wrap" />
+                                <TextBlock Margin="0,8,0,0" Text="What happens next" Foreground="#5B6A7A" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding SelectedRequestOutcomeSummary}" Foreground="#1E4368" TextWrapping="Wrap" />
                             </StackPanel>
 
-                            <Button Grid.Column="2"
-                                    Margin="12,0,0,0"
-                                    VerticalAlignment="Center"
-                                    MinWidth="138"
-                                    Height="40"
-                                    IsEnabled="{Binding CanCancelSelectedRequest}"
-                                    Command="{Binding CancelMyRequestCommand}"
-                                    CommandParameter="{Binding SelectedRequest}"
-                                    Style="{StaticResource DangerButtonStyle}">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="Cancel" Width="14" Height="14" Margin="0,0,6,0" />
-                                    <TextBlock Text="Cancel" />
-                                </StackPanel>
-                            </Button>
+                            <StackPanel Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center">
+                                <Button MinWidth="138"
+                                        Height="40"
+                                        Margin="0,0,0,8"
+                                        IsEnabled="{Binding CanEditSelectedRequest}"
+                                        Click="EditLeaveRequest_OnClick"
+                                        ToolTip="Edit your submitted request before HR reviews it."
+                                        Style="{StaticResource SoftButtonStyle}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="PencilOutline" Width="14" Height="14" Margin="0,0,6,0" />
+                                        <TextBlock Text="Edit Request" />
+                                    </StackPanel>
+                                </Button>
+                                <Button MinWidth="138"
+                                        Height="40"
+                                        IsEnabled="{Binding CanCancelSelectedRequest}"
+                                        Command="{Binding CancelMyRequestCommand}"
+                                        CommandParameter="{Binding SelectedRequest}"
+                                        Style="{StaticResource DangerButtonStyle}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Cancel" Width="14" Height="14" Margin="0,0,6,0" />
+                                        <TextBlock Text="Cancel" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
                         </Grid>
                     </Border>
 
                     <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0">
-                        <DataGrid ItemsSource="{Binding LeaveRequests}" SelectedItem="{Binding SelectedRequest}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" HeadersVisibility="Column" GridLinesVisibility="Horizontal" RowHeaderWidth="0" ColumnHeaderStyle="{StaticResource GridHeaderStyle}" CellStyle="{StaticResource GridCellStyle}" RowStyle="{StaticResource GridRowStyle}">
+                        <DataGrid ItemsSource="{Binding LeaveRequests}" SelectedItem="{Binding SelectedRequest}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" HeadersVisibility="Column" GridLinesVisibility="None" RowHeaderWidth="0" ColumnHeaderStyle="{StaticResource GridHeaderStyle}" CellStyle="{StaticResource GridCellStyle}" RowStyle="{StaticResource GridRowStyle}">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName}" Width="240" />
+                                <DataGridTextColumn x:Name="LeaveRequestEmployeeColumn" Header="Employee" Binding="{Binding EmployeeName}" Width="240" />
                                 <DataGridTextColumn Header="Leave Type" Binding="{Binding LeaveTypeName}" Width="180" />
                                 <DataGridTextColumn Header="Dates" Binding="{Binding DateRangeText}" Width="190" CellStyle="{StaticResource GridCellCenterStyle}" />
                                 <DataGridTextColumn Header="Days" Binding="{Binding DaysRequestedText}" Width="70" CellStyle="{StaticResource GridCellCenterStyle}" />
@@ -475,7 +511,7 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="Leave Balances">
+            <TabItem Header="{Binding BalancesTabHeader}">
                 <Grid Margin="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -527,8 +563,6 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="1.6*" />
@@ -541,65 +575,26 @@
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="Employee" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
                             <TextBlock Grid.Row="0" Grid.Column="1" Text="Leave Type" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,6" />
                             <TextBlock Grid.Row="0" Grid.Column="2" Text="Year" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,6" />
-                            <TextBlock Grid.Row="0" Grid.Column="3" Text="As of date" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,6" />
+                            <TextBlock Grid.Row="0" Grid.Column="3" Text="Opening Balance" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,6" />
 
                             <ComboBox Grid.Row="1" Grid.Column="0" Height="40" ItemsSource="{Binding EmployeeOptions}" SelectedValuePath="EmployeeId" DisplayMemberPath="DisplayText" SelectedValue="{Binding SelectedBalanceEmployeeId}" />
                             <ComboBox Grid.Row="1" Grid.Column="1" Height="40" Margin="10,0,0,0" ItemsSource="{Binding LeaveTypeOptions}" SelectedValuePath="LeaveTypeId" DisplayMemberPath="DisplayText" SelectedValue="{Binding SelectedBalanceLeaveTypeId}" />
                             <TextBox Grid.Row="1" Grid.Column="2" Height="40" Margin="10,0,0,0" VerticalContentAlignment="Center" Text="{Binding BalanceYear}" />
-                            <Border Grid.Row="1"
-                                    Grid.Column="3"
-                                    Margin="10,0,0,0"
-                                    Style="{StaticResource DateFieldBorderStyle}">
-                                <DatePicker BorderThickness="0"
-                                            Padding="8,0"
-                                            VerticalContentAlignment="Center"
-                                            Background="Transparent"
-                                            Language="en-GB"
-                                            SelectedDateFormat="Short"
-                                            SelectedDate="{Binding BalanceAsOfDate}" />
-                            </Border>
+                            <TextBox Grid.Row="1" Grid.Column="3" Height="40" Margin="10,0,0,0" VerticalContentAlignment="Center" Text="{Binding BalanceOpeningCredits}" />
                             <Button Grid.Row="1" Grid.Column="4" Margin="10,0,0,0" Height="40" MinWidth="120" Command="{Binding SaveBalanceCommand}" Style="{StaticResource PrimaryButtonStyle}">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="ContentSaveOutline" Width="15" Height="15" Margin="0,0,6,0" />
                                     <TextBlock Text="Save" />
                                 </StackPanel>
                             </Button>
-
-                            <Grid Grid.Row="2" Grid.ColumnSpan="5" Margin="0,10,0,6">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-
-                                <TextBlock Grid.Column="0" Text="Opening Credits" Foreground="#5B6A7A" FontWeight="SemiBold" />
-                                <TextBlock Grid.Column="1" Text="Earned" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,0" />
-                                <TextBlock Grid.Column="2" Text="Used" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,0" />
-                                <TextBlock Grid.Column="3" Text="Adjustments" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,0" />
-                            </Grid>
-
-                            <Grid Grid.Row="3" Grid.ColumnSpan="5">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-
-                                <TextBox Grid.Column="0" Height="40" VerticalContentAlignment="Center" Text="{Binding BalanceOpeningCredits}" />
-                                <TextBox Grid.Column="1" Height="40" Margin="10,0,0,0" VerticalContentAlignment="Center" Text="{Binding BalanceEarned}" />
-                                <TextBox Grid.Column="2" Height="40" Margin="10,0,0,0" VerticalContentAlignment="Center" Text="{Binding BalanceUsed}" />
-                                <TextBox Grid.Column="3" Height="40" Margin="10,0,0,0" VerticalContentAlignment="Center" Text="{Binding BalanceAdjustments}" />
-                            </Grid>
                         </Grid>
                     </Border>
 
                     <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0">
-                        <DataGrid ItemsSource="{Binding LeaveBalances}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" HeadersVisibility="Column" GridLinesVisibility="Horizontal" RowHeaderWidth="0" ColumnHeaderStyle="{StaticResource GridHeaderStyle}" CellStyle="{StaticResource GridCellStyle}" RowStyle="{StaticResource GridRowStyle}">
+                        <DataGrid ItemsSource="{Binding LeaveBalances}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" HeadersVisibility="Column" GridLinesVisibility="None" RowHeaderWidth="0" ColumnHeaderStyle="{StaticResource GridHeaderStyle}" CellStyle="{StaticResource GridCellStyle}" RowStyle="{StaticResource GridRowStyle}">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Emp No" Binding="{Binding EmployeeNo}" Width="100" CellStyle="{StaticResource GridCellCenterStyle}" />
-                                <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName}" Width="240" />
+                                <DataGridTextColumn x:Name="LeaveBalanceEmpNoColumn" Header="Emp No" Binding="{Binding EmployeeNo}" Width="100" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn x:Name="LeaveBalanceEmployeeColumn" Header="Employee" Binding="{Binding EmployeeName}" Width="240" />
                                 <DataGridTextColumn Header="Leave Type" Binding="{Binding LeaveTypeName}" Width="170" />
                                 <DataGridTextColumn Header="Year" Binding="{Binding Year}" Width="75" CellStyle="{StaticResource GridCellCenterStyle}" />
                                 <DataGridTextColumn Header="Opening" Binding="{Binding OpeningCredits, StringFormat={}{0:0.##}}" Width="95" CellStyle="{StaticResource GridCellCenterStyle}" />
@@ -614,7 +609,7 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="Attachments">
+            <TabItem Header="{Binding AttachmentsTabHeader}">
                 <Grid Margin="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -671,12 +666,12 @@
                     </Grid>
 
                     <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0">
-                        <DataGrid ItemsSource="{Binding LeaveAttachments}" SelectedItem="{Binding SelectedAttachment}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" HeadersVisibility="Column" GridLinesVisibility="Horizontal" RowHeaderWidth="0" ColumnHeaderStyle="{StaticResource GridHeaderStyle}" CellStyle="{StaticResource GridCellStyle}" RowStyle="{StaticResource GridRowStyle}">
+                        <DataGrid ItemsSource="{Binding LeaveAttachments}" SelectedItem="{Binding SelectedAttachment}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" HeadersVisibility="Column" GridLinesVisibility="None" RowHeaderWidth="0" ColumnHeaderStyle="{StaticResource GridHeaderStyle}" CellStyle="{StaticResource GridCellStyle}" RowStyle="{StaticResource GridRowStyle}">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Doc ID" Binding="{Binding LeaveDocumentId}" Width="90" CellStyle="{StaticResource GridCellCenterStyle}" />
                                 <DataGridTextColumn Header="Req ID" Binding="{Binding LeaveApplicationId}" Width="90" CellStyle="{StaticResource GridCellCenterStyle}" />
-                                <DataGridTextColumn Header="Emp No" Binding="{Binding EmployeeNo}" Width="95" CellStyle="{StaticResource GridCellCenterStyle}" />
-                                <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName}" Width="220" />
+                                <DataGridTextColumn x:Name="LeaveAttachmentEmpNoColumn" Header="Emp No" Binding="{Binding EmployeeNo}" Width="95" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn x:Name="LeaveAttachmentEmployeeColumn" Header="Employee" Binding="{Binding EmployeeName}" Width="220" />
                                 <DataGridTextColumn Header="File Name" Binding="{Binding FileName}" Width="210" />
                                 <DataGridTextColumn Header="Path" Binding="{Binding FilePath}" Width="360" />
                                 <DataGridTextColumn Header="Uploaded" Binding="{Binding UploadedAtText}" Width="170" CellStyle="{StaticResource GridCellCenterStyle}" />

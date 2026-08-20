@@ -24,6 +24,7 @@ namespace HRMS.ViewModel
         private readonly AttendanceDataService _dataService = new(DbConfig.ConnectionString);
         private readonly BiometricHardwareService _biometricHardwareService = new();
         private readonly List<AttendanceLogVm> _allLogs = new();
+        private readonly List<AttendanceLogVm> _filteredLogs = new();
 
         private int _totalLogs;
         private int _todayLogs;
@@ -147,14 +148,14 @@ namespace HRMS.ViewModel
             : "Approve or reject DTR correction requests from employees.";
         public string AttendancePageTitle => IsEmployeeMode ? "My Attendance" : "Attendance";
         public string AttendancePageSubtitle => IsEmployeeMode
-            ? "Review your DTR, shifts, and attendance remarks."
-            : "Review DTR, shift assignments, shifts, and attendance remarks.";
+            ? "Review your DTR, shift, and special entries."
+            : "Review DTR, manage shift assignments, maintain shifts, and manage special entries.";
         public string ShiftAssignmentsTabHeader => IsEmployeeMode ? "My Shift" : "Shift Assignments";
-        public string AttendanceRemarksTabHeader => IsEmployeeMode ? "My Travel Order / Holidays" : "Travel Order / Holidays";
+        public string AttendanceRemarksTabHeader => IsEmployeeMode ? "My Special Entries" : "Special Entries";
         public string DtrTabHeader => IsEmployeeMode ? "My DTR" : "DTR";
         public string ShiftAssignmentsInfoText => IsEmployeeMode
             ? "This section shows your assigned shifts. Contact Admin/HR for schedule changes."
-            : "Shift assignments are managed by Admin/HR.";
+            : "Set which shift each employee follows here.";
 
         public string EmployeeCurrentShiftSummary
         {
@@ -233,6 +234,7 @@ namespace HRMS.ViewModel
                 OnPropertyChanged(nameof(ShiftAssignmentsTabHeader));
                 OnPropertyChanged(nameof(AttendanceRemarksTabHeader));
                 OnPropertyChanged(nameof(DtrTabHeader));
+                OnPropertyChanged(nameof(DtrActionLabel));
                 OnPropertyChanged(nameof(ShiftAssignmentsInfoText));
                 OnPropertyChanged(nameof(CanRegisterConnectedReaders));
             }
@@ -590,6 +592,8 @@ namespace HRMS.ViewModel
         };
 
         public ObservableCollection<AttendanceLogVm> Logs { get; } = new();
+        public ObservableCollection<AttendanceEmployeeLogSummaryVm> EmployeeLogSummaries { get; } = new();
+        public ObservableCollection<AttendanceEmployeeDailyLogVm> EmployeeDailyLogs { get; } = new();
         public ObservableCollection<AttendanceAdjustmentVm> Adjustments { get; } = new();
         public ObservableCollection<BiometricDeviceVm> BiometricDevices { get; } = new();
         public ObservableCollection<BiometricEnrollmentVm> BiometricEnrollments { get; } = new();
@@ -603,6 +607,7 @@ namespace HRMS.ViewModel
 
         public ICommand RefreshCommand { get; }
         public ICommand DeleteLogCommand { get; }
+        public ICommand ViewEmployeeLogsCommand { get; private set; } = null!;
         public ICommand ApproveAdjustmentCommand { get; }
         public ICommand RejectAdjustmentCommand { get; }
         public ICommand ClearDateFilterCommand { get; }
@@ -1997,8 +2002,17 @@ namespace HRMS.ViewModel
                 query = query.Where(row => row.LogTime.Date == filterDate);
             }
 
+            query = query
+                .OrderByDescending(row => row.LogTime)
+                .ThenByDescending(row => row.LogId);
+
+            var orderedLogs = query.ToList();
+            _filteredLogs.Clear();
+            _filteredLogs.AddRange(orderedLogs);
+            RebuildEmployeeLogSummaries(orderedLogs);
+
             Logs.Clear();
-            foreach (var row in query)
+            foreach (var row in orderedLogs)
             {
                 Logs.Add(row);
             }
@@ -2079,6 +2093,54 @@ namespace HRMS.ViewModel
             "IMPORT" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2E9D5B")),
             _ => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8A98AA"))
         };
+    }
+
+    public class AttendanceEmployeeLogSummaryVm
+    {
+        public AttendanceEmployeeLogSummaryVm(string employeeNo, string employeeName, DateTime lastLogTime, int totalLogs)
+        {
+            EmployeeNo = string.IsNullOrWhiteSpace(employeeNo) ? "-" : employeeNo.Trim();
+            EmployeeName = string.IsNullOrWhiteSpace(employeeName) ? "-" : employeeName.Trim();
+            LastLogTime = lastLogTime;
+            TotalLogs = totalLogs;
+        }
+
+        public string EmployeeNo { get; }
+        public string EmployeeName { get; }
+        public DateTime LastLogTime { get; }
+        public int TotalLogs { get; }
+        public string LastLogDateText => LastLogTime == DateTime.MinValue ? "-" : LastLogTime.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture);
+        public string LastLogTimeText => LastLogTime == DateTime.MinValue ? "-" : LastLogTime.ToString("hh:mm tt", CultureInfo.InvariantCulture);
+    }
+
+    public class AttendanceEmployeeDailyLogVm
+    {
+        public AttendanceEmployeeDailyLogVm(
+            DateTime workDate,
+            string morningIn,
+            string morningOut,
+            string afternoonIn,
+            string afternoonOut,
+            int totalPunches,
+            string notes)
+        {
+            WorkDate = workDate;
+            MorningIn = string.IsNullOrWhiteSpace(morningIn) ? "--" : morningIn.Trim();
+            MorningOut = string.IsNullOrWhiteSpace(morningOut) ? "--" : morningOut.Trim();
+            AfternoonIn = string.IsNullOrWhiteSpace(afternoonIn) ? "--" : afternoonIn.Trim();
+            AfternoonOut = string.IsNullOrWhiteSpace(afternoonOut) ? "--" : afternoonOut.Trim();
+            TotalPunches = totalPunches;
+            Notes = string.IsNullOrWhiteSpace(notes) ? "-" : notes.Trim();
+        }
+
+        public DateTime WorkDate { get; }
+        public string MorningIn { get; }
+        public string MorningOut { get; }
+        public string AfternoonIn { get; }
+        public string AfternoonOut { get; }
+        public int TotalPunches { get; }
+        public string Notes { get; }
+        public string WorkDateText => WorkDate == DateTime.MinValue ? "-" : WorkDate.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture);
     }
 
     public class AttendanceAdjustmentVm

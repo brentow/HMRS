@@ -1,0 +1,20 @@
+﻿HRMS
+
+
+winexe
+C#
+.cs
+C:\Users\User\OneDrive\Documents\Desktop Application\HRMS\HRMS\_verify_obj\payroll-flow-upgrade\Debug\net10.0-windows10.0.19041\
+HRMS
+none
+false
+TRACE;DEBUG;NET;NET10_0;NETCOREAPP;WINDOWS;WINDOWS10_0_19041_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NET9_0_OR_GREATER;NET10_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS10_0_19041_0_OR_GREATER;WINDOWS10_0_18362_0_OR_GREATER;WINDOWS10_0_17763_0_OR_GREATER;WINDOWS8_0_OR_GREATER;WINDOWS7_0_OR_GREATER
+C:\Users\User\OneDrive\Documents\Desktop Application\HRMS\HRMS\App.xaml
+311077775322
+64273884719
+183640958094
+2251136659514
+MainWindow.xaml;View\AddCourseWindow.xaml;View\AddEmployeeWindow.xaml;View\AdjustmentsWindow.xaml;View\AttendanceLogsWindow.xaml;View\AttendanceWindow.xaml;View\BeneficiaryChangePasswordDialog.xaml;View\BeneficiaryVerificationWindow.xaml;View\BiometricAttendanceWindow.xaml;View\BiometricDeviceDialog.xaml;View\BiometricEnrollmentDialog.xaml;View\CourseEditWindow.xaml;View\DashboardWindow.xaml;View\DepartmentAndPositionsWindow.xaml;View\DevelopmentWindow.xaml;View\DocumentVerificationWindow.xaml;View\EmployeeAttendanceLogsWindow.xaml;View\EmployeeDtrWindow.xaml;View\EmployeesWindow.xaml;View\EnrollEmployeeWindow.xaml;View\LeaveWindow.xaml;View\LoginPage.xaml;View\MyDocumentsWindow.xaml;View\NotificationsWindow.xaml;View\PayrollWindow.xaml;View\PerformanceAdminView.xaml;View\RecruitmentWindow.xaml;View\ReportsWindow.xaml;View\SetupOtpWindow.xaml;View\TransactionsWindow.xaml;View\UsersRolesWindow.xaml;
+
+True
+

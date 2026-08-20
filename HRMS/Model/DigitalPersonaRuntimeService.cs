@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace HRMS.Model
@@ -79,8 +80,9 @@ namespace HRMS.Model
 
         public Task<BiometricMatchedEnrollment?> IdentifyAsync(
             IReadOnlyList<BiometricStoredTemplate> gallery,
-            int timeoutMs = DefaultCaptureTimeoutMs)
-            => Task.Run(() => Identify(gallery, timeoutMs));
+            int timeoutMs = DefaultCaptureTimeoutMs,
+            CancellationToken cancellationToken = default)
+            => Task.Run(() => Identify(gallery, timeoutMs, cancellationToken), cancellationToken);
 
         private static BiometricCapturedTemplate CaptureTemplate(int timeoutMs)
         {
@@ -99,14 +101,17 @@ namespace HRMS.Model
 
         private static BiometricMatchedEnrollment? Identify(
             IReadOnlyList<BiometricStoredTemplate> gallery,
-            int timeoutMs)
+            int timeoutMs,
+            CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (gallery == null || gallery.Count == 0)
             {
                 throw new InvalidOperationException("No enrolled fingerprint templates are available for matching.");
             }
 
-            var bridgeMatch = TryIdentifyViaBridge(gallery, timeoutMs);
+            var bridgeMatch = TryIdentifyViaBridge(gallery, timeoutMs, cancellationToken);
             if (bridgeMatch.Attempted)
             {
                 return bridgeMatch.Match;
@@ -115,6 +120,7 @@ namespace HRMS.Model
             var context = EnsureSdkContext();
             using var session = OpenFirstReader(context);
             var probe = CaptureProbeTemplate(context, session, timeoutMs);
+            cancellationToken.ThrowIfCancellationRequested();
 
             BiometricStoredTemplate? bestEnrollment = null;
             var bestScore = int.MaxValue;
@@ -220,8 +226,11 @@ namespace HRMS.Model
 
         private static (bool Attempted, BiometricMatchedEnrollment? Match) TryIdentifyViaBridge(
             IReadOnlyList<BiometricStoredTemplate> gallery,
-            int timeoutMs)
+            int timeoutMs,
+            CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var bridgeExe = ResolveOneTouchBridgeExecutablePath();
             if (bridgeExe == null)
             {
@@ -239,7 +248,10 @@ namespace HRMS.Model
                         .Where(x => x.TemplateData != null && x.TemplateData.Length > 0)
                         .Select(x => $"{x.EnrollmentId}|{Convert.ToBase64String(x.TemplateData)}"));
 
-                ExecuteBridge(bridgeExe, $"identify-template \"{outputFile}\" \"{manifestFile}\" {timeoutMs}");
+                ExecuteBridge(
+                    bridgeExe,
+                    $"identify-template \"{outputFile}\" \"{manifestFile}\" {timeoutMs}",
+                    cancellationToken);
                 var data = ReadBridgeOutput(outputFile);
                 var status = GetRequiredBridgeValue(data, "status");
                 if (string.Equals(status, "error", StringComparison.OrdinalIgnoreCase))
@@ -303,15 +315,36 @@ namespace HRMS.Model
             }
         }
 
-        private static void ExecuteBridge(string bridgeExe, string arguments)
+        private static void ExecuteBridge(
+            string bridgeExe,
+            string arguments,
+            CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             using var process = StartBridgeProcess(bridgeExe, arguments);
+            using var cancellationRegistration = cancellationToken.Register(() => TryTerminateBridge(process));
             var standardError = process.StandardError.ReadToEnd();
             process.WaitForExit();
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (process.ExitCode != 0 && !string.IsNullOrWhiteSpace(standardError))
             {
                 throw new InvalidOperationException(standardError.Trim());
+            }
+        }
+
+        private static void TryTerminateBridge(Process process)
+        {
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill();
+                }
+            }
+            catch
+            {
+                // The bridge may finish between the cancellation check and Kill().
             }
         }
 

@@ -183,11 +183,12 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Employee" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                <TextBlock x:Name="DtrEmployeeLabel" Grid.Row="0" Grid.Column="0" Text="Employee" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
                                 <TextBlock Grid.Row="0" Grid.Column="1" Text="Year" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="8,0,0,6" />
                                 <TextBlock Grid.Row="0" Grid.Column="2" Text="Month" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="8,0,0,6" />
 
-                                <ComboBox Grid.Row="1"
+                                <ComboBox x:Name="DtrEmployeeComboBox"
+                                          Grid.Row="1"
                                           Grid.Column="0"
                                           Height="36"
                                           ItemsSource="{Binding DtrEmployeeOptions}"
@@ -234,10 +235,11 @@
                                             Margin="18,0,0,0">
                                     <TextBlock Text="{Binding DtrSummaryText}" Foreground="#4A5B6C" FontWeight="SemiBold" TextAlignment="Right" />
                                     <TextBlock Text="{Binding DtrTotalWorkedHoursText, StringFormat=Total Worked: {0}}" Foreground="#4A5B6C" FontSize="12" TextAlignment="Right" />
+                                    <TextBlock Text="{Binding DtrAttendanceDeductionText, StringFormat=Attendance Deduction: {0}}" Foreground="#D84343" FontSize="12" FontWeight="SemiBold" TextAlignment="Right" />
                                 </StackPanel>
                             </Grid>
 
-                            <UniformGrid Grid.Row="1" Columns="4" Margin="0,12,0,0">
+                            <UniformGrid Grid.Row="1" Columns="6" Margin="0,12,0,0">
                                 <Border Style="{StaticResource SummaryCardStyle}" Background="#F1FBF5" BorderBrush="#CDEBD9">
                                     <StackPanel>
                                         <TextBlock Text="{Binding DtrPresentCount}" FontSize="22" FontWeight="Bold" Foreground="#2E9D5B" />
@@ -262,12 +264,25 @@
                                         <TextBlock Text="Leave / Holiday" Foreground="#4A5B6C" FontWeight="SemiBold" />
                                     </StackPanel>
                                 </Border>
+                                <Border Style="{StaticResource SummaryCardStyle}" Background="#FFF8EA" BorderBrush="#F0D49D">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding DtrUndertimeText}" FontSize="18" FontWeight="Bold" Foreground="#B9831A" />
+                                        <TextBlock Text="Undertime" Foreground="#4A5B6C" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource SummaryCardStyle}" Background="#F1FBF5" BorderBrush="#CDEBD9" Margin="0">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding DtrOvertimeText}" FontSize="18" FontWeight="Bold" Foreground="#2E9D5B" />
+                                        <TextBlock Text="Overtime" Foreground="#4A5B6C" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Border>
                             </UniformGrid>
                         </Grid>
 
                         <Grid Grid.Row="1" Margin="0,2,0,8">
                             <DataGrid MinHeight="0"
-                                      ItemsSource="{Binding DtrDailyRows}"
+                                      ItemsSource="{Binding DtrEmployeeSummaries}"
+                                      SelectedItem="{Binding SelectedDtrEmployeeSummary}"
                                       AutoGenerateColumns="False"
                                       IsReadOnly="True"
                                       CanUserAddRows="False"
@@ -291,24 +306,28 @@
                                     <Style BasedOn="{StaticResource GridRowStyle}" TargetType="DataGridRow" />
                                 </DataGrid.RowStyle>
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName}" Width="2.2*" />
-                                    <DataGridTextColumn Header="Date" Binding="{Binding DateText}" Width="1.1*" />
-                                    <DataGridTextColumn Header="Time In" Binding="{Binding TimeInText}" Width="1*" />
-                                    <DataGridTextColumn Header="Time Out" Binding="{Binding TimeOutText}" Width="1*" />
-                                    <DataGridTextColumn Header="Late" Binding="{Binding LateText}" Width="0.8*" />
-                                    <DataGridTextColumn Header="Undertime" Binding="{Binding UndertimeText}" Width="0.9*" />
-                                    <DataGridTemplateColumn Header="Status" Width="1*">
+                                    <DataGridTextColumn x:Name="DtrEmployeeNoColumn" Header="Employee No" Binding="{Binding EmployeeNo}" Width="1*" />
+                                    <DataGridTextColumn x:Name="DtrEmployeeNameColumn" Header="Employee" Binding="{Binding EmployeeName}" Width="2.2*" />
+                                    <DataGridTextColumn Header="Present" Binding="{Binding PresentDays}" Width="0.8*" />
+                                    <DataGridTextColumn Header="Late" Binding="{Binding LateDays}" Width="0.8*" />
+                                    <DataGridTextColumn Header="Absent" Binding="{Binding AbsentDays}" Width="0.8*" />
+                                    <DataGridTextColumn Header="Leave" Binding="{Binding LeaveDays}" Width="0.8*" />
+                                    <DataGridTextColumn Header="Undertime" Binding="{Binding UndertimeText}" Width="1*" />
+                                    <DataGridTextColumn Header="Overtime" Binding="{Binding OvertimeText}" Width="1*" />
+                                    <DataGridTextColumn Header="Deduction" Binding="{Binding AttendanceDeductionText}" Width="1.2*" />
+                                    <DataGridTextColumn Header="Worked" Binding="{Binding WorkedHoursText}" Width="1*" />
+                                    <DataGridTemplateColumn Header="Action" Width="1*">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <Border Background="{Binding StatusBrush}"
-                                                        CornerRadius="12"
-                                                        Padding="12,4"
-                                                        HorizontalAlignment="Center">
-                                                    <TextBlock Text="{Binding StatusDisplay}"
-                                                               Foreground="White"
-                                                               FontWeight="SemiBold"
-                                                               FontSize="12" />
-                                                </Border>
+                                                <Button Style="{StaticResource SmallButtonStyle}"
+                                                        Content="{Binding DataContext.DtrActionLabel, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        Click="ShowDtrButton_OnClick"
+                                                        ToolTip="Open the complete DTR with print and download options"
+                                                        Width="116"
+                                                        Height="38"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        Margin="4,0" />
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
@@ -532,7 +551,7 @@
                 </TabItem>
 
                 <TabItem x:Name="ShiftsTab"
-                         Header="Shifts"
+                         Header="Shift Templates"
                          Visibility="{Binding IsAdminOrHrMode, Converter={StaticResource BoolToVis}}">
                     <Grid Margin="8">
                         <Grid.RowDefinitions>
@@ -677,6 +696,7 @@
                         <Grid x:Name="RemarkToolbar" Grid.Row="0" Margin="0,0,0,8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="230" />
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
@@ -701,23 +721,42 @@
                                              Foreground="#5B6A7A"
                                              VerticalContentAlignment="Center"
                                              Text="{Binding AttendanceRemarkSearchText, UpdateSourceTrigger=PropertyChanged}"
-                                             materialDesign:HintAssist.Hint="Search employee, date, remark type, or details" />
+                                             materialDesign:HintAssist.Hint="Search employee, date, entry type, or details" />
                                 </Grid>
                             </Border>
 
-                            <TextBlock Grid.Column="1"
+                            <Grid Grid.Column="1" Margin="0,0,10,0">
+                                <materialDesign:PackIcon Kind="FilterOutline"
+                                                         Width="17"
+                                                         Height="17"
+                                                         Margin="11,0,0,0"
+                                                         Foreground="#71849A"
+                                                         HorizontalAlignment="Left"
+                                                         VerticalAlignment="Center"
+                                                         Panel.ZIndex="1" />
+                                <ComboBox Height="42"
+                                          Padding="34,0,8,0"
+                                          BorderBrush="#D5E3F5"
+                                          Background="#F8FBFF"
+                                          ItemsSource="{Binding AttendanceRemarkFilterOptions}"
+                                          DisplayMemberPath="Label"
+                                          SelectedValuePath="Code"
+                                          SelectedValue="{Binding SelectedAttendanceRemarkFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
+
+                            <TextBlock Grid.Column="2"
                                        VerticalAlignment="Center"
                                        Margin="0,0,12,0"
                                        Foreground="#6A7684"
                                        FontWeight="SemiBold"
                                        Text="{Binding AttendanceRemarks.Count, StringFormat=Rows: {0}}" />
                             <Button x:Name="OpenRemarkPopupButton"
-                                    Grid.Column="2"
+                                    Grid.Column="3"
                                     Style="{StaticResource ButtonStyle}"
-                                    Click="OpenRemarkPopup_OnClick">
+                                    Click="NewRemarkPopup_OnClick">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                     <materialDesign:PackIcon Kind="Plus" Width="16" Height="16" Margin="0,0,6,0" />
-                                    <TextBlock Text="Add Entry" />
+                                    <TextBlock Text="New Entry" />
                                 </StackPanel>
                             </Button>
 
@@ -741,6 +780,7 @@
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="2*" />
@@ -748,7 +788,7 @@
                                             <ColumnDefinition Width="1*" />
                                         </Grid.ColumnDefinitions>
 
-                                        <TextBlock Grid.Row="0" Grid.ColumnSpan="3" Text="Travel / Holiday Entry" FontSize="16" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,12" />
+                                        <TextBlock Grid.Row="0" Grid.ColumnSpan="3" Text="{Binding AttendanceRemarkEditorTitle}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,12" />
 
                                         <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,8,10">
                                             <TextBlock Text="Employee" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
@@ -770,29 +810,40 @@
                                             </Border>
                                         </StackPanel>
                                         <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,10">
-                                            <TextBlock Text="Type" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                            <TextBlock Text="Entry type" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
                                             <ComboBox Height="36"
                                                       ItemsSource="{Binding AttendanceRemarkTypeOptions}"
-                                                      SelectedItem="{Binding SelectedRemarkType}" />
+                                                      DisplayMemberPath="Label"
+                                                      SelectedValuePath="Code"
+                                                      SelectedValue="{Binding SelectedRemarkType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                         </StackPanel>
 
                                         <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3">
-                                            <TextBlock Text="Details" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                            <TextBlock Text="Entry details" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
                                             <TextBox Height="36"
                                                      VerticalContentAlignment="Center"
                                                      Text="{Binding NewAttendanceRemarkDetails, UpdateSourceTrigger=PropertyChanged}" />
                                         </StackPanel>
                                         <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
                                             <Button Style="{StaticResource ButtonStyle}" Background="#EAF2FB" Foreground="{StaticResource PrimaryBrush}" BorderBrush="#D2E2F6" BorderThickness="1" Margin="0,0,8,0" Click="CloseRemarkPopup_OnClick" Content="Close" />
-                                            <Button Style="{StaticResource ButtonStyle}" Background="#D84343" Margin="0,0,8,0" Command="{Binding DeleteAttendanceRemarkCommand}" CommandParameter="{Binding SelectedAttendanceRemark}" Content="Delete" />
-                                            <Button Style="{StaticResource ButtonStyle}" Command="{Binding SaveAttendanceRemarkCommand}" Content="Save" />
+                                            <Button Style="{StaticResource ButtonStyle}"
+                                                    Background="#D84343"
+                                                    Margin="0,0,8,0"
+                                                    Command="{Binding DeleteAttendanceRemarkCommand}"
+                                                    CommandParameter="{Binding SelectedAttendanceRemark}"
+                                                    Content="Delete"
+                                                    Visibility="{Binding IsEditingAttendanceRemark, Converter={StaticResource BoolToVis}}" />
+                                            <Button Style="{StaticResource ButtonStyle}"
+                                                    Command="{Binding SaveAttendanceRemarkCommand}"
+                                                    Content="{Binding AttendanceRemarkSaveButtonText}" />
                                         </StackPanel>
                                     </Grid>
                                 </Border>
                             </Popup>
                         </Grid>
 
-                        <DataGrid Grid.Row="1"
+                        <Grid Grid.Row="1">
+                            <DataGrid x:Name="AttendanceRemarksGrid"
                                   Margin="0,2,0,0"
                                   ItemsSource="{Binding AttendanceRemarks}"
                                   SelectedItem="{Binding SelectedAttendanceRemark}"
@@ -807,7 +858,8 @@
                                   HorizontalGridLinesBrush="#E9F0FA"
                                   VerticalGridLinesBrush="#E9F0FA"
                                   AlternatingRowBackground="#F8FBFF"
-                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                  MouseDoubleClick="AttendanceRemarksGrid_OnMouseDoubleClick">
                             <DataGrid.ColumnHeaderStyle>
                                 <Style BasedOn="{StaticResource HeaderStyle}" TargetType="DataGridColumnHeader"/>
                             </DataGrid.ColumnHeaderStyle>
@@ -818,13 +870,71 @@
                                 <Style BasedOn="{StaticResource GridRowStyle}" TargetType="DataGridRow" />
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName}" Width="2*" />
+                                <DataGridTextColumn x:Name="AttendanceRemarkEmployeeColumn" Header="Employee" Binding="{Binding EmployeeName}" Width="2*" />
                                 <DataGridTextColumn Header="Work Date" Binding="{Binding WorkDateText}" Width="1.1*" />
-                                <DataGridTextColumn Header="Type" Binding="{Binding RemarkType}" Width="0.7*" />
-                                <DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="2.3*" />
-                                <DataGridTextColumn Header="Created" Binding="{Binding CreatedAtText}" Width="1.3*" />
+                                <DataGridTemplateColumn Header="Category" Width="1.15*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Padding="10,4"
+                                                    CornerRadius="10"
+                                                    HorizontalAlignment="Center">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#EEF2F6" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding RemarkType}" Value="HOLIDAY"><Setter Property="Background" Value="#F1ECFF" /></DataTrigger>
+                                                            <DataTrigger Binding="{Binding RemarkType}" Value="TO"><Setter Property="Background" Value="#E8F3FF" /></DataTrigger>
+                                                            <DataTrigger Binding="{Binding RemarkType}" Value="OB"><Setter Property="Background" Value="#E8F8F8" /></DataTrigger>
+                                                            <DataTrigger Binding="{Binding RemarkType}" Value="WFH"><Setter Property="Background" Value="#EAF8EF" /></DataTrigger>
+                                                            <DataTrigger Binding="{Binding RemarkType}" Value="CTO"><Setter Property="Background" Value="#FFF4E5" /></DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock Text="{Binding RemarkTypeLabel}"
+                                                           Foreground="{StaticResource PrimaryBrush}"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="12" />
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Entry Details" Binding="{Binding Details}" Width="2.3*" />
+                                <DataGridTextColumn Header="Date Added" Binding="{Binding CreatedAtText}" Width="1.3*" />
+                                <DataGridTemplateColumn Header="Action" Width="0.75*" MinWidth="92">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource SmallButtonStyle}"
+                                                    Width="78"
+                                                    Height="30"
+                                                    Click="EditRemarkButton_OnClick">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="PencilOutline" Width="14" Height="14" Margin="0,0,5,0" />
+                                                    <TextBlock Text="Edit" />
+                                                </StackPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                             </DataGrid.Columns>
-                        </DataGrid>
+                            </DataGrid>
+                            <StackPanel HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding IsAttendanceRemarksEmpty, Converter={StaticResource BoolToVis}}">
+                                <materialDesign:PackIcon Kind="CalendarSearch"
+                                                         Width="34"
+                                                         Height="34"
+                                                         Foreground="#91A3B7"
+                                                         HorizontalAlignment="Center" />
+                                <TextBlock Text="No special entries found for this category."
+                                           Foreground="#5F7185"
+                                           FontWeight="SemiBold"
+                                           Margin="0,10,0,0" />
+                                <TextBlock Text="Choose another category or create a new entry."
+                                           Foreground="#8A98A8"
+                                           FontSize="12"
+                                           Margin="0,3,0,0" />
+                            </StackPanel>
+                        </Grid>
                     </Grid>
                 </TabItem>
 

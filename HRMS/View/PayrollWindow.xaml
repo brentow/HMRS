@@ -93,6 +93,40 @@
             <Setter Property="FontSize" Value="12" />
         </Style>
 
+        <Style x:Key="PayrollSummaryTileStyle" TargetType="Border">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#DCE8F5" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="12,9" />
+            <Setter Property="Margin" Value="4,0" />
+        </Style>
+
+        <Style x:Key="PayrollContextMenuStyle" TargetType="ContextMenu">
+            <Setter Property="MinWidth" Value="205" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="#D8E5F3" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="HasDropShadow" Value="True" />
+        </Style>
+
+        <Style x:Key="PayrollMenuItemStyle" TargetType="MenuItem">
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
+        <Style x:Key="GridMoreButtonStyle" TargetType="Button" BasedOn="{StaticResource SoftButtonStyle}">
+            <Setter Property="Width" Value="38" />
+            <Setter Property="MinWidth" Value="38" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+
         <Style x:Key="RunIdButtonStyle" TargetType="Button">
             <Setter Property="MinWidth" Value="48" />
             <Setter Property="Height" Value="30" />
@@ -229,37 +263,6 @@
         </Grid>
 
         <StackPanel Grid.Row="1" Margin="0,0,0,12">
-            <UniformGrid Columns="4" Margin="0,0,0,8">
-                <Border Margin="6" Style="{StaticResource CardStyle}" Background="#F5FBFF">
-                    <StackPanel>
-                        <TextBlock Text="Periods" Foreground="#6A7684" />
-                        <TextBlock Text="{Binding TotalPeriods}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
-                    </StackPanel>
-                </Border>
-                <Border Margin="6" Style="{StaticResource CardStyle}" Background="#F5FBFF">
-                    <StackPanel>
-                        <TextBlock Text="{Binding RunsCardLabel}" Foreground="#6A7684" />
-                        <TextBlock Text="{Binding TotalRuns}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
-                    </StackPanel>
-                </Border>
-                <Border Margin="6" Style="{StaticResource CardStyle}" Background="#FFF8EC">
-                    <StackPanel>
-                        <TextBlock Text="{Binding ReleasesCardLabel}" Foreground="#6A7684" />
-                        <TextBlock Text="{Binding ReleasedPayslips}" FontSize="28" FontWeight="Bold" Foreground="#B9831A" />
-                    </StackPanel>
-                </Border>
-                <Border Margin="6" Style="{StaticResource CardStyle}" Background="#F3F4FB">
-                    <StackPanel>
-                        <TextBlock Text="{Binding NetPayCardLabel}" Foreground="#6A7684" />
-                        <TextBlock Text="{Binding TotalNetPayText}"
-                                   FontSize="26"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource PrimaryBrush}"
-                                   TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
-                </Border>
-            </UniformGrid>
-
             <Border Margin="6,0,6,0"
                     Style="{StaticResource CardStyle}"
                     Background="#F7FBFF"
@@ -273,39 +276,52 @@
                         <ColumnDefinition Width="2*" />
                     </Grid.ColumnDefinitions>
 
-                    <StackPanel Grid.Column="0">
-                        <TextBlock Text="GGMS Allocation (Office ID 18 / OFF-2026-0007)" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
-                        <TextBlock Text="{Binding GgmsProgram, StringFormat=Program: {0}}" Foreground="#5B6A7A" FontSize="12" />
-                    </StackPanel>
+                    <Border Grid.Column="0" Style="{StaticResource PayrollSummaryTileStyle}" Margin="0,0,4,0">
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Payroll Allocation" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
+                            <TextBlock Text="{Binding GgmsProgram, StringFormat=GGMS · {0}}" Foreground="#5B6A7A" FontSize="12" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Border>
 
-                    <StackPanel Grid.Column="1" HorizontalAlignment="Center">
-                        <TextBlock Text="Allocated" Foreground="#6A7684" HorizontalAlignment="Center" />
-                        <TextBlock Text="{Binding GgmsAllocatedAmountText}" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold" HorizontalAlignment="Center" />
-                    </StackPanel>
+                    <Border Grid.Column="1" Style="{StaticResource PayrollSummaryTileStyle}">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="Allocated" Foreground="#6A7684" HorizontalAlignment="Center" />
+                            <TextBlock Text="{Binding GgmsAllocatedAmountText}" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
 
-                    <StackPanel Grid.Column="2" HorizontalAlignment="Center">
-                        <TextBlock Text="Used" Foreground="#6A7684" HorizontalAlignment="Center" />
-                        <TextBlock Text="{Binding GgmsUsedAmountText}" Foreground="#B9831A" FontWeight="Bold" HorizontalAlignment="Center" />
-                    </StackPanel>
+                    <Border Grid.Column="2" Style="{StaticResource PayrollSummaryTileStyle}">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="Used" Foreground="#6A7684" HorizontalAlignment="Center" />
+                            <TextBlock Text="{Binding GgmsUsedAmountText}" Foreground="#B9831A" FontWeight="Bold" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
 
-                    <StackPanel Grid.Column="3" HorizontalAlignment="Center">
-                        <TextBlock Text="Remaining" Foreground="#6A7684" HorizontalAlignment="Center" />
-                        <TextBlock Text="{Binding GgmsRemainingAmountText}" Foreground="#2E9D5B" FontWeight="Bold" HorizontalAlignment="Center" />
-                    </StackPanel>
+                    <Border Grid.Column="3" Style="{StaticResource PayrollSummaryTileStyle}">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="Remaining" Foreground="#6A7684" HorizontalAlignment="Center" />
+                            <TextBlock Text="{Binding GgmsRemainingAmountText}" Foreground="#2E9D5B" FontWeight="Bold" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
 
-                    <TextBlock Grid.Column="4"
-                               Margin="12,0,0,0"
-                               VerticalAlignment="Center"
-                               Text="{Binding GgmsSyncStatus}"
-                               Foreground="{Binding GgmsSyncStatusBrush}"
-                               FontWeight="SemiBold"
-                               TextWrapping="Wrap" />
+                    <Border Grid.Column="4" Style="{StaticResource PayrollSummaryTileStyle}" Margin="4,0,0,0" Background="#F1FAF5">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="CloudCheckOutline" Width="18" Height="18" Margin="0,0,8,0" Foreground="{Binding GgmsSyncStatusBrush}" />
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="{Binding GgmsSyncStatus}"
+                                       Foreground="{Binding GgmsSyncStatusBrush}"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </Border>
         </StackPanel>
 
         <TabControl x:Name="PayrollTabControl" Grid.Row="2" Margin="6,0,6,8">
-            <TabItem x:Name="PayrollPeriodsTab" Header="{Binding PeriodsTabLabel}">
+            <TabItem x:Name="PayrollPeriodsTab"
+                     Header="{Binding PeriodsTabLabel}"
+                     Visibility="Collapsed">
                 <Grid Margin="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -515,12 +531,11 @@
                     </Grid.RowDefinitions>
 
                     <Grid Grid.Row="0" Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="2*" />
-                            <ColumnDefinition Width="250" />
-                            <ColumnDefinition Width="190" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="190" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
 
                         <Border Grid.Column="0" Margin="0,0,10,0" Padding="10,6" Background="#F2F7FD" BorderBrush="#E0EAF6" BorderThickness="1" CornerRadius="10">
                             <Grid>
@@ -535,23 +550,15 @@
                             </Grid>
                         </Border>
 
-                        <ComboBox Grid.Column="1"
-                                  Margin="0,0,10,0"
-                                  Height="40"
-                                  ItemsSource="{Binding PeriodOptions}"
-                                  DisplayMemberPath="Label"
-                                  SelectedValuePath="Id"
-                                  SelectedValue="{Binding SelectedRunPeriodFilterId}" />
+                            <ComboBox Grid.Column="1"
+                                      Height="40"
+                                      ItemsSource="{Binding RunStatusFilters}"
+                                      SelectedItem="{Binding SelectedRunStatusFilter}" />
 
-                        <ComboBox Grid.Column="2"
-                                  Height="40"
-                                  ItemsSource="{Binding RunStatusFilters}"
-                                  SelectedItem="{Binding SelectedRunStatusFilter}" />
-
-                        <TextBlock Grid.Column="3"
-                                   Margin="12,0,0,0"
-                                   VerticalAlignment="Center"
-                                   Foreground="#6A7684"
+                            <TextBlock Grid.Column="2"
+                                       Margin="12,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="#6A7684"
                                    FontWeight="SemiBold"
                                    Text="{Binding PayrollRuns.Count, StringFormat=Rows: {0}}" />
                     </Grid>
@@ -562,182 +569,128 @@
                             Style="{StaticResource CardStyle}"
                             Background="#F9FBFF"
                             Visibility="{Binding IsAdminOrHrMode, Converter={StaticResource BoolToVis}}">
-                        <Grid x:Name="RunToolbar">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="1.35*" />
-                                <ColumnDefinition Width="1.9*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
+                            <Grid x:Name="RunToolbar">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
 
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Payroll Period" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="Employee" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="10,0,0,6" />
+                                <Grid Grid.Row="0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="330" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Payroll Period" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                        <Border Height="42" Background="White" BorderBrush="#D5E3F5" BorderThickness="1" CornerRadius="9">
+                                            <ComboBox Height="40" Padding="10,0" BorderThickness="0" Background="Transparent"
+                                                      VerticalContentAlignment="Center"
+                                                      ItemsSource="{Binding PayrollPeriodOptions}"
+                                                      DisplayMemberPath="Label"
+                                                      SelectedValuePath="Id"
+                                                      SelectedValue="{Binding SelectedRunPeriodId}" />
+                                        </Border>
+                                    </StackPanel>
 
-                            <ComboBox Grid.Row="1" Grid.Column="0"
-                                      Height="40"
-                                      ItemsSource="{Binding PeriodOptions}"
-                                      DisplayMemberPath="Label"
-                                      SelectedValuePath="Id"
-                                      SelectedValue="{Binding SelectedRunPeriodId}" />
-                            <ComboBox Grid.Row="1" Grid.Column="1"
-                                      Margin="10,0,0,0"
-                                      Height="40"
-                                      ItemsSource="{Binding EmployeeOptions}"
-                                      DisplayMemberPath="Label"
-                                      SelectedValuePath="Id"
-                                      SelectedValue="{Binding SelectedRunEmployeeId}" />
-                            <Button Grid.Row="1" Grid.Column="2"
-                                    Margin="10,0,0,0"
-                                    Height="40"
-                                    MinWidth="140"
-                                    Style="{StaticResource PrimaryButtonStyle}"
-                                    Command="{Binding GenerateAllRunsCommand}">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="PlayCircleOutline" Width="15" Height="15" Margin="0,0,6,0" />
-                                    <TextBlock Text="Generate Period" FontWeight="Bold" />
-                                </StackPanel>
-                            </Button>
-                            <Button Grid.Row="1" Grid.Column="3"
-                                    Margin="10,0,0,0"
-                                    Height="40"
-                                    MinWidth="122"
-                                    Style="{StaticResource PrimaryButtonStyle}"
-                                    Command="{Binding UpsertRunCommand}">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="ContentSaveOutline" Width="15" Height="15" Margin="0,0,6,0" />
-                                    <TextBlock Text="Save Run" />
-                                </StackPanel>
-                            </Button>
-                            <Button x:Name="OpenRunDetailsButton"
-                                    Grid.Row="1"
-                                    Grid.Column="4"
-                                    Margin="10,0,0,0"
-                                    Height="40"
-                                    MinWidth="130"
-                                    Style="{StaticResource SoftButtonStyle}"
-                                    Click="OpenRunDetailsPopup_OnClick">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="ReceiptTextOutline" Width="15" Height="15" Margin="0,0,6,0" />
-                                    <TextBlock Text="Details" />
-                                </StackPanel>
-                            </Button>
-
-                            <Popup x:Name="RunDetailsPopup"
-                                   PlacementTarget="{Binding ElementName=OpenRunDetailsButton}"
-                                   Placement="Bottom"
-                                   HorizontalOffset="-650"
-                                   VerticalOffset="8"
-                                   AllowsTransparency="True"
-                                   StaysOpen="False"
-                                   DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                <Border Width="780"
-                                        Padding="14"
-                                        Background="White"
-                                        BorderBrush="#D5E3F5"
-                                        BorderThickness="1"
-                                        CornerRadius="10"
-                                        Effect="{StaticResource PopupShadow}">
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                        </Grid.RowDefinitions>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="1*" />
-                                            <ColumnDefinition Width="1*" />
-                                            <ColumnDefinition Width="1*" />
-                                        </Grid.ColumnDefinitions>
-
-                                        <TextBlock Grid.Row="0" Grid.ColumnSpan="3" Text="Payroll Run Details" FontSize="16" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,12" />
-
-                                        <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,10,10">
-                                            <TextBlock Text="Run Status" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                                            <ComboBox Height="40"
-                                                      ItemsSource="{Binding EditableRunStatuses}"
-                                                      SelectedItem="{Binding RunStatus}" />
+                                    <Button Grid.Column="1" Width="170" Height="42" Margin="10,22,0,0"
+                                            Style="{StaticResource PrimaryButtonStyle}"
+                                            Command="{Binding GenerateAllRunsCommand}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="PlayCircleOutline" Width="16" Height="16" Margin="0,0,7,0" />
+                                            <TextBlock Text="Generate Payroll" FontWeight="Bold" />
                                         </StackPanel>
-                                        <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,10,10">
-                                            <TextBlock Text="Basic Pay" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                                            <TextBox Height="40" VerticalContentAlignment="Center" Text="{Binding RunBasicPayText, UpdateSourceTrigger=LostFocus}" />
-                                        </StackPanel>
-                                        <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,10">
-                                            <TextBlock Text="Allowances" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                                            <TextBox Height="40" VerticalContentAlignment="Center" Text="{Binding RunAllowancesText, UpdateSourceTrigger=LostFocus}" />
-                                        </StackPanel>
+                                    </Button>
 
-                                        <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,10,10">
-                                            <TextBlock Text="Overtime Pay" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                                            <TextBox Height="40" VerticalContentAlignment="Center" Text="{Binding RunOvertimePayText, UpdateSourceTrigger=LostFocus}" />
+                                    <Border Grid.Column="2" Margin="12,22,0,0" Height="42" Padding="12,0"
+                                            Background="#EEF6FF" BorderBrush="#D5E3F5" BorderThickness="1" CornerRadius="9">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <materialDesign:PackIcon Kind="InformationOutline" Width="16" Height="16" Margin="0,0,8,0" Foreground="{StaticResource PrimaryBrush}" />
+                                            <TextBlock Text="Generate, review totals, select employees, then approve and release."
+                                                       Foreground="{StaticResource PrimaryBrush}" FontWeight="SemiBold" />
                                         </StackPanel>
-                                        <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,0,10,10">
-                                            <TextBlock Text="Other Earnings" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                                            <TextBox Height="40" VerticalContentAlignment="Center" Text="{Binding RunOtherEarningsText, UpdateSourceTrigger=LostFocus}" />
-                                        </StackPanel>
-                                        <StackPanel Grid.Row="2" Grid.Column="2" Margin="0,0,0,10">
-                                            <TextBlock Text="Computed Deductions" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                                            <Border Height="40" Background="#EEF4FB" BorderBrush="#D5E3F5" BorderThickness="1" CornerRadius="8" Padding="10,0">
-                                                <TextBlock Text="{Binding RunDeductions, StringFormat='PHP {0:N2}'}"
-                                                           VerticalAlignment="Center"
-                                                           Foreground="{StaticResource PrimaryBrush}"
-                                                           FontWeight="SemiBold" />
-                                            </Border>
-                                        </StackPanel>
+                                    </Border>
+                                </Grid>
 
-                                        <StackPanel Grid.Row="3" Grid.ColumnSpan="3" Margin="0,0,0,12">
-                                            <TextBlock Text="{Binding RunEmployeeProfileText}" Foreground="{StaticResource PrimaryBrush}" FontWeight="SemiBold" />
-                                            <TextBlock Margin="0,4,0,0" Text="{Binding RunDeductionBreakdownText}" Foreground="#5B6A7A" TextWrapping="Wrap" />
-                                        </StackPanel>
-
-                                        <Grid Grid.Row="4" Grid.ColumnSpan="3">
+                                <Expander Grid.Row="1" Margin="0,12,0,0" Header="Create a new payroll period">
+                                    <Border Margin="0,8,0,0" Padding="12" Background="White" BorderBrush="#DCE8F5" BorderThickness="1" CornerRadius="10">
+                                        <Grid>
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="1.3*" />
-                                                <ColumnDefinition Width="1.4*" />
-                                                <ColumnDefinition Width="1.4*" />
+                                                <ColumnDefinition Width="240" />
+                                                <ColumnDefinition Width="155" />
+                                                <ColumnDefinition Width="155" />
+                                                <ColumnDefinition Width="155" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-
-                                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Bottom">
-                                                <TextBlock Text="Gross:" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,6,9" />
-                                                <TextBlock Text="{Binding RunGrossPreview, StringFormat='PHP {0:N2}'}" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold" Margin="0,0,14,9" />
-                                                <TextBlock Text="Net:" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,6,9" />
-                                                <TextBlock Text="{Binding RunNetPreview, StringFormat='PHP {0:N2}'}" Foreground="#2E9D5B" FontWeight="Bold" Margin="0,0,0,9" />
+                                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                                <TextBlock Text="Period Code" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,5" />
+                                                <TextBox Height="40" VerticalContentAlignment="Center"
+                                                         Text="{Binding NewPeriodCode, UpdateSourceTrigger=PropertyChanged}"
+                                                         materialDesign:HintAssist.Hint="PP-2026-A22" />
                                             </StackPanel>
-
-                                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                                <TextBlock Text="Release Run" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                                                <ComboBox Height="40"
-                                                          ItemsSource="{Binding RunOptions}"
-                                                          DisplayMemberPath="Label"
-                                                          SelectedValuePath="Id"
-                                                          SelectedValue="{Binding SelectedReleaseRunId}" />
+                                            <StackPanel Grid.Column="1" Margin="8,0">
+                                                <TextBlock Text="Date From" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,5" />
+                                                <Border Style="{StaticResource DateFieldBorderStyle}"><DatePicker BorderThickness="0" Padding="8,0" Background="Transparent" Language="en-GB" SelectedDateFormat="Short" SelectedDate="{Binding NewPeriodDateFrom}" /></Border>
                                             </StackPanel>
-                                            <StackPanel Grid.Column="2" Margin="10,0,0,0">
-                                                <TextBlock Text="Release Remarks" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,6" />
-                                                <TextBox Height="40" VerticalContentAlignment="Center" Text="{Binding ReleaseRemarks, UpdateSourceTrigger=PropertyChanged}" />
+                                            <StackPanel Grid.Column="2" Margin="8,0">
+                                                <TextBlock Text="Date To" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,5" />
+                                                <Border Style="{StaticResource DateFieldBorderStyle}"><DatePicker BorderThickness="0" Padding="8,0" Background="Transparent" Language="en-GB" SelectedDateFormat="Short" SelectedDate="{Binding NewPeriodDateTo}" /></Border>
                                             </StackPanel>
-                                            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="10,0,0,0">
-                                                <Button Style="{StaticResource SoftButtonStyle}" Margin="0,0,8,0" Click="CloseRunDetailsPopup_OnClick" Content="Close" />
-                                                <Button Width="148" Style="{StaticResource SuccessButtonStyle}" Command="{Binding ReleasePayslipCommand}">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <materialDesign:PackIcon Kind="SendOutline" Width="15" Height="15" Margin="0,0,6,0" />
-                                                        <TextBlock Text="Release" />
-                                                    </StackPanel>
-                                                </Button>
+                                            <StackPanel Grid.Column="3" Margin="8,0">
+                                                <TextBlock Text="Pay Date" Foreground="#5B6A7A" FontWeight="SemiBold" Margin="0,0,0,5" />
+                                                <Border Style="{StaticResource DateFieldBorderStyle}"><DatePicker BorderThickness="0" Padding="8,0" Background="Transparent" Language="en-GB" SelectedDateFormat="Short" SelectedDate="{Binding NewPeriodPayDate}" /></Border>
                                             </StackPanel>
+                                            <Button Grid.Column="4" Width="130" Height="40" Margin="8,22,0,0"
+                                                    Style="{StaticResource SoftButtonStyle}" Command="{Binding AddPeriodCommand}">
+                                                <StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="Plus" Width="15" Height="15" Margin="0,0,6,0" /><TextBlock Text="Add Period" /></StackPanel>
+                                            </Button>
                                         </Grid>
+                                    </Border>
+                                </Expander>
+
+                                <Grid Grid.Row="2" Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1*" />
+                                        <ColumnDefinition Width="1.25*" />
+                                        <ColumnDefinition Width="1.25*" />
+                                        <ColumnDefinition Width="1.25*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Style="{StaticResource PayrollSummaryTileStyle}" Margin="0,0,4,0">
+                                        <StackPanel><TextBlock Text="Employees" Foreground="#6A7684" /><TextBlock Text="{Binding VisiblePayrollRunCount}" Foreground="{StaticResource PrimaryBrush}" FontSize="18" FontWeight="Bold" /></StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="1" Style="{StaticResource PayrollSummaryTileStyle}">
+                                        <StackPanel><TextBlock Text="Total Gross" Foreground="#6A7684" /><TextBlock Text="{Binding VisiblePayrollGrossText}" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold" /></StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="2" Style="{StaticResource PayrollSummaryTileStyle}">
+                                        <StackPanel><TextBlock Text="Total Deductions" Foreground="#6A7684" /><TextBlock Text="{Binding VisiblePayrollDeductionsText}" Foreground="#B9831A" FontWeight="Bold" /></StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="3" Style="{StaticResource PayrollSummaryTileStyle}">
+                                        <StackPanel><TextBlock Text="Total Net Pay" Foreground="#6A7684" /><TextBlock Text="{Binding VisiblePayrollNetText}" Foreground="#2E9D5B" FontWeight="Bold" /></StackPanel>
+                                    </Border>
+                                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                                        <Button Width="105" Height="40" Margin="0,0,8,0" Style="{StaticResource SoftButtonStyle}" Command="{Binding ToggleSelectAllRunsCommand}" Content="Select All" />
+                                        <Button Width="135" Height="40" Margin="0,0,8,0" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding ApproveSelectedRunsCommand}" Content="Approve Selected" />
+                                        <Button Width="135" Height="40" Style="{StaticResource SuccessButtonStyle}" Command="{Binding ReleaseSelectedRunsCommand}" Content="Release Selected" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <Border Grid.Row="3" Margin="0,12,0,0" Padding="12,9" Background="#EEF6FF" BorderBrush="#D5E3F5" BorderThickness="1" CornerRadius="9">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="2*" /><ColumnDefinition Width="1*" /><ColumnDefinition Width="1*" /><ColumnDefinition Width="1*" /><ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0"><TextBlock Text="Selected payroll" Foreground="#6A7684" FontSize="12" /><TextBlock Text="{Binding SelectedRun.EmployeeName, TargetNullValue=Select a row to review}" Foreground="{StaticResource PrimaryBrush}" FontWeight="Bold" /></StackPanel>
+                                        <StackPanel Grid.Column="1"><TextBlock Text="Gross" Foreground="#6A7684" FontSize="12" /><TextBlock Text="{Binding SelectedRun.GrossPay, StringFormat='PHP {0:N2}', TargetNullValue='PHP 0.00'}" Foreground="{StaticResource PrimaryBrush}" FontWeight="SemiBold" /></StackPanel>
+                                        <StackPanel Grid.Column="2"><TextBlock Text="Deductions" Foreground="#6A7684" FontSize="12" /><TextBlock Text="{Binding SelectedRun.DeductionsTotal, StringFormat='PHP {0:N2}', TargetNullValue='PHP 0.00'}" Foreground="#B9831A" FontWeight="SemiBold" /></StackPanel>
+                                        <StackPanel Grid.Column="3"><TextBlock Text="Net Pay" Foreground="#6A7684" FontSize="12" /><TextBlock Text="{Binding SelectedRun.NetPay, StringFormat='PHP {0:N2}', TargetNullValue='PHP 0.00'}" Foreground="#2E9D5B" FontWeight="Bold" /></StackPanel>
+                                        <TextBlock Grid.Column="4" Text="{Binding SelectedPayrollRunCountText}" Foreground="{StaticResource PrimaryBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
                                     </Grid>
                                 </Border>
-                            </Popup>
-                        </Grid>
-                    </Border>
+                            </Grid>
+                        </Border>
 
                     <Border Grid.Row="1"
                             Margin="0,0,0,10"
@@ -888,7 +841,7 @@
                                   CellStyle="{StaticResource GridCellStyle}"
                                   RowStyle="{StaticResource GridRowStyle}">
                             <DataGrid.Columns>
-                                <DataGridTemplateColumn Header="Employee" Width="2.2*">
+                                <DataGridTemplateColumn x:Name="PayrollRunEmployeeColumn" Header="Employee" Width="2.2*">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Margin="4,0">
@@ -897,62 +850,51 @@
                                                     <Run Text="{Binding EmployeeNo, Mode=OneWay}" />
                                                     <Run Text=" | " />
                                                     <Run Text="{Binding PeriodCode, Mode=OneWay}" />
+                                                    <Run Text=" | " />
+                                                    <Run Text="{Binding PayrollCycleText, Mode=OneWay}" />
                                                 </TextBlock>
                                             </StackPanel>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Gross" Binding="{Binding GrossPay, Mode=OneWay, StringFormat={}{0:N2}}" Width="1*" CellStyle="{StaticResource GridCellCenterStyle}" />
-                                <DataGridTextColumn Header="Deductions" Binding="{Binding DeductionsTotal, Mode=OneWay, StringFormat={}{0:N2}}" Width="1*" CellStyle="{StaticResource GridCellCenterStyle}" />
-                                <DataGridTextColumn Header="Net Pay" Binding="{Binding NetPay, Mode=OneWay, StringFormat={}{0:N2}}" Width="1*" CellStyle="{StaticResource GridCellCenterStyle}" />
-                                <DataGridTemplateColumn Header="Status" Width="1*">
+                                <DataGridTextColumn Header="Gross" Binding="{Binding GrossPay, Mode=OneWay, StringFormat=PHP {0:N2}}" Width="1*" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn Header="Deductions" Binding="{Binding DeductionsTotal, Mode=OneWay, StringFormat=PHP {0:N2}}" Width="1*" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn Header="Net Pay" Binding="{Binding NetPay, Mode=OneWay, StringFormat=PHP {0:N2}}" Width="1*" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTemplateColumn Header="Status" Width="1.25*">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Border Background="{Binding StatusBrush}"
-                                                    CornerRadius="12"
-                                                    Padding="12,4"
-                                                    HorizontalAlignment="Center">
-                                                <TextBlock Text="{Binding StatusText}"
-                                                           Foreground="White"
-                                                           FontWeight="SemiBold"
-                                                           FontSize="12" />
-                                            </Border>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Header="Released" Width="1.1*">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <StackPanel HorizontalAlignment="Center">
-                                                <TextBlock Text="{Binding ReleasedText}" Foreground="#4A5B6C" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                                                <TextBlock Text="{Binding LastReleasedAtText, Mode=OneWay}" FontSize="12" Foreground="#6A7684" HorizontalAlignment="Center" />
+                                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Border Background="{Binding StatusBrush}" CornerRadius="12" Padding="12,4" HorizontalAlignment="Center">
+                                                    <TextBlock Text="{Binding StatusText}" Foreground="White" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                </Border>
+                                                <TextBlock Text="{Binding LastReleasedAtText, Mode=OneWay}" FontSize="11" Foreground="#6A7684" HorizontalAlignment="Center" Margin="0,3,0,0" />
                                             </StackPanel>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
                                 <DataGridTemplateColumn Header="Actions"
-                                                        Width="1.1*"
+                                                        Width="155"
                                                         CellStyle="{StaticResource GridActionCellStyle}">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Menu HorizontalAlignment="Center"
-                                                  VerticalAlignment="Center"
-                                                  Background="Transparent"
-                                                  BorderThickness="0">
-                                                <MenuItem Header="Actions">
-                                                    <MenuItem Header="Select"
-                                                              Command="{Binding DataContext.SelectRunCommand, Source={x:Reference Root}}"
-                                                              CommandParameter="{Binding}" />
-                                                    <MenuItem Header="Download"
-                                                              IsEnabled="{Binding CanOpenPayslip}"
-                                                              Command="{Binding DataContext.DownloadPayslipCommand, Source={x:Reference Root}}"
-                                                              CommandParameter="{Binding}" />
-                                                    <MenuItem Header="Print"
-                                                              IsEnabled="{Binding CanOpenPayslip}"
-                                                              Command="{Binding DataContext.PrintPayslipCommand, Source={x:Reference Root}}"
-                                                              CommandParameter="{Binding}" />
-                                                </MenuItem>
-                                            </Menu>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <Button Width="90"
+                                                        Margin="0,0,7,0"
+                                                        Style="{StaticResource GridPrimaryButtonStyle}"
+                                                        Command="{Binding DataContext.SelectRunCommand, Source={x:Reference Root}}"
+                                                        CommandParameter="{Binding}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <materialDesign:PackIcon Kind="EyeOutline" Width="14" Height="14" Margin="0,0,5,0" />
+                                                        <TextBlock Text="View" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Style="{StaticResource GridMoreButtonStyle}"
+                                                        Tag="{Binding}"
+                                                        ToolTip="More payroll actions"
+                                                        Click="PayrollRunActionsButton_OnClick">
+                                                    <materialDesign:PackIcon Kind="DotsHorizontal" Width="18" Height="18" />
+                                                </Button>
+                                            </StackPanel>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
@@ -1026,8 +968,8 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="Period" Binding="{Binding PeriodCode, Mode=OneWay}" Width="1*" CellStyle="{StaticResource GridCellCenterStyle}" />
-                                <DataGridTextColumn Header="Emp No" Binding="{Binding EmployeeNo, Mode=OneWay}" Width="0.9*" CellStyle="{StaticResource GridCellCenterStyle}" />
-                                <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName, Mode=OneWay}" Width="1.6*" />
+                                <DataGridTextColumn x:Name="PayslipReleaseEmpNoColumn" Header="Emp No" Binding="{Binding EmployeeNo, Mode=OneWay}" Width="0.9*" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn x:Name="PayslipReleaseEmployeeColumn" Header="Employee" Binding="{Binding EmployeeName, Mode=OneWay}" Width="1.6*" />
                                 <DataGridTextColumn Header="Released At" Binding="{Binding ReleasedAtText, Mode=OneWay}" Width="1.35*" CellStyle="{StaticResource GridCellCenterStyle}" />
                                 <DataGridTextColumn Header="Status" Binding="{Binding Status, Mode=OneWay}" Width="1*" CellStyle="{StaticResource GridCellCenterStyle}" />
                                 <DataGridTextColumn Header="Released By" Binding="{Binding ReleasedBy, Mode=OneWay}" Width="1.3*" />
@@ -1066,9 +1008,110 @@
                     </Border>
                 </Grid>
             </TabItem>
-            <TabItem x:Name="DeductionsTab"
-                     Header="Deductions"
-                     Visibility="{Binding IsAdminOrHrMode, Converter={StaticResource BoolToVis}}">
+
+            <TabItem Header="{Binding ConcernsTabLabel}">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0"
+                            Margin="0,0,0,10"
+                            Padding="12"
+                            Style="{StaticResource CardStyle}"
+                            Background="#F9FBFF">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="420" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Payroll concern tracking" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Text="Open concerns move to Reviewing before they are Resolved or Rejected. Employees can track the decision here."
+                                           TextWrapping="Wrap"
+                                           Foreground="#5B6A7A" />
+                            </StackPanel>
+                            <TextBox Grid.Column="1"
+                                     Margin="16,0,0,0"
+                                     Height="58"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     VerticalScrollBarVisibility="Auto"
+                                     Visibility="{Binding IsAdminOrHrMode, Converter={StaticResource BoolToVis}}"
+                                     Text="{Binding ConcernResolutionNotes, UpdateSourceTrigger=PropertyChanged}"
+                                     materialDesign:HintAssist.Hint="Resolution notes (required when closing)" />
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="0">
+                        <DataGrid ItemsSource="{Binding PayrollConcerns}"
+                                  SelectedItem="{Binding SelectedPayrollConcern}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  HeadersVisibility="Column"
+                                  GridLinesVisibility="None"
+                                  RowHeaderWidth="0"
+                                  RowHeight="62"
+                                  RowBackground="White"
+                                  AlternatingRowBackground="#F8FBFF"
+                                  HorizontalGridLinesBrush="#E9F0FA"
+                                  ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
+                                  CellStyle="{StaticResource GridCellStyle}"
+                                  RowStyle="{StaticResource GridRowStyle}">
+                            <DataGrid.Columns>
+                                <DataGridCheckBoxColumn Header="Select"
+                                                        Binding="{Binding IsSelectedForBulk, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                        Width="58"
+                                                        CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn Header="Period" Binding="{Binding PeriodCode}" Width="1.1*" />
+                                <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName}" Width="1.5*" />
+                                <DataGridTextColumn Header="Concern" Binding="{Binding ConcernDetails}" Width="2.3*" />
+                                <DataGridTextColumn Header="Filed" Binding="{Binding CreatedAtText}" Width="1.2*" />
+                                <DataGridTextColumn Header="Status" Binding="{Binding StatusText}" Width="0.9*" />
+                                <DataGridTextColumn Header="Resolution" Binding="{Binding ResolutionNotes}" Width="1.8*" />
+                                <DataGridTemplateColumn Header="Admin Actions" Width="286">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <Button Width="82" Margin="0,0,6,0"
+                                                        Style="{StaticResource GridPrimaryButtonStyle}"
+                                                        IsEnabled="{Binding CanStartReview}"
+                                                        Visibility="{Binding DataContext.IsAdminOrHrMode, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}"
+                                                        Command="{Binding DataContext.ReviewPayrollConcernCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}">
+                                                    <TextBlock Text="Review" />
+                                                </Button>
+                                                <Button Width="88" Margin="0,0,6,0"
+                                                        Style="{StaticResource GridSuccessButtonStyle}"
+                                                        IsEnabled="{Binding CanClose}"
+                                                        Visibility="{Binding DataContext.IsAdminOrHrMode, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}"
+                                                        Command="{Binding DataContext.ResolvePayrollConcernCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}">
+                                                    <TextBlock Text="Resolve" />
+                                                </Button>
+                                                <Button Width="88"
+                                                        Style="{StaticResource GridDangerButtonStyle}"
+                                                        IsEnabled="{Binding CanClose}"
+                                                        Visibility="{Binding DataContext.IsAdminOrHrMode, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}"
+                                                        Command="{Binding DataContext.RejectPayrollConcernCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}">
+                                                    <TextBlock Text="Reject" />
+                                                </Button>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem x:Name="DeductionsTab" Header="{Binding DeductionsTabLabel}">
                 <Grid Margin="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -1076,152 +1119,164 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <Grid Grid.Row="0" Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="240" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
+                    <Border Grid.Row="0"
+                            Margin="0,0,0,10"
+                            Padding="16"
+                            Style="{StaticResource CardStyle}"
+                            Background="#F9FBFF">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
 
-                        <ComboBox Grid.Column="0"
-                                  Height="40"
-                                  ItemsSource="{Binding PeriodOptions}"
-                                  DisplayMemberPath="Label"
-                                  SelectedValuePath="Id"
-                                  SelectedValue="{Binding SelectedGovernmentPeriodId}" />
-
-                        <Button Grid.Column="1"
-                                Margin="10,0,0,0"
-                                Height="40"
-                                MinWidth="80"
-                                Style="{StaticResource PrimaryButtonStyle}"
-                                Command="{Binding ViewAllDeductionsCommand}">
-                            <TextBlock Text="All" FontWeight="Bold" />
-                        </Button>
-
-                        <Button Grid.Column="2"
-                                Margin="6,0,0,0"
-                                Height="40"
-                                MinWidth="80"
-                                Style="{StaticResource PrimaryButtonStyle}"
-                                Command="{Binding ViewSssCommand}">
-                            <TextBlock Text="SSS" FontWeight="Bold" />
-                        </Button>
-
-                        <Button Grid.Column="3"
-                                Margin="6,0,0,0"
-                                Height="40"
-                                MinWidth="80"
-                                Style="{StaticResource PrimaryButtonStyle}"
-                                Command="{Binding ViewGsisCommand}">
-                            <TextBlock Text="GSIS" FontWeight="Bold" />
-                        </Button>
-
-                        <Button Grid.Column="4"
-                                Margin="6,0,0,0"
-                                Height="40"
-                                MinWidth="100"
-                                Style="{StaticResource PrimaryButtonStyle}"
-                                Command="{Binding ViewPhilHealthCommand}">
-                            <TextBlock Text="PhilHealth" FontWeight="Bold" />
-                        </Button>
-
-                        <Button Grid.Column="5"
-                                Margin="6,0,0,0"
-                                Height="40"
-                                MinWidth="90"
-                                Style="{StaticResource PrimaryButtonStyle}"
-                                Command="{Binding ViewPagIbigCommand}">
-                            <TextBlock Text="Pag-IBIG" FontWeight="Bold" />
-                        </Button>
-
-                        <TextBlock Grid.Column="6"
-                                   Margin="14,0,0,0"
-                                   VerticalAlignment="Center"
-                                   Foreground="#5B6A7A"
-                                   Text="{Binding GovernmentContributionTitle}" />
-
-                        <Button Grid.Column="7"
-                                Margin="10,0,0,0"
-                                Height="40"
-                                MinWidth="128"
-                                Style="{StaticResource SoftButtonStyle}"
-                                IsEnabled="{Binding HasGovernmentContributionRows}"
-                                Command="{Binding ExportGovernmentReportCommand}">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="FileExportOutline" Width="15" Height="15" Margin="0,0,6,0" />
-                                <TextBlock Text="Export CSV" />
+                            <StackPanel>
+                                <TextBlock Text="{Binding GovernmentContributionTitle}"
+                                           Foreground="{StaticResource PrimaryBrush}"
+                                           FontSize="22"
+                                           FontWeight="Bold" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Text="Review SSS or GSIS, PhilHealth, Pag-IBIG, tax, DTR, loan, and other payroll deductions."
+                                           Foreground="#6A7684" />
                             </StackPanel>
-                        </Button>
 
-                        <Button Grid.Column="8"
-                                Margin="8,0,0,0"
-                                Height="40"
-                                MinWidth="128"
-                                Style="{StaticResource PrimaryButtonStyle}"
-                                IsEnabled="{Binding HasGovernmentContributionRows}"
-                                Command="{Binding SaveGovernmentReportPdfCommand}">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="FilePdfBox" Width="15" Height="15" Margin="0,0,6,0" />
-                                <TextBlock Text="Save PDF" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Style="{StaticResource SoftButtonStyle}"
+                                        MinWidth="126"
+                                        Margin="0,0,8,0"
+                                        Command="{Binding ExportGovernmentReportCommand}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="FileDelimitedOutline" Width="16" Height="16" Margin="0,0,7,0" />
+                                        <TextBlock Text="Download CSV" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource PrimaryButtonStyle}"
+                                        MinWidth="126"
+                                        Command="{Binding SaveGovernmentReportPdfCommand}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="FilePdfBox" Width="16" Height="16" Margin="0,0,7,0" />
+                                        <TextBlock Text="Download PDF" />
+                                    </StackPanel>
+                                </Button>
                             </StackPanel>
-                        </Button>
-                    </Grid>
+
+                            <Grid Grid.Row="1" Grid.ColumnSpan="2" Margin="0,16,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="220" />
+                                    <ColumnDefinition Width="14" />
+                                    <ColumnDefinition Width="300" />
+                                    <ColumnDefinition Width="14" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Payroll Period"
+                                               Foreground="#5B6A7A"
+                                               FontWeight="SemiBold" />
+                                    <Border Margin="0,6,0,0"
+                                            Height="40"
+                                            Background="White"
+                                            BorderBrush="#D5E3F5"
+                                            BorderThickness="1"
+                                            CornerRadius="8">
+                                        <ComboBox Height="38"
+                                                  Padding="10,0"
+                                                  Background="Transparent"
+                                                  BorderThickness="0"
+                                                  VerticalContentAlignment="Center"
+                                                  ItemsSource="{Binding PeriodOptions}"
+                                                  DisplayMemberPath="Label"
+                                                  SelectedValuePath="Id"
+                                                  SelectedValue="{Binding SelectedGovernmentPeriodId}" />
+                                    </Border>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Employee"
+                                               Foreground="#5B6A7A"
+                                               FontWeight="SemiBold" />
+                                    <Border Margin="0,6,0,0"
+                                            Height="40"
+                                            Background="White"
+                                            BorderBrush="#D5E3F5"
+                                            BorderThickness="1"
+                                            CornerRadius="8">
+                                        <ComboBox Height="38"
+                                                  Padding="10,0"
+                                                  Background="Transparent"
+                                                  BorderThickness="0"
+                                                  VerticalContentAlignment="Center"
+                                                  ItemsSource="{Binding DeductionEmployeeOptions}"
+                                                  DisplayMemberPath="Label"
+                                                  SelectedValuePath="Id"
+                                                  SelectedValue="{Binding SelectedGovernmentEmployeeId}" />
+                                    </Border>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="4">
+                                    <TextBlock Text="Deduction Type"
+                                               Foreground="#5B6A7A"
+                                               FontWeight="SemiBold" />
+                                    <WrapPanel Margin="0,6,0,0">
+                                        <Button Content="All Deductions"
+                                                Style="{StaticResource SoftButtonStyle}"
+                                                MinWidth="120"
+                                                Margin="0,0,8,0"
+                                                Command="{Binding ViewAllDeductionsCommand}" />
+                                        <Button Content="SSS"
+                                                Style="{StaticResource SoftButtonStyle}"
+                                                MinWidth="74"
+                                                Margin="0,0,8,0"
+                                                Command="{Binding ViewSssCommand}" />
+                                        <Button Content="GSIS"
+                                                Style="{StaticResource SoftButtonStyle}"
+                                                MinWidth="74"
+                                                Margin="0,0,8,0"
+                                                Command="{Binding ViewGsisCommand}" />
+                                        <Button Content="PhilHealth"
+                                                Style="{StaticResource SoftButtonStyle}"
+                                                MinWidth="104"
+                                                Margin="0,0,8,0"
+                                                Command="{Binding ViewPhilHealthCommand}" />
+                                        <Button Content="Pag-IBIG"
+                                                Style="{StaticResource SoftButtonStyle}"
+                                                MinWidth="94"
+                                                Command="{Binding ViewPagIbigCommand}" />
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
 
                     <Grid Grid.Row="1" Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.1*" />
-                            <ColumnDefinition Width="1.1*" />
-                            <ColumnDefinition Width="1.1*" />
-                            <ColumnDefinition Width="1.7*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <Border Grid.Column="0" Margin="0,0,10,0" Style="{StaticResource CardStyle}" Background="#F5FBFF">
+                        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Background="#FFF7E8" Padding="16,12">
                             <StackPanel>
-                                <TextBlock Text="{Binding GovernmentReportEmployeeShareLabel}" Foreground="#6A7684" />
-                                <TextBlock Text="{Binding GovernmentReportEmployeeShareTotalText}"
-                                           FontWeight="Bold"
-                                           FontSize="22"
-                                           Foreground="{StaticResource PrimaryBrush}" />
+                                <TextBlock Text="{Binding GovernmentReportEmployeeShareLabel}" Foreground="#7B6435" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding GovernmentReportEmployeeShareTotalText}" Margin="0,5,0,0" Foreground="#B7791F" FontSize="22" FontWeight="Bold" />
                             </StackPanel>
                         </Border>
-
-                        <Border Grid.Column="1" Margin="0,0,10,0" Style="{StaticResource CardStyle}" Background="#FFF8EC">
+                        <Border Grid.Column="2" Style="{StaticResource CardStyle}" Background="#EDF5FF" Padding="16,12">
                             <StackPanel>
-                                <TextBlock Text="{Binding GovernmentReportEmployerShareLabel}" Foreground="#6A7684" />
-                                <TextBlock Text="{Binding GovernmentReportEmployerShareTotalText}"
-                                           FontWeight="Bold"
-                                           FontSize="22"
-                                           Foreground="#B9831A" />
+                                <TextBlock Text="{Binding GovernmentReportEmployerShareLabel}" Foreground="#526A82" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding GovernmentReportEmployerShareTotalText}" Margin="0,5,0,0" Foreground="{StaticResource PrimaryBrush}" FontSize="22" FontWeight="Bold" />
                             </StackPanel>
                         </Border>
-
-                        <Border Grid.Column="2" Margin="0,0,10,0" Style="{StaticResource CardStyle}" Background="#F2FBF5">
+                        <Border Grid.Column="4" Style="{StaticResource CardStyle}" Background="#EAF8F0" Padding="16,12">
                             <StackPanel>
-                                <TextBlock Text="{Binding GovernmentReportRemittanceLabel}" Foreground="#6A7684" />
-                                <TextBlock Text="{Binding GovernmentReportRemittanceTotalText}"
-                                           FontWeight="Bold"
-                                           FontSize="22"
-                                           Foreground="#2E9D5B" />
-                            </StackPanel>
-                        </Border>
-
-                        <Border Grid.Column="3" Style="{StaticResource CardStyle}" Background="#F9FBFF">
-                            <StackPanel>
-                                <TextBlock Text="Report Context" Foreground="#6A7684" />
-                                <TextBlock Margin="0,4,0,0"
-                                           Text="{Binding GovernmentReportPeriodLabel, StringFormat=Period: {0}}"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource PrimaryBrush}" />
-                                <TextBlock Margin="0,4,0,0"
-                                           Text="{Binding GovernmentContributionRows.Count, StringFormat=Rows: {0}}"
-                                           Foreground="#5B6A7A" />
+                                <TextBlock Text="{Binding GovernmentReportRemittanceLabel}" Foreground="#4E725E" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding GovernmentReportRemittanceTotalText}" Margin="0,5,0,0" Foreground="#2E9D5B" FontSize="22" FontWeight="Bold" />
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -1236,39 +1291,37 @@
                                   HeadersVisibility="Column"
                                   GridLinesVisibility="Horizontal"
                                   RowHeaderWidth="0"
+                                  RowHeight="48"
                                   RowBackground="White"
                                   AlternatingRowBackground="#F8FBFF"
                                   HorizontalGridLinesBrush="#E9F0FA"
                                   VerticalGridLinesBrush="#E9F0FA"
                                   ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
                                   ColumnHeaderStyle="{StaticResource GridHeaderStyle}"
                                   CellStyle="{StaticResource GridCellStyle}"
                                   RowStyle="{StaticResource GridRowStyle}">
                             <DataGrid.Columns>
-                                <DataGridTemplateColumn Header="Run ID" Width="80" CellStyle="{StaticResource GridActionCellStyle}">
+                                <DataGridTextColumn Header="Run" Binding="{Binding PayrollRunId, Mode=OneWay}" Width="70" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn Header="Period" Binding="{Binding PeriodCode, Mode=OneWay}" Width="105" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn Header="Pay Date" Binding="{Binding PayDateText, Mode=OneWay}" Width="120" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTemplateColumn Header="Employee" Width="1.6*">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Button Style="{StaticResource RunIdButtonStyle}"
-                                                    ToolTip="Select payroll run"
-                                                    Command="{Binding DataContext.SelectRunCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    CommandParameter="{Binding}">
-                                                <TextBlock Text="{Binding PayrollRunId}" />
-                                            </Button>
+                                            <StackPanel Margin="4,0">
+                                                <TextBlock Text="{Binding EmployeeName, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" />
+                                                <TextBlock Text="{Binding EmployeeNo, Mode=OneWay}" FontSize="12" Foreground="#6A7684" />
+                                            </StackPanel>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Period" Binding="{Binding PeriodCode}" Width="130" CellStyle="{StaticResource GridCellCenterStyle}" />
-                                <DataGridTextColumn Header="Pay Date" Binding="{Binding PayDateText}" Width="120" CellStyle="{StaticResource GridCellCenterStyle}" />
-                                <DataGridTextColumn Header="Emp No" Binding="{Binding EmployeeNo}" Width="100" CellStyle="{StaticResource GridCellCenterStyle}" />
-                                <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeName}" Width="220" />
-                                <DataGridTextColumn Header="Appointment Type" Binding="{Binding EmploymentTypeName}" Width="150" />
-                                <DataGridTextColumn Header="Basic Pay" Binding="{Binding BasicPay, StringFormat={}{0:N2}}" Width="110" CellStyle="{StaticResource GridCellCenterStyle}" />
-                                <DataGridTextColumn Header="Deduction" Binding="{Binding DeductionType}" Width="160" />
-                                <DataGridTextColumn Header="Minus Time" Binding="{Binding MinusTimeText}" Width="100" CellStyle="{StaticResource GridCellCenterStyle}" />
-                                <DataGridTextColumn Header="Employee Deduction" Binding="{Binding EmployeeShare, StringFormat={}{0:N2}}" Width="140" CellStyle="{StaticResource GridCellCenterStyle}" />
-                                <DataGridTextColumn Header="Employer Share" Binding="{Binding EmployerShare, StringFormat={}{0:N2}}" Width="118" CellStyle="{StaticResource GridCellCenterStyle}" />
-                                <DataGridTextColumn Header="Total" Binding="{Binding TotalRemittance, StringFormat={}{0:N2}}" Width="132" CellStyle="{StaticResource GridCellCenterStyle}" />
-                                <DataGridTextColumn Header="Run Status" Binding="{Binding RunStatus}" Width="110" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn Header="Appointment" Binding="{Binding EmploymentTypeName, Mode=OneWay}" Width="125" />
+                                <DataGridTextColumn Header="Deduction" Binding="{Binding DeductionType, Mode=OneWay}" Width="1.25*" />
+                                <DataGridTextColumn Header="Minus Time" Binding="{Binding MinusTimeText, Mode=OneWay}" Width="95" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn Header="Employee" Binding="{Binding EmployeeShare, Mode=OneWay, StringFormat={}{0:N2}}" Width="105" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn Header="Employer" Binding="{Binding EmployerShare, Mode=OneWay, StringFormat={}{0:N2}}" Width="105" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn Header="Total" Binding="{Binding TotalRemittance, Mode=OneWay, StringFormat={}{0:N2}}" Width="105" CellStyle="{StaticResource GridCellCenterStyle}" />
+                                <DataGridTextColumn Header="Status" Binding="{Binding RunStatus, Mode=OneWay}" Width="95" CellStyle="{StaticResource GridCellCenterStyle}" />
                             </DataGrid.Columns>
                         </DataGrid>
                     </Border>

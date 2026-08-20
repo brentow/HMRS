@@ -126,7 +126,7 @@
                       RowHeaderWidth="0"
                       ColumnHeaderHeight="38"
                       RowHeight="42"
-                      GridLinesVisibility="Horizontal"
+                      GridLinesVisibility="None"
                       HorizontalGridLinesBrush="#E9F0FA"
                       VerticalGridLinesBrush="#E9F0FA"
                       AlternatingRowBackground="#F8FBFF"

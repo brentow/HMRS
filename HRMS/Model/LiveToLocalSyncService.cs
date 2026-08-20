@@ -51,15 +51,6 @@ namespace HRMS.Model
             Password = "Ggms@2026"
         };
 
-        private static readonly CrsConnectionSettings LiveCrsSettings = new()
-        {
-            Host = "194.59.164.58",
-            Port = "3306",
-            Database = "u621755393_crs",
-            Username = "u621755393_crs_user",
-            Password = "Crs@2026"
-        };
-
         private static readonly DbConnectionSettings LocalHrmsFallbackSettings = new()
         {
             Host = "127.0.0.1",
@@ -112,7 +103,7 @@ namespace HRMS.Model
                 var localHrmsConnectionString = DbConfig.BuildConnectionString(_localHrmsSettings);
                 var liveGgmsConnectionString = GgmsConfig.BuildConnectionString(LiveGgmsSettings);
                 var localGgmsConnectionString = GgmsConfig.BuildConnectionString(_localGgmsSettings);
-                var liveCrsConnectionString = CrsConfig.BuildConnectionString(LiveCrsSettings);
+                var liveCrsConnectionString = CrsConfig.ConnectionString;
                 var localCrsConnectionString = CrsConfig.BuildConnectionString(_localCrsSettings);
 
                 Report(progress, "Syncing live HRMS into localhost...");

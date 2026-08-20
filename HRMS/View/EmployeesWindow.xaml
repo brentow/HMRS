@@ -250,6 +250,7 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <Button x:Name="BackToDashboardButton"
                         Grid.Column="0"
@@ -261,8 +262,18 @@
                         <TextBlock Text="Back to Dashboard" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
-                <Button x:Name="AddEmployeeButton"
+                <Button x:Name="SelectEmployeeButton"
                         Grid.Column="1"
+                        Style="{StaticResource SecondaryActionButtonStyle}"
+                        Margin="8,0,8,0"
+                        Click="SelectEmployeeButton_OnClick">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="AccountSearchOutline" Width="18" Height="18" Margin="0,0,8,0" />
+                        <TextBlock Text="Select Employee" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="AddEmployeeButton"
+                        Grid.Column="2"
                         Style="{StaticResource PrimaryActionButtonStyle}"
                         Margin="8,0,8,0"
                         Click="AddEmployeeButton_OnClick">
@@ -273,7 +284,7 @@
                 </Button>
                 <Button x:Name="EditProfileButton"
                         Style="{StaticResource SecondaryActionButtonStyle}"
-                        Grid.Column="2"
+                        Grid.Column="3"
                         Margin="8,0,0,0"
                         Click="EditProfileButton_OnClick">
                     <StackPanel Orientation="Horizontal">
@@ -341,883 +352,336 @@
                                   VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled">
                         <StackPanel>
-                                <Border Margin="12"
-                                        Style="{StaticResource DetailSectionCardStyle}"
-                                        Background="White">
-                                    <StackPanel>
-                                        <Grid Margin="0,0,0,16">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
+                            <Border Margin="12,12,12,0"
+                                    Style="{StaticResource DetailSectionCardStyle}"
+                                    Background="White">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
 
-                                            <Border Width="42"
-                                                    Height="42"
-                                                    CornerRadius="21"
-                                                    Background="#F2F4F7"
-                                                    VerticalAlignment="Top">
-                                                <materialDesign:PackIcon Kind="AccountDetailsOutline"
-                                                                         Width="22"
-                                                                         Height="22"
-                                                                         Foreground="{StaticResource PrimaryBrush}"
-                                                                         HorizontalAlignment="Center"
-                                                                         VerticalAlignment="Center" />
-                                            </Border>
+                                        <Border Width="42"
+                                                Height="42"
+                                                CornerRadius="21"
+                                                Background="#F2F4F7"
+                                                VerticalAlignment="Top">
+                                            <materialDesign:PackIcon Kind="AccountDetailsOutline"
+                                                                     Width="22"
+                                                                     Height="22"
+                                                                     Foreground="{StaticResource PrimaryBrush}"
+                                                                     HorizontalAlignment="Center"
+                                                                     VerticalAlignment="Center" />
+                                        </Border>
 
-                                            <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                                                <TextBlock Text="Profile Details"
-                                                           Style="{StaticResource DetailSectionTitleStyle}" />
-                                                <TextBlock Text="Core employee information and current assignment."
-                                                           Style="{StaticResource DetailSectionSubtitleStyle}" />
-                                            </StackPanel>
-                                        </Grid>
+                                        <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                                            <TextBlock Text="Employee Profile"
+                                                       Style="{StaticResource DetailSectionTitleStyle}" />
+                                            <TextBlock Text="Basic information, work details, and required records."
+                                                       Style="{StaticResource DetailSectionSubtitleStyle}" />
+                                        </StackPanel>
+                                    </Grid>
 
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
+                                    <Grid Margin="0,0,0,16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
 
-                                            <Border Grid.Row="0"
-                                                    Grid.Column="0"
-                                                    Margin="0,0,10,12"
-                                                    Style="{StaticResource DetailFieldCardStyle}">
-                                                <StackPanel>
-                                                    <TextBlock Text="Employee No"
-                                                               Style="{StaticResource DetailFieldTitleStyle}" />
-                                                    <TextBox Text="{Binding SelectedEmployee.EmployeeNo, Mode=TwoWay, TargetNullValue=''}"
-                                                             Style="{StaticResource DetailFieldValueTextBoxStyle}" />
-                                                </StackPanel>
-                                            </Border>
-
-                                            <Border Grid.Row="0"
-                                                    Grid.Column="1"
-                                                    Margin="0,0,0,12"
-                                                    Style="{StaticResource DetailFieldCardStyle}">
-                                                <StackPanel>
-                                                    <TextBlock Text="Hire Date"
-                                                               Style="{StaticResource DetailFieldTitleStyle}" />
-                                                    <DatePicker SelectedDate="{Binding SelectedEmployee.HireDate, Mode=TwoWay}"
-                                                                Style="{StaticResource DetailFieldDatePickerStyle}" />
-                                                </StackPanel>
-                                            </Border>
-
-                                            <Border Grid.Row="1"
-                                                    Grid.Column="0"
-                                                    Margin="0,0,10,12"
-                                                    Style="{StaticResource DetailFieldCardStyle}">
-                                                <StackPanel>
-                                                    <TextBlock Text="Full Name"
-                                                               Style="{StaticResource DetailFieldTitleStyle}" />
-                                                    <TextBox Text="{Binding SelectedEmployee.Name, Mode=TwoWay, TargetNullValue=''}"
-                                                             Style="{StaticResource DetailFieldValueTextBoxStyle}" />
-                                                </StackPanel>
-                                            </Border>
-
-                                            <Border Grid.Row="1"
-                                                    Grid.Column="1"
-                                                    Margin="0,0,0,12"
-                                                    Style="{StaticResource DetailFieldCardStyle}">
-                                                <StackPanel>
-                                                    <TextBlock Text="Status"
-                                                               Style="{StaticResource DetailFieldTitleStyle}" />
-                                                    <TextBox Text="{Binding SelectedEmployee.Status, Mode=TwoWay, TargetNullValue=''}"
-                                                             Style="{StaticResource DetailFieldValueTextBoxStyle}" />
-                                                </StackPanel>
-                                            </Border>
-
-                                            <Border Grid.Row="2"
-                                                    Grid.Column="0"
-                                                    Margin="0,0,10,0"
-                                                    Style="{StaticResource DetailFieldCardStyle}">
-                                                <StackPanel>
-                                                    <TextBlock Text="Department"
-                                                               Style="{StaticResource DetailFieldTitleStyle}" />
-                                                    <Grid>
-                                                        <TextBox x:Name="ProfileDepartmentTextBox"
-                                                                 Text="{Binding SelectedEmployee.Department, Mode=TwoWay, TargetNullValue=''}"
-                                                                 Style="{StaticResource DetailFieldValueTextBoxStyle}" />
-                                                        <ComboBox x:Name="ProfileDepartmentComboBox"
-                                                                  Visibility="Collapsed"
-                                                                  Style="{StaticResource DetailFieldComboBoxStyle}"
-                                                                  DisplayMemberPath="Name"
-                                                                  SelectedValuePath="Name"
-                                                                  SelectionChanged="ProfileDepartmentComboBox_OnSelectionChanged" />
-                                                    </Grid>
-                                                </StackPanel>
-                                            </Border>
-
-                                            <Border Grid.Row="2"
-                                                    Grid.Column="1"
-                                                    Style="{StaticResource DetailFieldCardStyle}">
-                                                <StackPanel>
-                                                    <TextBlock Text="Position"
-                                                               Style="{StaticResource DetailFieldTitleStyle}" />
-                                                    <Grid>
-                                                        <TextBox x:Name="ProfilePositionTextBox"
-                                                                 Text="{Binding SelectedEmployee.Position, Mode=TwoWay, TargetNullValue=''}"
-                                                                 Style="{StaticResource DetailFieldValueTextBoxStyle}" />
-                                                        <ComboBox x:Name="ProfilePositionComboBox"
-                                                                  Visibility="Collapsed"
-                                                                  Style="{StaticResource DetailFieldComboBoxStyle}"
-                                                                  DisplayMemberPath="Name"
-                                                                  SelectedValuePath="Name"
-                                                                  SelectionChanged="ProfilePositionComboBox_OnSelectionChanged" />
-                                                    </Grid>
-                                                </StackPanel>
-                                            </Border>
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
-                                <StackPanel Margin="12">
-                                    <Border Style="{StaticResource DetailSectionCardStyle}"
-                                            Background="White"
-                                            Margin="0,0,0,12">
-                                        <StackPanel>
-                                            <Grid Margin="0,0,0,14">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-
-                                                <Border Width="42"
-                                                        Height="42"
-                                                        CornerRadius="21"
-                                                        Background="#F2F4F7"
-                                                        VerticalAlignment="Top">
-                                                    <materialDesign:PackIcon Kind="ClockOutline"
-                                                                             Width="22"
-                                                                             Height="22"
-                                                                             Foreground="{StaticResource PrimaryBrush}"
-                                                                             HorizontalAlignment="Center"
-                                                                             VerticalAlignment="Center" />
-                                                </Border>
-
-                                                <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                                                    <TextBlock Text="Attendance Drill-Down"
-                                                               Style="{StaticResource DetailSectionTitleStyle}" />
-                                                    <TextBlock Text="Current month DTR rows and the latest attendance punches for the selected employee."
-                                                               Style="{StaticResource DetailSectionSubtitleStyle}" />
-                                                </StackPanel>
-                                            </Grid>
-
-                                            <Border Background="White"
-                                                    BorderBrush="#E3E8EF"
-                                                    BorderThickness="1"
-                                                    CornerRadius="10"
-                                                    Padding="10"
-                                                    Margin="0,0,0,12">
-                                                <TextBlock Text="{Binding SelectedEmployeeAttendanceSummary}"
-                                                           Foreground="{StaticResource PrimaryBrush}"
+                                        <Border Grid.Column="0"
+                                                Margin="0,0,10,0"
+                                                Background="#F8FBFF"
+                                                BorderBrush="#E3ECF8"
+                                                BorderThickness="1"
+                                                CornerRadius="8"
+                                                Padding="12">
+                                            <StackPanel>
+                                                <TextBlock Text="Monthly Salary"
+                                                           Foreground="#5B6A7A"
                                                            FontWeight="SemiBold"
-                                                           TextWrapping="Wrap" />
-                                            </Border>
-
-                                            <TextBlock Text="Current Month DTR"
-                                                       Style="{StaticResource DetailSectionTitleStyle}"
-                                                       FontSize="15"
-                                                       Margin="0,0,0,8" />
-
-                                            <DataGrid ItemsSource="{Binding SelectedEmployeeCurrentMonthAttendance}"
-                                                      AutoGenerateColumns="False"
-                                                      CanUserAddRows="False"
-                                                      CanUserDeleteRows="False"
-                                                      IsReadOnly="True"
-                                                      HeadersVisibility="Column"
-                                                      GridLinesVisibility="Horizontal"
-                                                      BorderBrush="#E3ECF8"
-                                                      BorderThickness="1"
-                                                      RowHeaderWidth="0"
-                                                      RowBackground="White"
-                                                      AlternatingRowBackground="#F8FBFF"
-                                                      HorizontalGridLinesBrush="#E9F0FA"
-                                                      VerticalGridLinesBrush="#E9F0FA"
-                                                      ColumnHeaderHeight="40"
-                                                      RowHeight="42"
-                                                      Margin="0,0,0,14">
-                                                <DataGrid.ColumnHeaderStyle>
-                                                    <Style TargetType="DataGridColumnHeader">
-                                                        <Setter Property="Background" Value="#F2F7FD" />
-                                                        <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
-                                                        <Setter Property="FontWeight" Value="SemiBold" />
-                                                        <Setter Property="BorderBrush" Value="#E3ECF8" />
-                                                        <Setter Property="BorderThickness" Value="0,0,0,1" />
-                                                        <Setter Property="Padding" Value="8,0,8,0" />
-                                                    </Style>
-                                                </DataGrid.ColumnHeaderStyle>
-                                                <DataGrid.CellStyle>
-                                                    <Style TargetType="DataGridCell">
-                                                        <Setter Property="Padding" Value="8,0,8,0" />
-                                                        <Setter Property="BorderThickness" Value="0" />
-                                                        <Setter Property="VerticalContentAlignment" Value="Center" />
-                                                    </Style>
-                                                </DataGrid.CellStyle>
-                                                <DataGrid.Columns>
-                                                    <DataGridTextColumn Header="Date" Binding="{Binding WorkDateText}" Width="118" />
-                                                    <DataGridTextColumn Header="Day" Binding="{Binding DayName}" Width="76" />
-                                                    <DataGridTextColumn Header="Time In" Binding="{Binding TimeInText}" Width="96" />
-                                                    <DataGridTextColumn Header="Time Out" Binding="{Binding TimeOutText}" Width="96" />
-                                                    <DataGridTextColumn Header="Worked" Binding="{Binding WorkedHoursText}" Width="96" />
-                                                    <DataGridTextColumn Header="Flag" Binding="{Binding AttendanceFlag}" Width="145" />
-                                                    <DataGridTextColumn Header="Remarks" Binding="{Binding Remarks}" Width="*" />
-                                                </DataGrid.Columns>
-                                            </DataGrid>
-
-                                            <TextBlock Text="Recent Attendance Logs"
-                                                       Style="{StaticResource DetailSectionTitleStyle}"
-                                                       FontSize="15"
-                                                       Margin="0,0,0,8" />
-
-                                            <DataGrid ItemsSource="{Binding SelectedEmployeeRecentLogs}"
-                                                      AutoGenerateColumns="False"
-                                                      CanUserAddRows="False"
-                                                      CanUserDeleteRows="False"
-                                                      IsReadOnly="True"
-                                                      HeadersVisibility="Column"
-                                                      GridLinesVisibility="Horizontal"
-                                                      BorderBrush="#E3ECF8"
-                                                      BorderThickness="1"
-                                                      RowHeaderWidth="0"
-                                                      RowBackground="White"
-                                                      AlternatingRowBackground="#F8FBFF"
-                                                      HorizontalGridLinesBrush="#E9F0FA"
-                                                      VerticalGridLinesBrush="#E9F0FA"
-                                                      ColumnHeaderHeight="40"
-                                                      RowHeight="42">
-                                                <DataGrid.ColumnHeaderStyle>
-                                                    <Style TargetType="DataGridColumnHeader">
-                                                        <Setter Property="Background" Value="#F2F7FD" />
-                                                        <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
-                                                        <Setter Property="FontWeight" Value="SemiBold" />
-                                                        <Setter Property="BorderBrush" Value="#E3ECF8" />
-                                                        <Setter Property="BorderThickness" Value="0,0,0,1" />
-                                                        <Setter Property="Padding" Value="8,0,8,0" />
-                                                    </Style>
-                                                </DataGrid.ColumnHeaderStyle>
-                                                <DataGrid.CellStyle>
-                                                    <Style TargetType="DataGridCell">
-                                                        <Setter Property="Padding" Value="8,0,8,0" />
-                                                        <Setter Property="BorderThickness" Value="0" />
-                                                        <Setter Property="VerticalContentAlignment" Value="Center" />
-                                                    </Style>
-                                                </DataGrid.CellStyle>
-                                                <DataGrid.Columns>
-                                                    <DataGridTextColumn Header="Date" Binding="{Binding LogDateText}" Width="130" />
-                                                    <DataGridTextColumn Header="Time" Binding="{Binding LogTimeText}" Width="110" />
-                                                    <DataGridTextColumn Header="Type" Binding="{Binding LogType}" Width="110" />
-                                                    <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="110" />
-                                                    <DataGridTextColumn Header="Device" Binding="{Binding DeviceName}" Width="*" />
-                                                </DataGrid.Columns>
-                                            </DataGrid>
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
-                                <StackPanel Margin="12">
-                                    <Border Background="White" BorderBrush="#E3E8EF" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,12">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <Border Width="32" Height="32" CornerRadius="16" Background="#F2F4F7" VerticalAlignment="Center">
-                                                <materialDesign:PackIcon Kind="CurrencyPhp" Width="20" Height="20" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                            </Border>
-                                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                                <TextBlock Text="Monthly Salary" Foreground="#5B6A7A" FontWeight="SemiBold" />
-                                                <TextBlock Text="{Binding SelectedEmployee.MonthlySalary, StringFormat=PHP {0}, TargetNullValue=PHP 0.00}"
-                                                           FontSize="22"
+                                                           FontSize="12" />
+                                                <TextBlock Text="{Binding SelectedEmployee.MonthlySalary, StringFormat=PHP {0:N2}, TargetNullValue=PHP 0.00, FallbackValue=PHP 0.00}"
+                                                           Foreground="{StaticResource PrimaryBrush}"
+                                                           FontSize="20"
                                                            FontWeight="Bold"
-                                                           Foreground="{StaticResource PrimaryBrush}" />
+                                                           Margin="0,4,0,0" />
                                             </StackPanel>
-                                        </Grid>
-                                    </Border>
+                                        </Border>
 
-                                    <Border Background="White" BorderBrush="#E3E8EF" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,12">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="14" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="1"
+                                                Margin="0,0,10,0"
+                                                Background="#F8FBFF"
+                                                BorderBrush="#E3ECF8"
+                                                BorderThickness="1"
+                                                CornerRadius="8"
+                                                Padding="12">
+                                            <StackPanel>
+                                                <TextBlock Text="Worked This Month"
+                                                           Foreground="#5B6A7A"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="12" />
+                                                <TextBlock Foreground="{StaticResource PrimaryBrush}"
+                                                           FontSize="20"
+                                                           FontWeight="Bold"
+                                                           Margin="0,4,0,0">
+                                                    <TextBlock.Text>
+                                                        <MultiBinding StringFormat="{}{0} day(s)">
+                                                            <Binding Path="SelectedEmployee.CurrentMonthWorkedDays" TargetNullValue="0" FallbackValue="0" />
+                                                        </MultiBinding>
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+                                                <TextBlock Text="{Binding SelectedEmployee.CurrentMonthWorkedHoursText, TargetNullValue=0 hrs, FallbackValue=0 hrs}"
+                                                           Foreground="#5B6A7A"
+                                                           Margin="0,2,0,0" />
+                                            </StackPanel>
+                                        </Border>
 
-                                            <Border Width="46"
-                                                    Height="46"
-                                                    CornerRadius="23"
-                                                    Background="#F2F4F7"
-                                                    VerticalAlignment="Center">
-                                                <materialDesign:PackIcon Kind="ClockOutline"
-                                                                         Width="22"
-                                                                         Height="22"
-                                                                         Foreground="{StaticResource PrimaryBrush}"
-                                                                         HorizontalAlignment="Center"
-                                                                         VerticalAlignment="Center" />
-                                            </Border>
+                                        <Border Grid.Column="2"
+                                                Background="#F8FBFF"
+                                                BorderBrush="#E3ECF8"
+                                                BorderThickness="1"
+                                                CornerRadius="8"
+                                                Padding="12">
+                                            <StackPanel>
+                                                <TextBlock Text="Last Attendance"
+                                                           Foreground="#5B6A7A"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="12" />
+                                                <TextBlock Text="{Binding SelectedEmployee.CurrentMonthLastWorkDateText, TargetNullValue=--, FallbackValue=--}"
+                                                           Foreground="{StaticResource PrimaryBrush}"
+                                                           FontSize="20"
+                                                           FontWeight="Bold"
+                                                           Margin="0,4,0,0" />
+                                                <TextBlock Text="{Binding SelectedEmployeeAttendanceSummary}"
+                                                           Foreground="#5B6A7A"
+                                                           TextWrapping="Wrap"
+                                                           Margin="0,2,0,0" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
 
-                                            <Grid Grid.Column="2" VerticalAlignment="Center">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
 
-                                                <StackPanel Grid.Column="0" HorizontalAlignment="Center">
-                                                    <TextBlock Text="Month"
-                                                               Foreground="#5B6A7A"
-                                                               FontWeight="SemiBold"
-                                                               FontSize="12"
-                                                               HorizontalAlignment="Center" />
-                                                    <TextBlock Text="{Binding SelectedEmployee.CurrentMonthLabel, TargetNullValue=--, FallbackValue=--}"
-                                                               Foreground="{StaticResource PrimaryBrush}"
-                                                               FontWeight="Bold"
-                                                               FontSize="13"
-                                                               Margin="0,2,0,0"
-                                                               HorizontalAlignment="Center" />
-                                                </StackPanel>
+                                        <Border Grid.Row="0"
+                                                Grid.Column="0"
+                                                Margin="0,0,10,12"
+                                                Style="{StaticResource DetailFieldCardStyle}">
+                                            <StackPanel>
+                                                <TextBlock Text="Employee No"
+                                                           Style="{StaticResource DetailFieldTitleStyle}" />
+                                                <TextBox Text="{Binding SelectedEmployee.EmployeeNo, Mode=TwoWay, TargetNullValue=''}"
+                                                         Style="{StaticResource DetailFieldValueTextBoxStyle}" />
+                                            </StackPanel>
+                                        </Border>
 
-                                                <StackPanel Grid.Column="1" HorizontalAlignment="Center">
-                                                    <TextBlock Text="Worked Days"
-                                                               Foreground="#5B6A7A"
-                                                               FontWeight="SemiBold"
-                                                               FontSize="12"
-                                                               HorizontalAlignment="Center" />
-                                                    <TextBlock Text="{Binding SelectedEmployee.CurrentMonthWorkedDays, TargetNullValue=0, FallbackValue=0}"
-                                                               Foreground="{StaticResource PrimaryBrush}"
-                                                               FontWeight="Bold"
-                                                               FontSize="13"
-                                                               Margin="0,2,0,0"
-                                                               HorizontalAlignment="Center" />
-                                                </StackPanel>
+                                        <Border Grid.Row="0"
+                                                Grid.Column="1"
+                                                Margin="0,0,0,12"
+                                                Style="{StaticResource DetailFieldCardStyle}">
+                                            <StackPanel>
+                                                <TextBlock Text="Full Name"
+                                                           Style="{StaticResource DetailFieldTitleStyle}" />
+                                                <TextBox Text="{Binding SelectedEmployee.Name, Mode=TwoWay, TargetNullValue=''}"
+                                                         Style="{StaticResource DetailFieldValueTextBoxStyle}" />
+                                            </StackPanel>
+                                        </Border>
 
-                                                <StackPanel Grid.Column="2" HorizontalAlignment="Center">
-                                                    <TextBlock Text="Worked Hours"
-                                                               Foreground="#5B6A7A"
-                                                               FontWeight="SemiBold"
-                                                               FontSize="12"
-                                                               HorizontalAlignment="Center" />
-                                                    <TextBlock Text="{Binding SelectedEmployee.CurrentMonthWorkedHoursText, TargetNullValue=0 hrs, FallbackValue=0 hrs}"
-                                                               Foreground="{StaticResource PrimaryBrush}"
-                                                               FontWeight="Bold"
-                                                               FontSize="13"
-                                                               Margin="0,2,0,0"
-                                                               HorizontalAlignment="Center" />
-                                                </StackPanel>
+                                        <Border Grid.Row="1"
+                                                Grid.Column="0"
+                                                Margin="0,0,10,12"
+                                                Style="{StaticResource DetailFieldCardStyle}">
+                                            <StackPanel>
+                                                <TextBlock Text="Department"
+                                                           Style="{StaticResource DetailFieldTitleStyle}" />
+                                                <Grid>
+                                                    <TextBox x:Name="ProfileDepartmentTextBox"
+                                                             Text="{Binding SelectedEmployee.Department, Mode=TwoWay, TargetNullValue=''}"
+                                                             Style="{StaticResource DetailFieldValueTextBoxStyle}" />
+                                                    <ComboBox x:Name="ProfileDepartmentComboBox"
+                                                              Visibility="Collapsed"
+                                                              Style="{StaticResource DetailFieldComboBoxStyle}"
+                                                              DisplayMemberPath="Name"
+                                                              SelectedValuePath="Name"
+                                                              SelectionChanged="ProfileDepartmentComboBox_OnSelectionChanged" />
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
 
-                                                <StackPanel Grid.Column="3" HorizontalAlignment="Center">
-                                                    <TextBlock Text="Last DTR"
-                                                               Foreground="#5B6A7A"
-                                                               FontWeight="SemiBold"
-                                                               FontSize="12"
-                                                               HorizontalAlignment="Center" />
-                                                    <TextBlock Text="{Binding SelectedEmployee.CurrentMonthLastWorkDateText, TargetNullValue=--, FallbackValue=--}"
-                                                               Foreground="{StaticResource PrimaryBrush}"
-                                                               FontWeight="Bold"
-                                                               FontSize="13"
-                                                               Margin="0,2,0,0"
-                                                               HorizontalAlignment="Center" />
-                                                </StackPanel>
-                                            </Grid>
-                                        </Grid>
-                                    </Border>
+                                        <Border Grid.Row="1"
+                                                Grid.Column="1"
+                                                Margin="0,0,0,12"
+                                                Style="{StaticResource DetailFieldCardStyle}">
+                                            <StackPanel>
+                                                <TextBlock Text="Position"
+                                                           Style="{StaticResource DetailFieldTitleStyle}" />
+                                                <Grid>
+                                                    <TextBox x:Name="ProfilePositionTextBox"
+                                                             Text="{Binding SelectedEmployee.Position, Mode=TwoWay, TargetNullValue=''}"
+                                                             Style="{StaticResource DetailFieldValueTextBoxStyle}" />
+                                                    <ComboBox x:Name="ProfilePositionComboBox"
+                                                              Visibility="Collapsed"
+                                                              Style="{StaticResource DetailFieldComboBoxStyle}"
+                                                              DisplayMemberPath="Name"
+                                                              SelectedValuePath="Name"
+                                                              SelectionChanged="ProfilePositionComboBox_OnSelectionChanged" />
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
 
-                                    <Border Visibility="Collapsed" Background="#FFF9F1" BorderBrush="#F0DFC4" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,0,0,12">
-                                        <StackPanel>
-                                            <Grid Margin="0,0,0,12">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
+                                        <Border Grid.Row="2"
+                                                Grid.Column="0"
+                                                Margin="0,0,10,12"
+                                                Style="{StaticResource DetailFieldCardStyle}">
+                                            <StackPanel>
+                                                <TextBlock Text="Status"
+                                                           Style="{StaticResource DetailFieldTitleStyle}" />
+                                                <TextBox Text="{Binding SelectedEmployee.Status, Mode=TwoWay, TargetNullValue=''}"
+                                                         Style="{StaticResource DetailFieldValueTextBoxStyle}" />
+                                            </StackPanel>
+                                        </Border>
 
-                                                <Border Width="38" Height="38" CornerRadius="19" Background="#FCE5BA" VerticalAlignment="Top">
-                                                    <materialDesign:PackIcon Kind="ReceiptTextOutline" Width="20" Height="20" Foreground="#A56B00" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                </Border>
-                                                <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                                    <TextBlock Text="Latest Payroll Snapshot"
-                                                               Foreground="#5B6A7A"
-                                                               FontWeight="SemiBold" />
-                                                    <TextBlock Text="{Binding SelectedEmployee.LatestPayrollPeriodCode, StringFormat=Period: {0}, TargetNullValue=Period: -, FallbackValue=Period: -}"
-                                                               FontSize="18"
-                                                               FontWeight="Bold"
-                                                               Foreground="{StaticResource PrimaryBrush}"
-                                                               TextWrapping="Wrap" />
-                                                </StackPanel>
-                                            </Grid>
+                                        <Border Grid.Row="2"
+                                                Grid.Column="1"
+                                                Margin="0,0,0,12"
+                                                Style="{StaticResource DetailFieldCardStyle}">
+                                            <StackPanel>
+                                                <TextBlock Text="Hire Date"
+                                                           Style="{StaticResource DetailFieldTitleStyle}" />
+                                                <DatePicker SelectedDate="{Binding SelectedEmployee.HireDate, Mode=TwoWay}"
+                                                            Style="{StaticResource DetailFieldDatePickerStyle}" />
+                                            </StackPanel>
+                                        </Border>
 
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
+                                        <Border Grid.Row="3"
+                                                Grid.Column="0"
+                                                Margin="0,0,10,12"
+                                                Style="{StaticResource DetailFieldCardStyle}">
+                                            <StackPanel>
+                                                <TextBlock Text="Appointment Type"
+                                                           Style="{StaticResource DetailFieldTitleStyle}" />
+                                                <Grid>
+                                                    <TextBox x:Name="SalaryAppointmentTypeTextBox"
+                                                             Text="{Binding SelectedEmployee.AppointmentType, Mode=TwoWay, TargetNullValue=''}"
+                                                             Style="{StaticResource DetailFieldValueTextBoxStyle}" />
+                                                    <ComboBox x:Name="SalaryAppointmentTypeComboBox"
+                                                              Visibility="Collapsed"
+                                                              Style="{StaticResource DetailFieldComboBoxStyle}"
+                                                              DisplayMemberPath="Name"
+                                                              SelectedValuePath="Name"
+                                                              SelectionChanged="SalaryAppointmentTypeComboBox_OnSelectionChanged" />
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
 
-                                                <Border Grid.Row="0"
-                                                        Background="White"
-                                                        BorderBrush="#EED7AF"
-                                                        BorderThickness="1"
-                                                        CornerRadius="10"
-                                                        Padding="14">
-                                                    <Grid>
-                                                        <Grid.RowDefinitions>
-                                                            <RowDefinition Height="Auto" />
-                                                            <RowDefinition Height="Auto" />
-                                                            <RowDefinition Height="Auto" />
-                                                            <RowDefinition Height="Auto" />
-                                                            <RowDefinition Height="Auto" />
-                                                            <RowDefinition Height="Auto" />
-                                                            <RowDefinition Height="Auto" />
-                                                            <RowDefinition Height="Auto" />
-                                                            <RowDefinition Height="Auto" />
-                                                        </Grid.RowDefinitions>
+                                        <Border Grid.Row="3"
+                                                Grid.Column="1"
+                                                Margin="0,0,0,12"
+                                                Style="{StaticResource DetailFieldCardStyle}">
+                                            <StackPanel>
+                                                <TextBlock Text="Salary Grade / Step"
+                                                           Style="{StaticResource DetailFieldTitleStyle}" />
+                                                <Grid Margin="0,0,0,8">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="10" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
 
-                                                        <Grid Grid.Row="0" Margin="0,0,0,10">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*" />
-                                                                <ColumnDefinition Width="*" />
-                                                            </Grid.ColumnDefinitions>
-
-                                                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                                                <TextBlock Text="Generated"
-                                                                           Foreground="#6A7684"
-                                                                           FontWeight="SemiBold"
-                                                                           FontSize="12" />
-                                                                <TextBlock Text="{Binding SelectedEmployee.LatestPayrollGeneratedText}"
-                                                                           Foreground="{StaticResource PrimaryBrush}"
-                                                                           FontWeight="Bold"
-                                                                           TextWrapping="Wrap" />
-                                                            </StackPanel>
-
-                                                            <StackPanel Grid.Column="1">
-                                                                <TextBlock Text="Status"
-                                                                           Foreground="#6A7684"
-                                                                           FontWeight="SemiBold"
-                                                                           FontSize="12" />
-                                                                <TextBlock Text="{Binding SelectedEmployee.LatestPayrollStatus}"
-                                                                           Foreground="{StaticResource PrimaryBrush}"
-                                                                           FontWeight="Bold"
-                                                                           TextWrapping="Wrap" />
-                                                            </StackPanel>
-                                                        </Grid>
-
-                                                        <Border Grid.Row="1"
-                                                                Height="1"
-                                                                Background="#F1E2C8"
-                                                                Margin="0,0,0,12" />
-
-                                                        <StackPanel Grid.Row="2" Margin="0,0,0,10">
-                                                            <StackPanel Orientation="Horizontal">
-                                                                <materialDesign:PackIcon Kind="Receipt" Width="16" Height="16" Margin="0,0,6,0" Foreground="#A56B00" />
-                                                                <TextBlock Text="Receipt"
-                                                                           Foreground="#A56B00"
-                                                                           FontWeight="SemiBold" />
-                                                            </StackPanel>
-                                                            <TextBlock Margin="0,4,0,0"
-                                                                       Text="Earnings"
-                                                                       Foreground="{StaticResource PrimaryBrush}"
-                                                                       FontSize="16"
-                                                                       FontWeight="Bold" />
-                                                        </StackPanel>
-
-                                                        <Grid Grid.Row="3" Margin="0,0,0,8">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*" />
-                                                                <ColumnDefinition Width="Auto" />
-                                                            </Grid.ColumnDefinitions>
-                                                            <TextBlock Text="Basic Pay" Foreground="#5B6A7A" />
-                                                            <TextBlock Grid.Column="1"
-                                                                       Text="{Binding SelectedEmployee.LatestPayrollBasicPayText}"
-                                                                       Foreground="{StaticResource PrimaryBrush}"
-                                                                       FontWeight="Bold"
-                                                                       TextAlignment="Right" />
-                                                        </Grid>
-
-                                                        <Grid Grid.Row="4" Margin="0,0,0,8">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*" />
-                                                                <ColumnDefinition Width="Auto" />
-                                                            </Grid.ColumnDefinitions>
-                                                            <TextBlock Text="Allowances" Foreground="#5B6A7A" />
-                                                            <TextBlock Grid.Column="1"
-                                                                       Text="{Binding SelectedEmployee.LatestPayrollAllowancesText}"
-                                                                       Foreground="{StaticResource PrimaryBrush}"
-                                                                       FontWeight="Bold"
-                                                                       TextAlignment="Right" />
-                                                        </Grid>
-
-                                                        <Grid Grid.Row="5" Margin="0,0,0,8">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*" />
-                                                                <ColumnDefinition Width="Auto" />
-                                                            </Grid.ColumnDefinitions>
-                                                            <TextBlock Text="Overtime" Foreground="#5B6A7A" />
-                                                            <TextBlock Grid.Column="1"
-                                                                       Text="{Binding SelectedEmployee.LatestPayrollOvertimePayText}"
-                                                                       Foreground="{StaticResource PrimaryBrush}"
-                                                                       FontWeight="Bold"
-                                                                       TextAlignment="Right" />
-                                                        </Grid>
-
-                                                        <Grid Grid.Row="6" Margin="0,0,0,12">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*" />
-                                                                <ColumnDefinition Width="Auto" />
-                                                            </Grid.ColumnDefinitions>
-                                                            <TextBlock Text="Other Earnings" Foreground="#5B6A7A" />
-                                                            <TextBlock Grid.Column="1"
-                                                                       Text="{Binding SelectedEmployee.LatestPayrollOtherEarningsText}"
-                                                                       Foreground="{StaticResource PrimaryBrush}"
-                                                                       FontWeight="Bold"
-                                                                       TextAlignment="Right" />
-                                                        </Grid>
-
-                                                        <Border Grid.Row="7"
-                                                                Height="1"
-                                                                Background="#F1E2C8"
-                                                                Margin="0,0,0,12" />
-
-                                                        <Grid Grid.Row="8">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*" />
-                                                                <ColumnDefinition Width="Auto" />
-                                                            </Grid.ColumnDefinitions>
-                                                            <TextBlock Text="Gross Pay"
-                                                                       Foreground="{StaticResource PrimaryBrush}"
-                                                                       FontWeight="Bold"
-                                                                       FontSize="15" />
-                                                            <TextBlock Grid.Column="1"
-                                                                       Text="{Binding SelectedEmployee.LatestPayrollGrossPayText}"
-                                                                       Foreground="{StaticResource PrimaryBrush}"
-                                                                       FontWeight="Bold"
-                                                                       FontSize="15"
-                                                                       TextAlignment="Right" />
-                                                        </Grid>
+                                                    <Grid Grid.Column="0">
+                                                        <TextBox x:Name="SalaryGradeTextBox"
+                                                                 Text="{Binding SelectedEmployee.SalaryGrade, Mode=TwoWay, TargetNullValue=''}"
+                                                                 Style="{StaticResource DetailFieldValueTextBoxStyle}" />
+                                                        <ComboBox x:Name="SalaryGradeComboBox"
+                                                                  Visibility="Collapsed"
+                                                                  Style="{StaticResource DetailFieldComboBoxStyle}"
+                                                                  SelectionChanged="SalaryGradeComboBox_OnSelectionChanged" />
                                                     </Grid>
-                                                </Border>
 
-                                                <Border Grid.Row="1"
-                                                        Background="#FFFDF8"
-                                                        BorderBrush="#EED7AF"
-                                                        BorderThickness="1"
-                                                        CornerRadius="10"
-                                                        Padding="14"
-                                                        Margin="0,12,0,0">
-                                                    <Grid>
-                                                        <Grid.RowDefinitions>
-                                                            <RowDefinition Height="Auto" />
-                                                            <RowDefinition Height="Auto" />
-                                                            <RowDefinition Height="Auto" />
-                                                            <RowDefinition Height="*" />
-                                                            <RowDefinition Height="Auto" />
-                                                        </Grid.RowDefinitions>
-
-                                                        <StackPanel Grid.Row="0" Margin="0,0,0,12">
-                                                            <StackPanel Orientation="Horizontal">
-                                                                <materialDesign:PackIcon Kind="CashMinus" Width="16" Height="16" Margin="0,0,6,0" Foreground="#B9831A" />
-                                                                <TextBlock Text="Deductions"
-                                                                           Foreground="#B9831A"
-                                                                           FontWeight="SemiBold" />
-                                                            </StackPanel>
-                                                            <TextBlock Margin="0,4,0,0"
-                                                                       Text="{Binding SelectedEmployee.LatestPayrollDeductionsTotalText}"
-                                                                       Foreground="#B9831A"
-                                                                       FontSize="22"
-                                                                       FontWeight="Bold"
-                                                                       TextWrapping="Wrap" />
-                                                        </StackPanel>
-
-                                                        <StackPanel Grid.Row="1" Margin="0,0,0,10">
-                                                            <Border Margin="0,0,0,8"
-                                                                    Padding="10,8"
-                                                                    Background="White"
-                                                                    BorderBrush="#EED7AF"
-                                                                    BorderThickness="1"
-                                                                    CornerRadius="8">
-                                                                <StackPanel>
-                                                                    <TextBlock Text="Net Pay"
-                                                                               Foreground="#6A7684"
-                                                                               FontWeight="SemiBold"
-                                                                               FontSize="12" />
-                                                                    <TextBlock Text="{Binding SelectedEmployee.LatestPayrollNetPayText}"
-                                                                               Foreground="#2E9D5B"
-                                                                               FontWeight="Bold"
-                                                                               TextWrapping="Wrap" />
-                                                                </StackPanel>
-                                                            </Border>
-
-                                                            <Border Padding="10,8"
-                                                                    Background="White"
-                                                                    BorderBrush="#EED7AF"
-                                                                    BorderThickness="1"
-                                                                    CornerRadius="8">
-                                                                <StackPanel>
-                                                                    <TextBlock Text="Period Status"
-                                                                               Foreground="#6A7684"
-                                                                               FontWeight="SemiBold"
-                                                                               FontSize="12" />
-                                                                    <TextBlock Text="{Binding SelectedEmployee.LatestPayrollStatus}"
-                                                                               Foreground="{StaticResource PrimaryBrush}"
-                                                                               FontWeight="Bold"
-                                                                               TextWrapping="Wrap" />
-                                                                </StackPanel>
-                                                            </Border>
-                                                        </StackPanel>
-
-                                                        <TextBlock Grid.Row="2"
-                                                                   Text="Breakdown"
-                                                                   Style="{StaticResource FieldLabelStyle}"
-                                                                   Margin="0,0,0,6" />
-
-                                                        <Border Grid.Row="3"
-                                                                Background="White"
-                                                                BorderBrush="#E6D8BD"
-                                                                BorderThickness="1"
-                                                                CornerRadius="8"
-                                                                Padding="12">
-                                                            <Grid>
-                                                                <Grid.RowDefinitions>
-                                                                    <RowDefinition Height="Auto" />
-                                                                    <RowDefinition Height="Auto" />
-                                                                    <RowDefinition Height="*" />
-                                                                </Grid.RowDefinitions>
-
-                                                                <Grid Grid.Row="0" Margin="0,0,0,8">
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="*" />
-                                                                        <ColumnDefinition Width="110" />
-                                                                    </Grid.ColumnDefinitions>
-                                                                    <TextBlock Text="Item"
-                                                                               Foreground="#6A7684"
-                                                                               FontWeight="SemiBold"
-                                                                               FontSize="12" />
-                                                                    <TextBlock Grid.Column="1"
-                                                                               Text="Amount"
-                                                                               Foreground="#6A7684"
-                                                                               FontWeight="SemiBold"
-                                                                               FontSize="12"
-                                                                               TextAlignment="Right" />
-                                                                </Grid>
-
-                                                                <Border Grid.Row="1"
-                                                                        Height="1"
-                                                                        Background="#F1E2C8"
-                                                                        Margin="0,0,0,8" />
-
-                                                                <ItemsControl Grid.Row="2"
-                                                                              ItemsSource="{Binding SelectedEmployee.LatestPayrollDeductionLines}">
-                                                                    <ItemsControl.ItemTemplate>
-                                                                        <DataTemplate>
-                                                                            <Border BorderBrush="#F4E6CB"
-                                                                                    BorderThickness="0,0,0,1"
-                                                                                    Padding="0,0,0,8"
-                                                                                    Margin="0,0,0,8">
-                                                                                <Grid>
-                                                                                    <Grid.ColumnDefinitions>
-                                                                                        <ColumnDefinition Width="*" />
-                                                                                        <ColumnDefinition Width="110" />
-                                                                                    </Grid.ColumnDefinitions>
-
-                                                                                    <TextBlock Text="{Binding Label}"
-                                                                                               Margin="0,0,12,0"
-                                                                                               TextWrapping="Wrap">
-                                                                                        <TextBlock.Style>
-                                                                                            <Style TargetType="TextBlock">
-                                                                                                <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
-                                                                                                <Style.Triggers>
-                                                                                                    <DataTrigger Binding="{Binding HasAmount}" Value="False">
-                                                                                                        <Setter Property="Foreground" Value="#6A7684" />
-                                                                                                    </DataTrigger>
-                                                                                                </Style.Triggers>
-                                                                                            </Style>
-                                                                                        </TextBlock.Style>
-                                                                                    </TextBlock>
-
-                                                                                    <TextBlock Grid.Column="1"
-                                                                                               Text="{Binding Amount}"
-                                                                                               Foreground="#B9831A"
-                                                                                               FontWeight="SemiBold"
-                                                                                               TextAlignment="Right"
-                                                                                               VerticalAlignment="Top">
-                                                                                        <TextBlock.Style>
-                                                                                            <Style TargetType="TextBlock">
-                                                                                                <Setter Property="Visibility" Value="Visible" />
-                                                                                                <Style.Triggers>
-                                                                                                    <DataTrigger Binding="{Binding HasAmount}" Value="False">
-                                                                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                                                                    </DataTrigger>
-                                                                                                </Style.Triggers>
-                                                                                            </Style>
-                                                                                        </TextBlock.Style>
-                                                                                    </TextBlock>
-                                                                                </Grid>
-                                                                            </Border>
-                                                                        </DataTemplate>
-                                                                    </ItemsControl.ItemTemplate>
-                                                                </ItemsControl>
-                                                            </Grid>
-                                                        </Border>
-
-                                                        <Border Grid.Row="4"
-                                                                Margin="0,12,0,0"
-                                                                Padding="10,8"
-                                                                Background="#FFF6E5"
-                                                                BorderBrush="#EED7AF"
-                                                                BorderThickness="1"
-                                                                CornerRadius="8">
-                                                            <Grid>
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="*" />
-                                                                    <ColumnDefinition Width="110" />
-                                                                </Grid.ColumnDefinitions>
-                                                                <TextBlock Text="Take Home Pay"
-                                                                           Foreground="#6A7684"
-                                                                           FontWeight="SemiBold" />
-                                                                <TextBlock Grid.Column="1"
-                                                                           Text="{Binding SelectedEmployee.LatestPayrollNetPayText}"
-                                                                           Foreground="#2E9D5B"
-                                                                           FontWeight="Bold"
-                                                                           Margin="12,0,0,0"
-                                                                           TextAlignment="Right" />
-                                                            </Grid>
-                                                        </Border>
+                                                    <Grid Grid.Column="2">
+                                                        <TextBox x:Name="SalaryStepTextBox"
+                                                                 Text="{Binding SelectedEmployee.SalaryStep, Mode=TwoWay, TargetNullValue=''}"
+                                                                 Style="{StaticResource DetailFieldValueTextBoxStyle}" />
+                                                        <ComboBox x:Name="SalaryStepComboBox"
+                                                                  Visibility="Collapsed"
+                                                                  Style="{StaticResource DetailFieldComboBoxStyle}"
+                                                                  SelectionChanged="SalaryStepComboBox_OnSelectionChanged" />
                                                     </Grid>
-                                                </Border>
-                                            </Grid>
-                                        </StackPanel>
-                                    </Border>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
 
-                                    <Border Style="{StaticResource DetailSectionCardStyle}"
-                                            Background="White"
-                                            BorderBrush="#E3E8EF">
-                                        <StackPanel>
-                                            <Grid Margin="0,0,0,16">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-
-                                                <Border Width="42"
-                                                        Height="42"
-                                                        CornerRadius="21"
-                                                        Background="#F2F4F7"
-                                                        VerticalAlignment="Top">
-                                                    <materialDesign:PackIcon Kind="CashMultiple"
-                                                                             Width="22"
-                                                                             Height="22"
-                                                                             Foreground="#A56B00"
-                                                                             HorizontalAlignment="Center"
-                                                                             VerticalAlignment="Center" />
-                                                </Border>
-
-                                                <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                                                    <TextBlock Text="Appointment and Salary Structure"
-                                                               Style="{StaticResource DetailSectionTitleStyle}" />
-                                                    <TextBlock Text="Current appointment classification, salary step, and plantilla alignment."
-                                                               Style="{StaticResource DetailSectionSubtitleStyle}" />
-                                                </StackPanel>
-                                            </Grid>
-
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-
-                                                <Border Grid.Row="0"
-                                                        Grid.Column="0"
-                                                        Margin="0,0,10,12"
-                                                        Style="{StaticResource DetailFieldCardStyle}">
-                                                    <StackPanel>
-                                                        <TextBlock Text="Appointment Type"
-                                                                   Style="{StaticResource DetailFieldTitleStyle}" />
-                                                        <Grid>
-                                                            <TextBox x:Name="SalaryAppointmentTypeTextBox"
-                                                                     Text="{Binding SelectedEmployee.AppointmentType, Mode=TwoWay, TargetNullValue=''}"
-                                                                     Style="{StaticResource DetailFieldValueTextBoxStyle}" />
-                                                            <ComboBox x:Name="SalaryAppointmentTypeComboBox"
-                                                                      Visibility="Collapsed"
-                                                                      Style="{StaticResource DetailFieldComboBoxStyle}"
-                                                                      DisplayMemberPath="Name"
-                                                                      SelectedValuePath="Name"
-                                                                      SelectionChanged="SalaryAppointmentTypeComboBox_OnSelectionChanged" />
-                                                        </Grid>
-                                                    </StackPanel>
-                                                </Border>
-
-                                                <Border Grid.Row="0"
-                                                        Grid.Column="1"
-                                                        Margin="0,0,0,12"
-                                                        Style="{StaticResource DetailFieldCardStyle}">
-                                                    <StackPanel>
-                                                        <TextBlock Text="Step"
-                                                                   Style="{StaticResource DetailFieldTitleStyle}" />
-                                                        <Grid>
-                                                            <TextBox x:Name="SalaryStepTextBox"
-                                                                     Text="{Binding SelectedEmployee.SalaryStep, Mode=TwoWay, TargetNullValue=''}"
-                                                                     Style="{StaticResource DetailFieldValueTextBoxStyle}" />
-                                                            <ComboBox x:Name="SalaryStepComboBox"
-                                                                      Visibility="Collapsed"
-                                                                      Style="{StaticResource DetailFieldComboBoxStyle}"
-                                                                      SelectionChanged="SalaryStepComboBox_OnSelectionChanged" />
-                                                        </Grid>
-                                                    </StackPanel>
-                                                </Border>
-
-                                                <Border Grid.Row="1"
-                                                        Grid.Column="0"
-                                                        Margin="0,0,10,0"
-                                                        Style="{StaticResource DetailFieldCardStyle}">
-                                                    <StackPanel>
-                                                        <TextBlock Text="Salary Grade (SG)"
-                                                                   Style="{StaticResource DetailFieldTitleStyle}" />
-                                                        <Grid>
-                                                            <TextBox x:Name="SalaryGradeTextBox"
-                                                                     Text="{Binding SelectedEmployee.SalaryGrade, Mode=TwoWay, TargetNullValue=''}"
-                                                                     Style="{StaticResource DetailFieldValueTextBoxStyle}" />
-                                                            <ComboBox x:Name="SalaryGradeComboBox"
-                                                                      Visibility="Collapsed"
-                                                                      Style="{StaticResource DetailFieldComboBoxStyle}"
-                                                                      SelectionChanged="SalaryGradeComboBox_OnSelectionChanged" />
-                                                        </Grid>
-                                                    </StackPanel>
-                                                </Border>
-
-                                                <Border Grid.Row="1"
-                                                        Grid.Column="1"
-                                                        Style="{StaticResource DetailFieldCardStyle}">
-                                                    <StackPanel>
-                                                        <TextBlock Text="Department / Position"
-                                                                   Style="{StaticResource DetailFieldTitleStyle}" />
-                                                        <TextBlock Style="{StaticResource DetailFieldValueTextBlockStyle}"
-                                                                   TextWrapping="Wrap">
-                                                            <TextBlock.Text>
-                                                                <MultiBinding StringFormat="{}{0} / {1}">
-                                                                    <Binding Path="SelectedEmployee.Department" TargetNullValue="-" />
-                                                                    <Binding Path="SelectedEmployee.Position" TargetNullValue="-" />
-                                                                </MultiBinding>
-                                                            </TextBlock.Text>
-                                                            <TextBlock.ToolTip>
-                                                                <MultiBinding StringFormat="{}{0} / {1}">
-                                                                    <Binding Path="SelectedEmployee.Department" TargetNullValue="-" />
-                                                                    <Binding Path="SelectedEmployee.Position" TargetNullValue="-" />
-                                                                </MultiBinding>
-                                                            </TextBlock.ToolTip>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                </Border>
-                                            </Grid>
-                                        </StackPanel>
-                                    </Border>
+                                        <Border Grid.Row="4"
+                                                Grid.Column="0"
+                                                Grid.ColumnSpan="2"
+                                                Style="{StaticResource DetailFieldCardStyle}">
+                                            <StackPanel>
+                                                <TextBlock Text="Recent Attendance Logs"
+                                                           Style="{StaticResource DetailFieldTitleStyle}" />
+                                                <DataGrid ItemsSource="{Binding SelectedEmployeeRecentLogs}"
+                                                          AutoGenerateColumns="False"
+                                                          CanUserAddRows="False"
+                                                          CanUserDeleteRows="False"
+                                                          IsReadOnly="True"
+                                                          HeadersVisibility="Column"
+                                                          GridLinesVisibility="Horizontal"
+                                                          BorderBrush="#E3ECF8"
+                                                          BorderThickness="1"
+                                                          RowHeaderWidth="0"
+                                                          RowBackground="White"
+                                                          AlternatingRowBackground="#F8FBFF"
+                                                          HorizontalGridLinesBrush="#E9F0FA"
+                                                          VerticalGridLinesBrush="#E9F0FA"
+                                                          ColumnHeaderHeight="38"
+                                                          RowHeight="38"
+                                                          MaxHeight="220"
+                                                          Margin="0,8,0,0">
+                                                    <DataGrid.ColumnHeaderStyle>
+                                                        <Style TargetType="DataGridColumnHeader">
+                                                            <Setter Property="Background" Value="#F2F7FD" />
+                                                            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+                                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                                            <Setter Property="BorderBrush" Value="#E3ECF8" />
+                                                            <Setter Property="BorderThickness" Value="0,0,0,1" />
+                                                            <Setter Property="Padding" Value="8,0,8,0" />
+                                                        </Style>
+                                                    </DataGrid.ColumnHeaderStyle>
+                                                    <DataGrid.CellStyle>
+                                                        <Style TargetType="DataGridCell">
+                                                            <Setter Property="Padding" Value="8,0,8,0" />
+                                                            <Setter Property="BorderThickness" Value="0" />
+                                                            <Setter Property="VerticalContentAlignment" Value="Center" />
+                                                        </Style>
+                                                    </DataGrid.CellStyle>
+                                                    <DataGrid.Columns>
+                                                        <DataGridTextColumn Header="Date" Binding="{Binding LogDateText}" Width="130" />
+                                                        <DataGridTextColumn Header="Time" Binding="{Binding LogTimeText}" Width="110" />
+                                                        <DataGridTextColumn Header="Type" Binding="{Binding LogType}" Width="110" />
+                                                        <DataGridTextColumn Header="Source" Binding="{Binding Source}" Width="110" />
+                                                        <DataGridTextColumn Header="Device" Binding="{Binding DeviceName}" Width="*" />
+                                                    </DataGrid.Columns>
+                                                </DataGrid>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
                                 </StackPanel>
-                                <Border Margin="12"
-                                        Style="{StaticResource DetailSectionCardStyle}"
-                                        Background="White">
+                            </Border>
+
+                            <Border Margin="12"
+                                    Style="{StaticResource DetailSectionCardStyle}"
+                                    Background="White">
                                     <StackPanel>
                                         <Grid Margin="0,0,0,16">
                                             <Grid.ColumnDefinitions>

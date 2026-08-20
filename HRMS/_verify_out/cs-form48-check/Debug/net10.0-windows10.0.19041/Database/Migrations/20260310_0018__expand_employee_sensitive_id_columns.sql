@@ -1,0 +1,5 @@
+ALTER TABLE employees
+    MODIFY COLUMN tin_no VARCHAR(255) NULL,
+    MODIFY COLUMN gsis_bp_no VARCHAR(255) NULL,
+    MODIFY COLUMN philhealth_no VARCHAR(255) NULL,
+    MODIFY COLUMN pagibig_mid_no VARCHAR(255) NULL;

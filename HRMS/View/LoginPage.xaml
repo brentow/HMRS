@@ -6,10 +6,10 @@
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
         Title="Login"
-        Height="660"
-        Width="1080"
-        MinHeight="660"
-        MinWidth="1080"
+        Height="700"
+        Width="1140"
+        MinHeight="700"
+        MinWidth="1140"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
@@ -74,7 +74,7 @@
     <materialDesign:Card
         UniformCornerRadius="0"
         Background="Transparent"
-        Margin="36"
+        Margin="12"
         ClipToBounds="True"
         Effect="{StaticResource LoginWindowShadow}"
         materialDesign:ElevationAssist.Elevation="Dp4">
@@ -374,129 +374,136 @@
                 </Border>
             </materialDesign:DialogHost.DialogContent>
 
-            <Grid Background="#F8FFFFFF"
+            <Grid Background="White"
                   SnapsToDevicePixels="True">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition x:Name="IdentityColumn" Width="1.02*" />
-                    <ColumnDefinition x:Name="LoginColumn" Width="0.98*" />
+                    <ColumnDefinition x:Name="IdentityColumn" Width="1.35*"/>
+                    <ColumnDefinition x:Name="LoginColumn" Width="1*"/>
                 </Grid.ColumnDefinitions>
 
+                <!-- Municipal identity / photo side -->
                 <Border x:Name="IdentityPanel"
                         Grid.Column="0"
                         Background="#168FE0"
                         ClipToBounds="True">
                     <Grid>
                         <Image Source="/Images/sulop_municipal_hall.jpg"
-                               Stretch="UniformToFill"
-                               Opacity="0.68"/>
-                        <Rectangle Fill="#CC168FE0"/>
+                               Stretch="UniformToFill"/>
+                        <Rectangle>
+                            <Rectangle.Fill>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#D9168FE0" Offset="0"/>
+                                    <GradientStop Color="#E61E4368" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Rectangle.Fill>
+                        </Rectangle>
                         <Rectangle Height="5"
                                    Fill="#FFD21E"
                                    VerticalAlignment="Top"/>
 
-                        <Viewbox Stretch="Uniform"
-                                 StretchDirection="DownOnly"
-                                 Margin="58,64,58,52"
-                                 HorizontalAlignment="Stretch"
-                                 VerticalAlignment="Center">
-                            <StackPanel Width="430"
-                                        HorizontalAlignment="Center">
-                                <Border Width="132"
-                                        Height="132"
-                                        Background="White"
-                                        BorderBrush="#EAF2FA"
-                                        BorderThickness="1"
-                                        HorizontalAlignment="Center">
-                                    <Image Source="/Images/sulop_seal.jpg"
-                                           Stretch="Uniform"
-                                           Margin="8"/>
-                                </Border>
+                        <StackPanel Width="430"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                            <Border Width="126"
+                                    Height="126"
+                                    Padding="8"
+                                    Background="White"
+                                    BorderBrush="#DCEAF6"
+                                    BorderThickness="1"
+                                    HorizontalAlignment="Center">
+                                <Image Source="/Images/sulop_seal.jpg"
+                                       Stretch="Uniform"/>
+                            </Border>
 
-                                <TextBlock Text="Republic of the Philippines"
-                                           Foreground="#EAF7FF"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           TextAlignment="Center"
-                                           Margin="0,22,0,2"/>
-                                <TextBlock Text="Province of Davao del Sur"
-                                           Foreground="#EAF7FF"
-                                           FontSize="12"
-                                           TextAlignment="Center"/>
+                            <TextBlock Text="Republic of the Philippines"
+                                       Foreground="#E7F4FC"
+                                       FontSize="12"
+                                       FontStyle="Italic"
+                                       TextAlignment="Center"
+                                       Margin="0,19,0,2"/>
+                            <TextBlock Text="Province of Davao del Sur"
+                                       Foreground="#E7F4FC"
+                                       FontSize="12"
+                                       FontStyle="Italic"
+                                       TextAlignment="Center"/>
 
-                                <TextBlock Text="Municipality of Sulop"
-                                           Foreground="White"
-                                           FontSize="26"
-                                           FontWeight="Bold"
-                                           TextAlignment="Center"
-                                           Margin="0,10,0,0"
-                                           TextWrapping="Wrap"/>
+                            <TextBlock Text="Municipality of Sulop"
+                                       Foreground="White"
+                                       FontSize="25"
+                                       FontWeight="Bold"
+                                       TextAlignment="Center"
+                                       Margin="0,9,0,0"/>
+                            <TextBlock Text="Human Resource Management Office"
+                                       Foreground="#D5EDFC"
+                                       FontSize="13"
+                                       TextAlignment="Center"
+                                       Margin="0,4,0,0"/>
 
-                                <TextBlock Text="Human Resource Management System"
-                                           Foreground="#D9F0FF"
-                                           FontSize="14"
-                                           TextAlignment="Center"
-                                           Margin="0,5,0,0"/>
+                            <Border Height="1"
+                                    Width="210"
+                                    Background="#55FFFFFF"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,24,0,18"/>
 
-                                <StackPanel Margin="0,34,0,0"
-                                            HorizontalAlignment="Center">
-                                    <StackPanel Orientation="Horizontal"
-                                                HorizontalAlignment="Center"
-                                                Margin="0,0,0,7">
-                                        <materialDesign:PackIcon Kind="MapMarkerOutline"
-                                                                 Width="15"
-                                                                 Height="15"
-                                                                 Foreground="#EAF7FF"
-                                                                 Margin="0,0,8,0"/>
-                                        <TextBlock Text="Josefa Ext., Sulop"
-                                                   Foreground="#EAF7FF"
-                                                   FontSize="12"/>
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal"
-                                                HorizontalAlignment="Center"
-                                                Margin="0,0,0,7">
-                                        <materialDesign:PackIcon Kind="EmailOutline"
-                                                                 Width="15"
-                                                                 Height="15"
-                                                                 Foreground="#EAF7FF"
-                                                                 Margin="0,0,8,0"/>
-                                        <TextBlock Text="hr@sulop.gov.ph"
-                                                   Foreground="#EAF7FF"
-                                                   FontSize="12"/>
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal"
-                                                HorizontalAlignment="Center">
-                                        <materialDesign:PackIcon Kind="PhoneOutline"
-                                                                 Width="15"
-                                                                 Height="15"
-                                                                 Foreground="#EAF7FF"
-                                                                 Margin="0,0,8,0"/>
-                                        <TextBlock Text="(082) 000-0000"
-                                                   Foreground="#EAF7FF"
-                                                   FontSize="12"/>
-                                    </StackPanel>
+                            <StackPanel HorizontalAlignment="Center">
+                                <StackPanel Orientation="Horizontal"
+                                            HorizontalAlignment="Center"
+                                            Margin="0,0,0,8">
+                                    <materialDesign:PackIcon Kind="MapMarkerOutline"
+                                                             Width="15"
+                                                             Height="15"
+                                                             Foreground="#E7F4FC"
+                                                             Margin="0,0,8,0"/>
+                                    <TextBlock Text="Municipal Hall, Sulop, Davao del Sur"
+                                               Foreground="#E7F4FC"
+                                               FontSize="12"/>
                                 </StackPanel>
-
-                                <TextBlock Text="Empowering Sulop, Building Futures"
-                                           Foreground="#CBEFFF"
-                                           FontSize="13"
-                                           FontStyle="Italic"
-                                           TextAlignment="Center"
-                                           Margin="0,36,0,0"/>
+                                <StackPanel Orientation="Horizontal"
+                                            HorizontalAlignment="Center"
+                                            Margin="0,0,0,8">
+                                    <materialDesign:PackIcon Kind="AccountTieOutline"
+                                                             Width="15"
+                                                             Height="15"
+                                                             Foreground="#E7F4FC"
+                                                             Margin="0,0,8,0"/>
+                                    <TextBlock Text="{Binding CompanyOwner}"
+                                               Foreground="#E7F4FC"
+                                               FontSize="12"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal"
+                                            HorizontalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="Identifier"
+                                                             Width="15"
+                                                             Height="15"
+                                                             Foreground="#E7F4FC"
+                                                             Margin="0,0,8,0"/>
+                                    <TextBlock Text="{Binding SerialNumber}"
+                                               Foreground="#E7F4FC"
+                                               FontSize="12"/>
+                                </StackPanel>
                             </StackPanel>
-                        </Viewbox>
+
+                            <TextBlock Text="Empowering People, Strengthening Public Service"
+                                       Foreground="#CBE9FE"
+                                       FontSize="12"
+                                       FontStyle="Italic"
+                                       TextAlignment="Center"
+                                       Margin="0,30,0,0"/>
+                        </StackPanel>
                     </Grid>
                 </Border>
 
-                <Grid Grid.Column="1"
-                      Background="#FCFCFC">
+                <!-- Account access side -->
+                <Grid Grid.Column="1" Background="#FFFDFD">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="48"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Right"
-                                Margin="0,16,18,0">
+                                VerticalAlignment="Center"
+                                Margin="0,0,14,0">
                         <Button Style="{StaticResource ChromeIconButtonStyle}"
                                 ToolTip="Minimize"
                                 Click="MinimizeApp">
@@ -516,120 +523,69 @@
                     <ScrollViewer Grid.Row="1"
                                   VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled">
-                        <Grid MinHeight="560">
-                            <StackPanel Width="338"
+                        <Grid MinHeight="610">
+                            <StackPanel Width="330"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
-                                        Margin="0,8,0,28">
-                                <Border Width="104"
-                                        Height="104"
-                                        Background="#F2F8FE"
-                                        BorderBrush="#E6F0FA"
-                                        BorderThickness="1"
-                                        CornerRadius="18"
-                                        HorizontalAlignment="Center"
-                                        Margin="0,0,0,12">
-                                    <Image Source="{Binding CompanyLogoPath}"
-                                           Stretch="Uniform"
-                                           Margin="14"/>
-                                </Border>
+                                        Margin="0,4,0,18">
+                                <Image Source="/Images/ePRIME_logo.png"
+                                       Width="112"
+                                       Height="112"
+                                       Stretch="Uniform"
+                                       HorizontalAlignment="Center"/>
 
                                 <TextBlock Text="HRMS"
                                            Foreground="#168FE0"
-                                           FontSize="27"
+                                           FontSize="24"
                                            FontWeight="Bold"
-                                           TextAlignment="Center"/>
-                                <TextBlock Text="Human Resources Management System"
-                                           Foreground="#8B96A1"
+                                           TextAlignment="Center"
+                                           Margin="0,4,0,0"/>
+                                <TextBlock Text="Human Resource Management System"
+                                           Foreground="#8A96A2"
                                            FontSize="12"
                                            TextAlignment="Center"
-                                           Margin="0,1,0,32"/>
+                                           Margin="0,1,0,20"/>
+
+                                <Border Height="1"
+                                        Background="#E7EBEF"
+                                        Margin="0,0,0,20"/>
 
                                 <TextBlock Text="Sign in to your account"
                                            Foreground="#2E3944"
                                            FontSize="16"
                                            FontWeight="Bold"
-                                           Margin="0,0,0,14"/>
-
-                                <Border Margin="0,0,0,18"
-                                        Padding="12,10"
-                                        Background="#F2F8FE"
-                                        BorderBrush="#D9EAF8"
-                                        BorderThickness="1"
-                                        CornerRadius="4">
-                                    <StackPanel>
-                                        <TextBlock Text="Login credentials guide"
-                                                   Foreground="#2F3A45"
-                                                   FontSize="12"
-                                                   FontWeight="Bold"
-                                                   Margin="0,0,0,6"/>
-
-                                        <Grid Margin="0,0,0,4">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="76"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Admin"
-                                                       Foreground="#5E6A75"
-                                                       FontSize="12"
-                                                       FontWeight="SemiBold"/>
-                                            <TextBlock Grid.Column="1"
-                                                       Foreground="#168FE0"
-                                                       FontSize="12">
-                                                <Run Text="admin"/>
-                                                <Run Text=" / "/>
-                                                <Run Text="admin"/>
-                                            </TextBlock>
-                                        </Grid>
-
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="76"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Employee"
-                                                       Foreground="#5E6A75"
-                                                       FontSize="12"
-                                                       FontWeight="SemiBold"/>
-                                            <TextBlock Grid.Column="1"
-                                                       Foreground="#168FE0"
-                                                       FontSize="12">
-                                                <Run Text="emp1"/>
-                                                <Run Text=" / "/>
-                                                <Run Text="admin123"/>
-                                            </TextBlock>
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
+                                           Margin="0,0,0,16"/>
 
                                 <TextBlock Text="Username"
                                            Style="{StaticResource LoginFieldLabelStyle}"/>
                                 <TextBox x:Name="UsernameTextBox"
                                          Style="{StaticResource SulopTextBoxStyle}"
+                                         materialDesign:HintAssist.Hint="Enter your username"
                                          TextChanged="UsernameTextBox_OnTextChanged"
                                          KeyDown="UsernameTextBox_OnKeyDown"
                                          Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
 
                                 <TextBlock Text="Password"
                                            Style="{StaticResource LoginFieldLabelStyle}"
-                                           Margin="0,18,0,6"/>
+                                           Margin="0,15,0,6"/>
                                 <PasswordBox x:Name="PasswordBox"
                                              Style="{StaticResource SulopPasswordBoxStyle}"
+                                             materialDesign:HintAssist.Hint="Enter your password"
                                              PasswordChanged="PasswordBox_OnPasswordChanged"
                                              KeyDown="PasswordBox_OnKeyDown"/>
 
                                 <TextBlock x:Name="LoginErrorText"
-                                           Margin="0,10,0,0"
+                                           Margin="0,9,0,0"
                                            HorizontalAlignment="Center"
                                            Foreground="#D32F2F"
-                                           FontSize="13"
+                                           FontSize="12"
                                            FontWeight="SemiBold"
                                            TextAlignment="Center"
                                            TextWrapping="Wrap"
                                            Visibility="Collapsed"/>
 
                                 <Button x:Name="loginBtn"
-                                        Margin="0,22,0,0"
+                                        Margin="0,20,0,0"
                                         Height="48"
                                         Foreground="White"
                                         Background="#168FE0"
@@ -639,21 +595,21 @@
                                         FontWeight="Bold"
                                         Command="{Binding LoginCommand}"
                                         Style="{StaticResource MaterialDesignFlatMidBgButton}"
-                                        materialDesign:ButtonAssist.CornerRadius="0"
-                                        materialDesign:ElevationAssist.Elevation="Dp0"
+                                        materialDesign:ButtonAssist.CornerRadius="2"
+                                        materialDesign:ElevationAssist.Elevation="Dp1"
                                         Content="SIGN IN"/>
 
                                 <StackPanel Orientation="Horizontal"
                                             HorizontalAlignment="Center"
-                                            Margin="0,18,0,0">
+                                            Margin="0,14,0,0">
                                     <TextBlock Text="Don't have an account?"
                                                VerticalAlignment="Center"
                                                Foreground="#8B96A1"
                                                FontSize="12"/>
                                     <Button x:Name="signupBtn"
-                                            Content="Request here"
+                                            Content="Request access"
                                             Margin="4,0,0,0"
-                                            Padding="4,0"
+                                            Padding="3,0"
                                             MinWidth="0"
                                             Height="28"
                                             Foreground="#168FE0"
@@ -666,33 +622,23 @@
                                 </StackPanel>
 
                                 <Border x:Name="ConfigureEntryPanel"
-                                        Margin="0,22,0,0"
-                                        Padding="13,11"
-                                        Background="#FFFFF8F0"
-                                        BorderBrush="#F0A64C"
-                                        BorderThickness="1"
-                                        CornerRadius="4">
+                                        Margin="0,13,0,0"
+                                        Padding="10,7"
+                                        Background="#FFF8EC"
+                                        BorderBrush="#F3D18B"
+                                        BorderThickness="1,0,0,0">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-
-                                        <StackPanel Margin="0,0,10,0">
-                                            <TextBlock Text="Need assistance?"
-                                                       Foreground="#D87916"
-                                                       FontWeight="Bold"
-                                                       FontSize="12"/>
-                                            <TextBlock Text="Configure the database connection."
-                                                       Foreground="#8A673D"
-                                                       FontSize="11"
-                                                       TextWrapping="Wrap"
-                                                       Margin="0,3,0,0"/>
-                                        </StackPanel>
-
+                                        <TextBlock Text="Database connection settings"
+                                                   Foreground="#8A673D"
+                                                   FontSize="11"
+                                                   VerticalAlignment="Center"/>
                                         <Button Grid.Column="1"
-                                                Width="32"
-                                                Height="32"
+                                                Width="30"
+                                                Height="28"
                                                 Padding="0"
                                                 Foreground="#D87916"
                                                 Background="Transparent"
@@ -702,8 +648,8 @@
                                                 Click="OpenDatabaseDialogButton_OnClick"
                                                 Style="{StaticResource MaterialDesignFlatButton}">
                                             <materialDesign:PackIcon Kind="CogOutline"
-                                                                     Width="18"
-                                                                     Height="18"/>
+                                                                     Width="17"
+                                                                     Height="17"/>
                                         </Button>
                                     </Grid>
                                 </Border>

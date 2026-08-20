@@ -14,20 +14,33 @@ namespace HRMS.ViewModel
         private readonly List<AttendanceRemarkVm> _allAttendanceRemarks = new();
         private int? _selectedRemarkEmployeeId;
         private DateTime _newAttendanceRemarkDate = DateTime.Today;
-        private string _selectedRemarkType = "TO";
+        private string _selectedRemarkType = "OTHER";
         private string _newAttendanceRemarkDetails = string.Empty;
         private string _attendanceRemarkSearchText = string.Empty;
+        private string _selectedAttendanceRemarkFilter = "ALL";
         private AttendanceRemarkVm? _selectedAttendanceRemark;
 
         public ObservableCollection<AttendanceRemarkVm> AttendanceRemarks { get; } = new();
-        public ObservableCollection<string> AttendanceRemarkTypeOptions { get; } = new()
+        public bool IsAttendanceRemarksEmpty => AttendanceRemarks.Count == 0;
+        public ObservableCollection<AttendanceRemarkTypeOptionVm> AttendanceRemarkTypeOptions { get; } = new()
         {
-            "OB",
-            "TO",
-            "HOLIDAY",
-            "WFH",
-            "CTO",
-            "OTHER"
+            new("OB", "Official Business"),
+            new("TO", "Travel Order"),
+            new("HOLIDAY", "Holiday"),
+            new("WFH", "Work From Home"),
+            new("CTO", "Compensatory Time Off"),
+            new("OTHER", "Other Attendance Note")
+        };
+
+        public ObservableCollection<AttendanceRemarkTypeOptionVm> AttendanceRemarkFilterOptions { get; } = new()
+        {
+            new("ALL", "All special entries"),
+            new("HOLIDAY", "Holidays"),
+            new("TO", "Travel Orders"),
+            new("OB", "Official Business"),
+            new("WFH", "Work From Home"),
+            new("CTO", "Compensatory Time Off"),
+            new("OTHER", "Other Attendance Notes")
         };
 
         public ICommand SaveAttendanceRemarkCommand { get; private set; } = null!;
@@ -109,6 +122,34 @@ namespace HRMS.ViewModel
             }
         }
 
+        public string SelectedAttendanceRemarkFilter
+        {
+            get => _selectedAttendanceRemarkFilter;
+            set
+            {
+                var normalized = string.IsNullOrWhiteSpace(value)
+                    ? "ALL"
+                    : value.Trim().ToUpperInvariant();
+
+                if (_selectedAttendanceRemarkFilter == normalized)
+                {
+                    return;
+                }
+
+                _selectedAttendanceRemarkFilter = normalized;
+                OnPropertyChanged();
+                ApplyAttendanceRemarkFilters();
+            }
+        }
+
+        public bool IsEditingAttendanceRemark => SelectedAttendanceRemark != null;
+        public string AttendanceRemarkEditorTitle => IsEditingAttendanceRemark
+            ? "Edit Special Entry"
+            : "New Special Entry";
+        public string AttendanceRemarkSaveButtonText => IsEditingAttendanceRemark
+            ? "Save Changes"
+            : "Create Entry";
+
         public AttendanceRemarkVm? SelectedAttendanceRemark
         {
             get => _selectedAttendanceRemark;
@@ -121,6 +162,9 @@ namespace HRMS.ViewModel
 
                 _selectedAttendanceRemark = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(IsEditingAttendanceRemark));
+                OnPropertyChanged(nameof(AttendanceRemarkEditorTitle));
+                OnPropertyChanged(nameof(AttendanceRemarkSaveButtonText));
 
                 if (_selectedAttendanceRemark != null)
                 {
@@ -130,6 +174,24 @@ namespace HRMS.ViewModel
                     NewAttendanceRemarkDetails = _selectedAttendanceRemark.Details;
                 }
             }
+        }
+
+        public void BeginNewAttendanceRemark()
+        {
+            SelectedAttendanceRemark = null;
+            SelectedRemarkEmployeeId = IsEmployeeMode && _currentEmployeeId.HasValue
+                ? _currentEmployeeId.Value
+                : null;
+            NewAttendanceRemarkDate = DateTime.Today;
+            SelectedRemarkType = string.Equals(SelectedAttendanceRemarkFilter, "ALL", StringComparison.OrdinalIgnoreCase)
+                ? "OTHER"
+                : SelectedAttendanceRemarkFilter;
+            NewAttendanceRemarkDetails = string.Empty;
+        }
+
+        public void BeginEditAttendanceRemark(AttendanceRemarkVm remark)
+        {
+            SelectedAttendanceRemark = remark;
         }
 
         private void InitializeAttendanceRemarks()
@@ -160,6 +222,12 @@ namespace HRMS.ViewModel
         private void ApplyAttendanceRemarkFilters()
         {
             IEnumerable<AttendanceRemarkVm> query = _allAttendanceRemarks;
+            if (!string.Equals(SelectedAttendanceRemarkFilter, "ALL", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(x =>
+                    string.Equals(x.RemarkType, SelectedAttendanceRemarkFilter, StringComparison.OrdinalIgnoreCase));
+            }
+
             var search = (AttendanceRemarkSearchText ?? string.Empty).Trim();
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -177,6 +245,7 @@ namespace HRMS.ViewModel
             {
                 AttendanceRemarks.Add(item);
             }
+            OnPropertyChanged(nameof(IsAttendanceRemarksEmpty));
 
             if (selectedId.HasValue)
             {
@@ -192,13 +261,13 @@ namespace HRMS.ViewModel
 
             if (employeeId <= 0)
             {
-                SetMessage("Select an employee for the travel/OB remark.", ErrorBrush);
+                SetMessage("Select an employee for this special entry.", ErrorBrush);
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(SelectedRemarkType))
             {
-                SetMessage("Select a remark type.", ErrorBrush);
+                SetMessage("Select a special entry type.", ErrorBrush);
                 return;
             }
 
@@ -210,19 +279,33 @@ namespace HRMS.ViewModel
 
             try
             {
-                await _dataService.UpsertAttendanceRemarkAsync(
-                    employeeId,
-                    NewAttendanceRemarkDate.Date,
-                    SelectedRemarkType,
-                    NewAttendanceRemarkDetails);
+                var isEditing = SelectedAttendanceRemark != null;
+                if (isEditing)
+                {
+                    await _dataService.UpdateAttendanceRemarkAsync(
+                        SelectedAttendanceRemark!.RemarkId,
+                        employeeId,
+                        NewAttendanceRemarkDate.Date,
+                        SelectedRemarkType,
+                        NewAttendanceRemarkDetails,
+                        IsEmployeeMode ? _currentEmployeeId : null);
+                }
+                else
+                {
+                    await _dataService.UpsertAttendanceRemarkAsync(
+                        employeeId,
+                        NewAttendanceRemarkDate.Date,
+                        SelectedRemarkType,
+                        NewAttendanceRemarkDetails);
+                }
 
                 await RefreshAsync();
-                SetMessage("Travel/OB remark saved.", SuccessBrush);
+                SetMessage(isEditing ? "Special entry updated." : "Special entry created.", SuccessBrush);
                 SystemRefreshBus.Raise("AttendanceRemarkSaved");
             }
             catch (Exception ex)
             {
-                SetMessage($"Unable to save travel/OB remark: {ex.Message}", ErrorBrush);
+                SetMessage($"Unable to save special entry: {ex.Message}", ErrorBrush);
             }
         }
 
@@ -231,13 +314,13 @@ namespace HRMS.ViewModel
             var remark = parameter as AttendanceRemarkVm ?? SelectedAttendanceRemark;
             if (remark == null)
             {
-                SetMessage("Select a travel/OB remark first.", ErrorBrush);
+                SetMessage("Select a special entry first.", ErrorBrush);
                 return;
             }
 
             if (IsEmployeeMode && (!_currentEmployeeId.HasValue || remark.EmployeeId != _currentEmployeeId.Value))
             {
-                SetMessage("You can only delete your own travel/OB remarks.", ErrorBrush);
+                SetMessage("You can only delete your own special entries.", ErrorBrush);
                 return;
             }
 
@@ -248,14 +331,26 @@ namespace HRMS.ViewModel
                     IsEmployeeMode ? _currentEmployeeId : null);
 
                 await RefreshAsync();
-                SetMessage("Travel/OB remark deleted.", SuccessBrush);
+                SetMessage("Special entry deleted.", SuccessBrush);
                 SystemRefreshBus.Raise("AttendanceRemarkDeleted");
             }
             catch (Exception ex)
             {
-                SetMessage($"Unable to delete travel/OB remark: {ex.Message}", ErrorBrush);
+                SetMessage($"Unable to delete special entry: {ex.Message}", ErrorBrush);
             }
         }
+    }
+
+    public sealed class AttendanceRemarkTypeOptionVm
+    {
+        public AttendanceRemarkTypeOptionVm(string code, string label)
+        {
+            Code = code;
+            Label = label;
+        }
+
+        public string Code { get; }
+        public string Label { get; }
     }
 
     public class AttendanceRemarkVm
@@ -286,6 +381,15 @@ namespace HRMS.ViewModel
         public string EmployeeName { get; }
         public DateTime WorkDate { get; }
         public string RemarkType { get; }
+        public string RemarkTypeLabel => RemarkType switch
+        {
+            "HOLIDAY" => "Holiday",
+            "TO" => "Travel Order",
+            "OB" => "Official Business",
+            "WFH" => "Work From Home",
+            "CTO" => "Compensatory Time Off",
+            _ => "Other Attendance Note"
+        };
         public string Details { get; }
         public DateTime CreatedAt { get; }
         public string WorkDateText => WorkDate.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture);
